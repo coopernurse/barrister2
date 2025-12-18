@@ -171,19 +171,11 @@ func TestValidOptionalFields(t *testing.T) {
 }
 
 func TestValidNestedTypes(t *testing.T) {
-	// Note: The parser grammar doesn't support nested types like []map[string]int
-	// This test documents the limitation
 	input := `struct Test {
   arrayOfMaps []map[string]int
-  mapOfArrays map[string][]string
+  arraysInMap map[string][]string
 }`
-	_, err := ParseIDL(input)
-	if err != nil {
-		t.Logf("Nested types not supported (expected): %v", err)
-		// This is expected - the grammar only supports single-token types
-	} else {
-		t.Error("Expected parse error for nested types")
-	}
+	assertValid(t, input)
 }
 
 func TestValidCommentsAndWhitespace(t *testing.T) {
@@ -434,60 +426,34 @@ func TestInvalidMapWithInvalidValueType(t *testing.T) {
 // ============================================================================
 
 func TestValidTwoDimensionalArray(t *testing.T) {
-	// Note: The parser grammar doesn't support multi-dimensional arrays
-	// The grammar only allows single-token types after []
 	input := `struct Test {
   matrix [][]string
 }`
-	_, err := ParseIDL(input)
-	if err != nil {
-		t.Logf("Multi-dimensional arrays not supported (expected): %v", err)
-		// This is expected - the grammar only supports single-token types
-	} else {
-		t.Error("Expected parse error for multi-dimensional arrays")
-	}
+	assertValid(t, input)
 }
 
 func TestValidThreeDimensionalArray(t *testing.T) {
-	// Note: Multi-dimensional arrays not supported by grammar
 	input := `struct Test {
   cube [][][]int
 }`
-	_, err := ParseIDL(input)
-	if err != nil {
-		t.Logf("Multi-dimensional arrays not supported (expected): %v", err)
-	} else {
-		t.Error("Expected parse error for multi-dimensional arrays")
-	}
+	assertValid(t, input)
 }
 
 func TestValidArrayOfArraysOfUserDefinedTypes(t *testing.T) {
-	// Note: Multi-dimensional arrays not supported by grammar
 	input := `struct User {
   id string
 }
 struct Test {
   users [][]User
 }`
-	_, err := ParseIDL(input)
-	if err != nil {
-		t.Logf("Multi-dimensional arrays not supported (expected): %v", err)
-	} else {
-		t.Error("Expected parse error for multi-dimensional arrays")
-	}
+	assertValid(t, input)
 }
 
 func TestValidNestedArrayWithMaps(t *testing.T) {
-	// Note: Nested types not supported by grammar
 	input := `struct Test {
   data []map[string][]string
 }`
-	_, err := ParseIDL(input)
-	if err != nil {
-		t.Logf("Nested types not supported (expected): %v", err)
-	} else {
-		t.Error("Expected parse error for nested types")
-	}
+	assertValid(t, input)
 }
 
 // ============================================================================

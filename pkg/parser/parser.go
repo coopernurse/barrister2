@@ -111,17 +111,16 @@ type TypeExpr struct {
 type ArrayType struct {
 	Pos          lexer.Position
 	ArrayMarkers string `parser:"'[' ']'"`
-	ElementStart string `parser:"@(String|Int|Float|Bool|Ident|Map)"`
-	ElementType  *TypeExpr
-	// For nested arrays, we'll handle in post-processing
+	// Capture the element type - can be nested
+	ElementType *TypeExpr `parser:"@@"`
 }
 
 // MapTypeExpr represents map[string]ValueType - matches map pattern, value type parsed in post-processing
 type MapTypeExpr struct {
 	Pos        lexer.Position
 	MapPattern string `parser:"@Map '[' @String ']'"`
-	ValueStart string `parser:"@(String|Int|Float|Bool|Ident|Map|'[')"`
-	ValueType  *TypeExpr
+	// Capture the value type - can be nested
+	ValueType *TypeExpr `parser:"@@"`
 }
 
 // extractTypeExpression extracts a complete type expression from input starting at offset
@@ -186,92 +185,17 @@ func parseNestedTypes(expr *TypeExpr, input string) error {
 		return nil
 	}
 
-	if expr.Array != nil && expr.Array.ElementType == nil {
-		// Extract the type expression after [] from the input
-		pos := expr.Array.Pos
-		if pos.Offset+2 < len(input) {
-			// Always extract the full type expression to handle nested types
-			// ElementStart might just be the first token (e.g., "[" for nested arrays)
-			typeStr := extractTypeExpression(input, pos.Offset+2)
-			if typeStr != "" {
-				elemType, err := typeParser.ParseString("", typeStr)
-				if err == nil {
-					expr.Array.ElementType = elemType
-					// Recursively parse nested types
-					if err := parseNestedTypes(elemType, input); err != nil {
-						return err
-					}
-				} else if expr.Array.ElementStart != "" && expr.Array.ElementStart != "[" && expr.Array.ElementStart != "map" {
-					// Fallback for simple types: use ElementStart directly
-					elemType, err := typeParser.ParseString("", expr.Array.ElementStart)
-					if err == nil {
-						expr.Array.ElementType = elemType
-					} else {
-						// Final fallback: treat as user-defined type
-						expr.Array.ElementType = &TypeExpr{
-							Pos:         expr.Array.Pos,
-							UserDefined: &expr.Array.ElementStart,
-						}
-					}
-				}
-			} else if expr.Array.ElementStart != "" && expr.Array.ElementStart != "[" && expr.Array.ElementStart != "map" {
-				// No extracted type, use ElementStart
-				elemType, err := typeParser.ParseString("", expr.Array.ElementStart)
-				if err == nil {
-					expr.Array.ElementType = elemType
-				} else {
-					expr.Array.ElementType = &TypeExpr{
-						Pos:         expr.Array.Pos,
-						UserDefined: &expr.Array.ElementStart,
-					}
-				}
-			}
+	if expr.Array != nil && expr.Array.ElementType != nil {
+		// ElementType is already parsed by the grammar, just recursively parse nested types
+		if err := parseNestedTypes(expr.Array.ElementType, input); err != nil {
+			return err
 		}
 	}
 
-	if expr.MapType != nil && expr.MapType.ValueType == nil {
-		// Extract the value type after map[string] from the input
-		pos := expr.MapType.Pos
-		if pos.Offset < len(input) {
-			remaining := input[pos.Offset:]
-			mapPrefix := "map[string]"
-			if strings.HasPrefix(remaining, mapPrefix) {
-				// Always extract the full type expression to handle nested types
-				typeStr := extractTypeExpression(input, pos.Offset+len(mapPrefix))
-				if typeStr != "" {
-					valueType, err := typeParser.ParseString("", typeStr)
-					if err == nil {
-						expr.MapType.ValueType = valueType
-						// Recursively parse nested types
-						if err := parseNestedTypes(valueType, input); err != nil {
-							return err
-						}
-					} else if expr.MapType.ValueStart != "" && expr.MapType.ValueStart != "[" && expr.MapType.ValueStart != "map" {
-						// Fallback for simple types: use ValueStart directly
-						valueType, err := typeParser.ParseString("", expr.MapType.ValueStart)
-						if err == nil {
-							expr.MapType.ValueType = valueType
-						} else {
-							// Final fallback: treat as user-defined type
-							expr.MapType.ValueType = &TypeExpr{
-								Pos:         expr.MapType.Pos,
-								UserDefined: &expr.MapType.ValueStart,
-							}
-						}
-					}
-				} else if expr.MapType.ValueStart != "" && expr.MapType.ValueStart != "[" && expr.MapType.ValueStart != "map" {
-					// No extracted type, use ValueStart
-					valueType, err := typeParser.ParseString("", expr.MapType.ValueStart)
-					if err == nil {
-						expr.MapType.ValueType = valueType
-					} else {
-						expr.MapType.ValueType = &TypeExpr{
-							Pos:         expr.MapType.Pos,
-							UserDefined: &expr.MapType.ValueStart,
-						}
-					}
-				}
-			}
+	if expr.MapType != nil && expr.MapType.ValueType != nil {
+		// ValueType is already parsed by the grammar, just recursively parse nested types
+		if err := parseNestedTypes(expr.MapType.ValueType, input); err != nil {
+			return err
 		}
 	}
 
