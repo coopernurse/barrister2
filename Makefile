@@ -4,7 +4,6 @@
 BINARY_NAME=barrister
 TARGET_DIR=target
 BINARY_PATH=$(TARGET_DIR)/$(BINARY_NAME)
-MAIN_PATH=$(shell if [ -f barrister.go ]; then echo barrister.go; elif [ -f cmd/barrister/main.go ]; then echo ./cmd/barrister; else echo ""; fi)
 COVERAGE_FILE=$(TARGET_DIR)/coverage.out
 COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 
@@ -12,17 +11,9 @@ COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 .DEFAULT_GOAL := build
 
 # Build the binary
-build: $(BINARY_PATH)
-
-$(BINARY_PATH): $(MAIN_PATH)
-	@echo "Building $(BINARY_NAME)..."
-	@mkdir -p $(TARGET_DIR)
-	@if [ -z "$(MAIN_PATH)" ]; then \
-		echo "Error: No main file found. Looking for barrister.go or cmd/barrister/main.go"; \
-		exit 1; \
-	fi
-	go build -o $(BINARY_PATH) $(MAIN_PATH)
-	@echo "Built $(BINARY_NAME) successfully at $(BINARY_PATH)"
+build:
+	go build -o $(BINARY_PATH) cmd/barrister/barrister.go
+	@echo "Built successfully at $(BINARY_PATH)"
 
 # Run tests
 test:
