@@ -108,7 +108,7 @@ func prettyPrintIDL(idl *parser.IDL) {
 				if i > 0 {
 					fmt.Print(", ")
 				}
-				fmt.Print(value)
+				fmt.Print(value.Name)
 			}
 			fmt.Println()
 		}

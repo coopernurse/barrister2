@@ -16,6 +16,7 @@ type Interface struct {
 	Pos       lexer.Position
 	Name      string
 	Namespace string
+	Comment   string
 	Methods   []*Method
 }
 
@@ -40,6 +41,7 @@ type Struct struct {
 	Name      string
 	Namespace string
 	Extends   string // Empty if no extends, can be qualified (e.g., "inc.Response")
+	Comment   string
 	Fields    []*Field
 }
 
@@ -49,6 +51,13 @@ type Field struct {
 	Name     string
 	Type     *Type
 	Optional bool
+	Comment  string
+}
+
+// EnumValue represents a single enum value with optional comment
+type EnumValue struct {
+	Name    string
+	Comment string
 }
 
 // Enum represents an enum definition with values
@@ -56,7 +65,8 @@ type Enum struct {
 	Pos       lexer.Position
 	Name      string
 	Namespace string
-	Values    []string
+	Comment   string
+	Values    []*EnumValue
 }
 
 // Type represents a type (built-in, array, map, or user-defined)
@@ -112,4 +122,3 @@ func (t *Type) String() string {
 	}
 	return "unknown"
 }
-

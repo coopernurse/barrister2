@@ -1606,3 +1606,285 @@ interface Service {
 		t.Error("Expected to find inc.Response")
 	}
 }
+
+// ============================================================================
+// Comment Retention Tests
+// ============================================================================
+
+func TestStructCommentRetention(t *testing.T) {
+	input := `// comment line 1
+// comment line 2 for struct
+struct MyStruct {
+   // myfield comment
+   myfield string   // ignore this
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	expectedComment := "comment line 1\ncomment line 2 for struct"
+	if s.Comment != expectedComment {
+		t.Errorf("Expected struct comment '%s', got '%s'", expectedComment, s.Comment)
+	}
+
+	if len(s.Fields) != 1 {
+		t.Fatalf("Expected 1 field, got %d", len(s.Fields))
+	}
+
+	f := s.Fields[0]
+	expectedFieldComment := "myfield comment"
+	if f.Comment != expectedFieldComment {
+		t.Errorf("Expected field comment '%s', got '%s'", expectedFieldComment, f.Comment)
+	}
+}
+
+func TestStructFieldCommentRetention(t *testing.T) {
+	input := `struct MyStruct {
+   // field1 comment
+   field1 string
+   // field2 comment with spaces
+   field2 int
+   field3 string
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	if len(s.Fields) != 3 {
+		t.Fatalf("Expected 3 fields, got %d", len(s.Fields))
+	}
+
+	if s.Fields[0].Comment != "field1 comment" {
+		t.Errorf("Expected field1 comment 'field1 comment', got '%s'", s.Fields[0].Comment)
+	}
+	if s.Fields[1].Comment != "field2 comment with spaces" {
+		t.Errorf("Expected field2 comment 'field2 comment with spaces', got '%s'", s.Fields[1].Comment)
+	}
+	if s.Fields[2].Comment != "" {
+		t.Errorf("Expected field3 comment empty, got '%s'", s.Fields[2].Comment)
+	}
+}
+
+func TestEnumCommentRetention(t *testing.T) {
+	input := `// enum comment here
+enum MyEnum {
+  // value1 notes
+  value1
+  // value2 notes
+  value2
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Enums) != 1 {
+		t.Fatalf("Expected 1 enum, got %d", len(idl.Enums))
+	}
+
+	e := idl.Enums[0]
+	expectedComment := "enum comment here"
+	if e.Comment != expectedComment {
+		t.Errorf("Expected enum comment '%s', got '%s'", expectedComment, e.Comment)
+	}
+}
+
+func TestEnumValueCommentRetention(t *testing.T) {
+	input := `enum MyEnum {
+  // value1 notes
+  value1
+  // value2 notes
+  value2
+  value3
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Enums) != 1 {
+		t.Fatalf("Expected 1 enum, got %d", len(idl.Enums))
+	}
+
+	e := idl.Enums[0]
+	if len(e.Values) != 3 {
+		t.Fatalf("Expected 3 enum values, got %d", len(e.Values))
+	}
+
+	if e.Values[0].Name != "value1" {
+		t.Errorf("Expected value1 name 'value1', got '%s'", e.Values[0].Name)
+	}
+	if e.Values[0].Comment != "value1 notes" {
+		t.Errorf("Expected value1 comment 'value1 notes', got '%s'", e.Values[0].Comment)
+	}
+
+	if e.Values[1].Name != "value2" {
+		t.Errorf("Expected value2 name 'value2', got '%s'", e.Values[1].Name)
+	}
+	if e.Values[1].Comment != "value2 notes" {
+		t.Errorf("Expected value2 comment 'value2 notes', got '%s'", e.Values[1].Comment)
+	}
+
+	if e.Values[2].Name != "value3" {
+		t.Errorf("Expected value3 name 'value3', got '%s'", e.Values[2].Name)
+	}
+	if e.Values[2].Comment != "" {
+		t.Errorf("Expected value3 comment empty, got '%s'", e.Values[2].Comment)
+	}
+}
+
+func TestInterfaceCommentRetention(t *testing.T) {
+	input := `// interface comment
+interface MyInterface {
+  // method comment
+  method() string
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Interfaces) != 1 {
+		t.Fatalf("Expected 1 interface, got %d", len(idl.Interfaces))
+	}
+
+	iface := idl.Interfaces[0]
+	expectedComment := "interface comment"
+	if iface.Comment != expectedComment {
+		t.Errorf("Expected interface comment '%s', got '%s'", expectedComment, iface.Comment)
+	}
+}
+
+func TestCommentIgnoredWhenBlankLine(t *testing.T) {
+	input := `// ignore this because there's a following blank line
+
+// enum comment here
+enum MyEnum {
+  value1
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Enums) != 1 {
+		t.Fatalf("Expected 1 enum, got %d", len(idl.Enums))
+	}
+
+	e := idl.Enums[0]
+	expectedComment := "enum comment here"
+	if e.Comment != expectedComment {
+		t.Errorf("Expected enum comment '%s', got '%s'", expectedComment, e.Comment)
+	}
+}
+
+func TestInlineCommentsIgnored(t *testing.T) {
+	input := `struct MyStruct {
+   myfield string   // ignore this inline comment
+   another int
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	if len(s.Fields) != 2 {
+		t.Fatalf("Expected 2 fields, got %d", len(s.Fields))
+	}
+
+	if s.Fields[0].Comment != "" {
+		t.Errorf("Expected field comment empty (inline comment ignored), got '%s'", s.Fields[0].Comment)
+	}
+}
+
+func TestMultipleCommentLinesConcatenated(t *testing.T) {
+	input := `// comment line 1
+// comment line 2
+// comment line 3
+struct MyStruct {
+  field string
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	expectedComment := "comment line 1\ncomment line 2\ncomment line 3"
+	if s.Comment != expectedComment {
+		t.Errorf("Expected struct comment '%s', got '%s'", expectedComment, s.Comment)
+	}
+}
+
+func TestCommentWhitespaceTrimmed(t *testing.T) {
+	input := `//   comment with leading spaces
+//	comment with tab
+struct MyStruct {
+  //   field comment with spaces
+  field string
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	expectedComment := "comment with leading spaces\ncomment with tab"
+	if s.Comment != expectedComment {
+		t.Errorf("Expected struct comment '%s', got '%s'", expectedComment, s.Comment)
+	}
+
+	if len(s.Fields) != 1 {
+		t.Fatalf("Expected 1 field, got %d", len(s.Fields))
+	}
+
+	f := s.Fields[0]
+	expectedFieldComment := "field comment with spaces"
+	if f.Comment != expectedFieldComment {
+		t.Errorf("Expected field comment '%s', got '%s'", expectedFieldComment, f.Comment)
+	}
+}
+
+func TestNoCommentWhenNonePresent(t *testing.T) {
+	input := `struct MyStruct {
+  field string
+}`
+	idl, err := parseAndValidate(input)
+	if err != nil {
+		t.Fatalf("Expected valid parsing, got error: %v", err)
+	}
+
+	if len(idl.Structs) != 1 {
+		t.Fatalf("Expected 1 struct, got %d", len(idl.Structs))
+	}
+
+	s := idl.Structs[0]
+	if s.Comment != "" {
+		t.Errorf("Expected empty comment, got '%s'", s.Comment)
+	}
+}

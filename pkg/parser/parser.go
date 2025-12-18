@@ -179,6 +179,144 @@ func parseNestedTypes(expr *TypeExpr, input string) error {
 	return nil
 }
 
+// extractPrecedingComments extracts comments directly above a given position in the input.
+// It scans backwards from the position, collecting consecutive comment lines (no blank lines in between).
+// Returns the concatenated comment text with `//` prefix removed and whitespace trimmed on each line,
+// joined with newlines. Returns empty string if no comments found.
+func extractPrecedingComments(input string, pos lexer.Position) string {
+	if pos.Line <= 1 {
+		return ""
+	}
+
+	lines := strings.Split(input, "\n")
+	if len(lines) < pos.Line {
+		return ""
+	}
+
+	// Start from the line before the target (pos.Line is 1-indexed)
+	var commentLines []string
+	targetLineIdx := pos.Line - 1
+
+	// Scan backwards from the line before the target
+	for i := targetLineIdx - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+
+		// If we hit a blank line, stop
+		if line == "" {
+			break
+		}
+
+		// If it's a comment line, extract the content
+		if strings.HasPrefix(line, "//") {
+			// Remove "//" prefix and trim whitespace
+			commentText := strings.TrimSpace(line[2:])
+			// Prepend to maintain order (we're scanning backwards)
+			commentLines = append([]string{commentText}, commentLines...)
+		} else {
+			// If it's not a comment and not blank, stop
+			break
+		}
+	}
+
+	if len(commentLines) == 0 {
+		return ""
+	}
+
+	return strings.Join(commentLines, "\n")
+}
+
+// extractEnumValueComments extracts comments for all enum values in one pass.
+// Returns a slice of comments, one for each value in the same order as values.
+func extractEnumValueComments(input string, enumPos lexer.Position, values []string) []string {
+	lines := strings.Split(input, "\n")
+	if len(lines) < enumPos.Line {
+		return make([]string, len(values))
+	}
+
+	// Find the enum body (starts after the opening brace)
+	enumStartLineIdx := enumPos.Line - 1
+	enumBodyStart := -1
+	for i := enumStartLineIdx; i < len(lines); i++ {
+		if strings.Contains(lines[i], "{") {
+			enumBodyStart = i + 1
+			break
+		}
+	}
+
+	if enumBodyStart < 0 {
+		return make([]string, len(values))
+	}
+
+	// Map to track which value index we're looking for
+	valueIndex := 0
+	comments := make([]string, len(values))
+
+	// Scan through the enum body to find values
+	for i := enumBodyStart; i < len(lines); i++ {
+		line := lines[i]
+		trimmedLine := strings.TrimSpace(line)
+
+		// Skip comment-only lines (we'll collect them when we find the value)
+		if trimmedLine == "" || strings.HasPrefix(trimmedLine, "//") {
+			continue
+		}
+
+		// If we hit the closing brace, stop
+		if strings.Contains(trimmedLine, "}") {
+			break
+		}
+
+		// Remove any inline comments first
+		if commentIdx := strings.Index(trimmedLine, "//"); commentIdx >= 0 {
+			trimmedLine = strings.TrimSpace(trimmedLine[:commentIdx])
+		}
+
+		// Check if this line matches the current value we're looking for
+		if valueIndex < len(values) {
+			valueName := values[valueIndex]
+			isValueLine := false
+			if trimmedLine == valueName {
+				isValueLine = true
+			} else {
+				// Check if valueName is the first word
+				words := strings.Fields(trimmedLine)
+				if len(words) > 0 && words[0] == valueName {
+					isValueLine = true
+				}
+			}
+
+			if isValueLine {
+				// Extract comments directly above this line
+				var commentLines []string
+				for j := i - 1; j >= enumBodyStart; j-- {
+					prevLine := strings.TrimSpace(lines[j])
+
+					// Stop at blank lines
+					if prevLine == "" {
+						break
+					}
+
+					// If it's a comment line, collect it
+					if strings.HasPrefix(prevLine, "//") {
+						commentText := strings.TrimSpace(prevLine[2:])
+						commentLines = append([]string{commentText}, commentLines...)
+					} else {
+						// If it's not a comment and not blank, stop
+						break
+					}
+				}
+
+				if len(commentLines) > 0 {
+					comments[valueIndex] = strings.Join(commentLines, "\n")
+				}
+				valueIndex++
+			}
+		}
+	}
+
+	return comments
+}
+
 // ParseIDL parses an IDL file string and returns the parsed IDL structure
 // filename is used for resolving relative imports
 func ParseIDL(filename string, input string) (*IDL, error) {
@@ -341,10 +479,13 @@ func parseIDLWithImports(filename string, input string, visited map[string]bool)
 	// Process local elements
 	for _, elem := range file.Elements {
 		if elem.Interface != nil {
+			// Extract interface comment
+			interfaceComment := extractPrecedingComments(filteredInput, elem.Interface.Pos)
 			iface := &Interface{
 				Pos:       elem.Interface.Pos,
 				Name:      elem.Interface.Name,
 				Namespace: namespace,
+				Comment:   interfaceComment,
 				Methods:   make([]*Method, 0),
 			}
 			for _, m := range elem.Interface.Methods {
@@ -365,31 +506,57 @@ func parseIDLWithImports(filename string, input string, visited map[string]bool)
 			}
 			idl.Interfaces = append(idl.Interfaces, iface)
 		} else if elem.Struct != nil {
+			// Extract struct comment
+			structComment := extractPrecedingComments(filteredInput, elem.Struct.Pos)
 			s := &Struct{
 				Pos:       elem.Struct.Pos,
 				Name:      elem.Struct.Name,
 				Namespace: namespace,
 				Extends:   "",
+				Comment:   structComment,
 				Fields:    make([]*Field, 0),
 			}
 			if elem.Struct.Extends != nil {
 				s.Extends = elem.Struct.Extends.String()
 			}
 			for _, f := range elem.Struct.Fields {
+				// Extract field comment
+				fieldComment := extractPrecedingComments(filteredInput, f.Pos)
 				s.Fields = append(s.Fields, &Field{
 					Pos:      f.Pos,
 					Name:     f.Name,
 					Type:     convertTypeExpr(f.Type),
 					Optional: f.Optional,
+					Comment:  fieldComment,
 				})
 			}
 			idl.Structs = append(idl.Structs, s)
 		} else if elem.Enum != nil {
+			// Extract enum comment
+			enumComment := extractPrecedingComments(filteredInput, elem.Enum.Pos)
+
+			// Extract comments for all enum values in one pass
+			valueComments := extractEnumValueComments(filteredInput, elem.Enum.Pos, elem.Enum.Values)
+
+			// Convert enum values to EnumValue structs with comments
+			enumValues := make([]*EnumValue, 0, len(elem.Enum.Values))
+			for i, valueName := range elem.Enum.Values {
+				comment := ""
+				if i < len(valueComments) {
+					comment = valueComments[i]
+				}
+				enumValues = append(enumValues, &EnumValue{
+					Name:    valueName,
+					Comment: comment,
+				})
+			}
+
 			idl.Enums = append(idl.Enums, &Enum{
 				Pos:       elem.Enum.Pos,
 				Name:      elem.Enum.Name,
 				Namespace: namespace,
-				Values:    elem.Enum.Values,
+				Comment:   enumComment,
+				Values:    enumValues,
 			})
 		}
 	}
