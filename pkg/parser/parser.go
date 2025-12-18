@@ -9,20 +9,20 @@ import (
 
 var (
 	idlLexer = lexer.MustSimple([]lexer.SimpleRule{
-		{"Comment", `//[^\n]*`},
-		{"Whitespace", `[ \t\r\n]+`},
-		{"Optional", `\[optional\]`},
-		{"Interface", `interface`},
-		{"Struct", `struct`},
-		{"Enum", `enum`},
-		{"Extends", `extends`},
-		{"Map", `map`},
-		{"String", `string`},
-		{"Float", `float`},
-		{"Bool", `bool`},
-		{"Int", `int`},
-		{"Ident", `[a-zA-Z][a-zA-Z0-9_]*`},
-		{"Punct", `[{}[\]();,]`},
+		{Name: "Comment", Pattern: `//[^\n]*`},
+		{Name: "Whitespace", Pattern: `[ \t\r\n]+`},
+		{Name: "Optional", Pattern: `\[optional\]`},
+		{Name: "Interface", Pattern: `interface`},
+		{Name: "Struct", Pattern: `struct`},
+		{Name: "Enum", Pattern: `enum`},
+		{Name: "Extends", Pattern: `extends`},
+		{Name: "Map", Pattern: `map`},
+		{Name: "String", Pattern: `string`},
+		{Name: "Float", Pattern: `float`},
+		{Name: "Bool", Pattern: `bool`},
+		{Name: "Int", Pattern: `int`},
+		{Name: "Ident", Pattern: `[a-zA-Z][a-zA-Z0-9_]*`},
+		{Name: "Punct", Pattern: `[{}[\]();,]`},
 	})
 
 	typeParser = participle.MustBuild[TypeExpr](
@@ -227,30 +227,4 @@ func convertTypeExpr(expr *TypeExpr) *Type {
 	return t
 }
 
-// validateIdentifier checks if an identifier matches the rules
-func validateIdentifier(ident string) bool {
-	if len(ident) == 0 {
-		return false
-	}
-	if !((ident[0] >= 'a' && ident[0] <= 'z') || (ident[0] >= 'A' && ident[0] <= 'Z')) {
-		return false
-	}
-	for i := 1; i < len(ident); i++ {
-		c := ident[i]
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
-			return false
-		}
-	}
-	return true
-}
-
-// GetLineNumber returns the line number from a position string
-func getLineNumber(pos lexer.Position) int {
-	return pos.Line
-}
-
-// GetColumnNumber returns the column number from a position string
-func getColumnNumber(pos lexer.Position) int {
-	return pos.Column
-}
 
