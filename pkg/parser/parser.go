@@ -198,7 +198,9 @@ func parseNestedTypes(expr *TypeExpr, input string) error {
 				if err == nil {
 					expr.Array.ElementType = elemType
 					// Recursively parse nested types
-					parseNestedTypes(elemType, input)
+					if err := parseNestedTypes(elemType, input); err != nil {
+						return err
+					}
 				} else if expr.Array.ElementStart != "" && expr.Array.ElementStart != "[" && expr.Array.ElementStart != "map" {
 					// Fallback for simple types: use ElementStart directly
 					elemType, err := typeParser.ParseString("", expr.Array.ElementStart)
@@ -241,7 +243,9 @@ func parseNestedTypes(expr *TypeExpr, input string) error {
 					if err == nil {
 						expr.MapType.ValueType = valueType
 						// Recursively parse nested types
-						parseNestedTypes(valueType, input)
+						if err := parseNestedTypes(valueType, input); err != nil {
+							return err
+						}
 					} else if expr.MapType.ValueStart != "" && expr.MapType.ValueStart != "[" && expr.MapType.ValueStart != "map" {
 						// Fallback for simple types: use ValueStart directly
 						valueType, err := typeParser.ParseString("", expr.MapType.ValueStart)
@@ -282,26 +286,30 @@ func ParseIDL(input string) (*IDL, error) {
 	}
 
 	// Post-process to parse nested types recursively
-	var processTypeExpr func(expr *TypeExpr) error
-	processTypeExpr = func(expr *TypeExpr) error {
+	var processTypeExpr = func(expr *TypeExpr) error {
 		if expr == nil {
 			return nil
 		}
-		parseNestedTypes(expr, input)
-		return nil
+		return parseNestedTypes(expr, input)
 	}
 
 	for _, elem := range file.Elements {
 		if elem.Interface != nil {
 			for _, m := range elem.Interface.Methods {
-				processTypeExpr(m.ReturnType)
+				if err := processTypeExpr(m.ReturnType); err != nil {
+					return nil, fmt.Errorf("error processing return type: %w", err)
+				}
 				for _, p := range m.Parameters {
-					processTypeExpr(p.Type)
+					if err := processTypeExpr(p.Type); err != nil {
+						return nil, fmt.Errorf("error processing parameter type: %w", err)
+					}
 				}
 			}
 		} else if elem.Struct != nil {
 			for _, f := range elem.Struct.Fields {
-				processTypeExpr(f.Type)
+				if err := processTypeExpr(f.Type); err != nil {
+					return nil, fmt.Errorf("error processing field type: %w", err)
+				}
 			}
 		}
 	}
