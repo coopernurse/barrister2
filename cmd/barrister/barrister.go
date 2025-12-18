@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// Parse IDL
-	idl, err := parser.ParseIDL(string(content))
+	idl, err := parser.ParseIDL(filename, string(content))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
@@ -57,6 +57,9 @@ func prettyPrintIDL(idl *parser.IDL) {
 		fmt.Println("Interfaces:")
 		for _, iface := range idl.Interfaces {
 			fmt.Printf("  %s:\n", iface.Name)
+			if iface.Namespace != "" {
+				fmt.Printf("    Namespace: %s\n", iface.Namespace)
+			}
 			fmt.Println("    Methods:")
 			for _, method := range iface.Methods {
 				fmt.Printf("      %s(", method.Name)
@@ -79,6 +82,9 @@ func prettyPrintIDL(idl *parser.IDL) {
 			} else {
 				fmt.Printf("  %s:\n", s.Name)
 			}
+			if s.Namespace != "" {
+				fmt.Printf("    Namespace: %s\n", s.Namespace)
+			}
 			fmt.Println("    Fields:")
 			for _, field := range s.Fields {
 				optional := ""
@@ -94,6 +100,9 @@ func prettyPrintIDL(idl *parser.IDL) {
 		fmt.Println("Enums:")
 		for _, enum := range idl.Enums {
 			fmt.Printf("  %s:\n", enum.Name)
+			if enum.Namespace != "" {
+				fmt.Printf("    Namespace: %s\n", enum.Namespace)
+			}
 			fmt.Print("    Values: ")
 			for i, value := range enum.Values {
 				if i > 0 {

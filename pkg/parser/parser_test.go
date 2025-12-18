@@ -1,13 +1,15 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 // Helper function to parse and validate in one call
 func parseAndValidate(input string) (*IDL, error) {
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +23,7 @@ func parseAndValidate(input string) (*IDL, error) {
 // Helper to assert parse errors
 func assertParseError(t *testing.T, input string, expectedErrorSubstring string) {
 	t.Helper()
-	_, err := ParseIDL(input)
+	_, err := ParseIDL("test.idl", input)
 	if err == nil {
 		t.Errorf("Expected parse error for input:\n%s\nBut got nil", input)
 		return
@@ -34,7 +36,7 @@ func assertParseError(t *testing.T, input string, expectedErrorSubstring string)
 // Helper to assert validation errors
 func assertValidationError(t *testing.T, input string, expectedErrorSubstring string) {
 	t.Helper()
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Errorf("Unexpected parse error for input:\n%s\nError: %v", input, err)
 		return
@@ -135,7 +137,7 @@ func TestValidMapTypes(t *testing.T) {
 	input := `struct Test {
   nameMap map[string]string
 }`
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Logf("Map parsing issue: %v", err)
 		// Maps may have parsing issues with certain value types
@@ -150,7 +152,7 @@ func TestValidMapTypes(t *testing.T) {
 	input2 := `struct Test {
   idMap map[string]int
 }`
-	idl2, err2 := ParseIDL(input2)
+	idl2, err2 := ParseIDL("test.idl", input2)
 	if err2 != nil {
 		t.Logf("Map[int] parsing issue: %v", err2)
 	} else {
@@ -318,7 +320,7 @@ func TestInvalidUnknownBuiltInType(t *testing.T) {
 	input := `struct Test {
   field unknown
 }`
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -466,7 +468,7 @@ func TestCycleDetectionSelfReferenceWithoutOptional(t *testing.T) {
   next Node
 }`
 	// This should fail validation due to cycle
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -499,7 +501,7 @@ struct B {
   a A
 }`
 	// This should fail validation due to indirect cycle
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -533,7 +535,7 @@ struct Child extends Base {
   value string
 }`
 	// This creates a cycle through extends
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -549,7 +551,7 @@ func TestCycleDetectionInArray(t *testing.T) {
   children []Node
 }`
 	// This should fail - array of self without optional
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -574,7 +576,7 @@ func TestCycleDetectionInMap(t *testing.T) {
   children map[string]Node
 }`
 	// This should fail - map value of self without optional
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -591,7 +593,7 @@ func TestCycleDetectionInMapWithOptional(t *testing.T) {
 }`
 	// This should pass because optional
 	// Note: May fail parsing if map[string]Node isn't supported
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Logf("Map parsing may have issues: %v", err)
 		return
@@ -671,7 +673,7 @@ struct User {
   id string
 }`
 	// This should be caught during validation or parsing
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		return // Parse error is acceptable
 	}
@@ -778,7 +780,7 @@ func TestNestedComplexTypes(t *testing.T) {
   nestedMap map[string]map[string]int
   tripleNested [][][]int
 }`
-	_, err := ParseIDL(input)
+	_, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Logf("Nested types not supported (expected): %v", err)
 	} else {
@@ -799,7 +801,7 @@ func TestAllBuiltInTypes(t *testing.T) {
   boolArray []bool
 }`
 	// intArray []int appears to have a parsing issue
-	idl, err := ParseIDL(input)
+	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Logf("Parsing issue with some array types: %v", err)
 		// Test with minimal case
@@ -843,4 +845,764 @@ struct AllFields {
 }`
 	// Note: Removed map fields as they may not parse correctly
 	assertValid(t, input)
+}
+
+// ============================================================================
+// Import and Namespace Tests
+// ============================================================================
+
+// Helper to create a temporary test file and return its path
+func createTestFile(t *testing.T, dir, filename, content string) string {
+	t.Helper()
+	filePath := filepath.Join(dir, filename)
+	err := os.WriteFile(filePath, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file %s: %v", filePath, err)
+	}
+	return filePath
+}
+
+// Helper to parse IDL from file (for import testing)
+func parseIDLFromFile(t *testing.T, filename string) (*IDL, error) {
+	t.Helper()
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	return ParseIDL(filename, string(content))
+}
+
+// Test single import with namespace
+func TestImportWithNamespace(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create imported file with namespace
+	importedContent := `namespace inc
+
+enum Status {
+    ok
+    err
+}
+
+struct Response {
+    status Status
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	// Create main file that imports
+	mainContent := `import "imported.idl"
+
+struct MyResponse extends inc.Response {
+    count int
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify imported types are present with namespace
+	foundIncResponse := false
+	for _, s := range idl.Structs {
+		if s.Name == "inc.Response" {
+			foundIncResponse = true
+			if s.Namespace != "inc" {
+				t.Errorf("Expected namespace 'inc' for inc.Response, got '%s'", s.Namespace)
+			}
+		}
+	}
+	if !foundIncResponse {
+		t.Error("Expected to find inc.Response struct from imported file")
+	}
+
+	// Verify local struct extends qualified type
+	foundMyResponse := false
+	for _, s := range idl.Structs {
+		if s.Name == "MyResponse" {
+			foundMyResponse = true
+			if s.Extends != "inc.Response" {
+				t.Errorf("Expected MyResponse to extend 'inc.Response', got '%s'", s.Extends)
+			}
+		}
+	}
+	if !foundMyResponse {
+		t.Error("Expected to find MyResponse struct")
+	}
+}
+
+// Test nested imports (A → B → C)
+func TestNestedImports(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File C
+	cContent := `namespace c
+
+enum CEnum {
+    value1
+    value2
+}`
+	createTestFile(t, tmpDir, "c.idl", cContent)
+
+	// File B imports C
+	bContent := `namespace b
+
+import "c.idl"
+
+struct BStruct {
+    cEnum c.CEnum
+}`
+	createTestFile(t, tmpDir, "b.idl", bContent)
+
+	// File A imports B
+	aContent := `import "b.idl"
+
+struct AStruct {
+    bStruct b.BStruct
+}`
+	aFile := createTestFile(t, tmpDir, "a.idl", aContent)
+
+	idl, err := parseIDLFromFile(t, aFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify all types are accessible
+	foundCEnum := false
+	foundBStruct := false
+	foundAStruct := false
+
+	for _, e := range idl.Enums {
+		if e.Name == "c.CEnum" {
+			foundCEnum = true
+		}
+	}
+
+	for _, s := range idl.Structs {
+		if s.Name == "b.BStruct" {
+			foundBStruct = true
+		}
+		if s.Name == "AStruct" {
+			foundAStruct = true
+		}
+	}
+
+	if !foundCEnum {
+		t.Error("Expected to find c.CEnum from nested import")
+	}
+	if !foundBStruct {
+		t.Error("Expected to find b.BStruct from import")
+	}
+	if !foundAStruct {
+		t.Error("Expected to find AStruct")
+	}
+}
+
+// Test multiple imports with different namespaces
+func TestMultipleImportsDifferentNamespaces(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File with namespace a
+	aContent := `namespace a
+
+struct AStruct {
+    value string
+}`
+	createTestFile(t, tmpDir, "a.idl", aContent)
+
+	// File with namespace b
+	bContent := `namespace b
+
+struct BStruct {
+    value int
+}`
+	createTestFile(t, tmpDir, "b.idl", bContent)
+
+	// Main file imports both
+	mainContent := `import "a.idl"
+import "b.idl"
+
+struct MainStruct {
+    aStruct a.AStruct
+    bStruct b.BStruct
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify both namespaces are present
+	foundA := false
+	foundB := false
+	for _, s := range idl.Structs {
+		if s.Name == "a.AStruct" {
+			foundA = true
+		}
+		if s.Name == "b.BStruct" {
+			foundB = true
+		}
+	}
+
+	if !foundA {
+		t.Error("Expected to find a.AStruct")
+	}
+	if !foundB {
+		t.Error("Expected to find b.BStruct")
+	}
+}
+
+// Test mixed local and imported types
+func TestMixedLocalAndImported(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace imported
+
+struct ImportedStruct {
+    value string
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	mainContent := `import "imported.idl"
+
+struct LocalStruct {
+    value int
+}
+
+interface Service {
+    useLocal(local LocalStruct) LocalStruct
+    useImported(imp imported.ImportedStruct) imported.ImportedStruct
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify both local and imported types exist
+	foundLocal := false
+	foundImported := false
+
+	for _, s := range idl.Structs {
+		if s.Name == "LocalStruct" && s.Namespace == "" {
+			foundLocal = true
+		}
+		if s.Name == "imported.ImportedStruct" {
+			foundImported = true
+		}
+	}
+
+	if !foundLocal {
+		t.Error("Expected to find local LocalStruct")
+	}
+	if !foundImported {
+		t.Error("Expected to find imported.ImportedStruct")
+	}
+}
+
+// Test qualified type in struct extends
+func TestQualifiedTypeInStructExtends(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace base
+
+struct BaseStruct {
+    id string
+}`
+	createTestFile(t, tmpDir, "base.idl", importedContent)
+
+	mainContent := `import "base.idl"
+
+struct ExtendedStruct extends base.BaseStruct {
+    extra string
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	foundExtended := false
+	for _, s := range idl.Structs {
+		if s.Name == "ExtendedStruct" {
+			foundExtended = true
+			if s.Extends != "base.BaseStruct" {
+				t.Errorf("Expected extends 'base.BaseStruct', got '%s'", s.Extends)
+			}
+		}
+	}
+
+	if !foundExtended {
+		t.Error("Expected to find ExtendedStruct")
+	}
+}
+
+// Test qualified type in method parameters/returns
+func TestQualifiedTypeInMethodSignature(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace types
+
+enum MathOp {
+    add
+    multiply
+}
+
+struct Response {
+    status string
+}`
+	createTestFile(t, tmpDir, "types.idl", importedContent)
+
+	mainContent := `import "types.idl"
+
+interface Service {
+    calc(operation types.MathOp) types.Response
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	foundService := false
+	for _, iface := range idl.Interfaces {
+		if iface.Name == "Service" {
+			foundService = true
+			if len(iface.Methods) != 1 {
+				t.Fatalf("Expected 1 method, got %d", len(iface.Methods))
+			}
+			method := iface.Methods[0]
+			if len(method.Parameters) != 1 {
+				t.Fatalf("Expected 1 parameter, got %d", len(method.Parameters))
+			}
+			if method.Parameters[0].Type.UserDefined != "types.MathOp" {
+				t.Errorf("Expected parameter type 'types.MathOp', got '%s'", method.Parameters[0].Type.UserDefined)
+			}
+			if method.ReturnType.UserDefined != "types.Response" {
+				t.Errorf("Expected return type 'types.Response', got '%s'", method.ReturnType.UserDefined)
+			}
+		}
+	}
+
+	if !foundService {
+		t.Error("Expected to find Service interface")
+	}
+}
+
+// Test import cycle detection (direct cycle)
+func TestImportCycleDirect(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File A imports B
+	aContent := `import "b.idl"
+
+struct AStruct {
+    value string
+}`
+	createTestFile(t, tmpDir, "a.idl", aContent)
+
+	// File B imports A (cycle!)
+	bContent := `import "a.idl"
+
+struct BStruct {
+    value int
+}`
+	createTestFile(t, tmpDir, "b.idl", bContent)
+
+	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.idl"))
+	if err == nil {
+		t.Error("Expected error for import cycle, got nil")
+	} else if !strings.Contains(err.Error(), "cycle") && !strings.Contains(err.Error(), "import") {
+		t.Errorf("Expected cycle-related error, got: %v", err)
+	}
+}
+
+// Test import cycle detection (indirect cycle)
+func TestImportCycleIndirect(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File A imports B
+	aContent := `import "b.idl"
+
+struct AStruct {
+    value string
+}`
+	createTestFile(t, tmpDir, "a.idl", aContent)
+
+	// File B imports C
+	bContent := `import "c.idl"
+
+struct BStruct {
+    value int
+}`
+	createTestFile(t, tmpDir, "b.idl", bContent)
+
+	// File C imports A (indirect cycle!)
+	cContent := `import "a.idl"
+
+struct CStruct {
+    value bool
+}`
+	createTestFile(t, tmpDir, "c.idl", cContent)
+
+	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.idl"))
+	if err == nil {
+		t.Error("Expected error for indirect import cycle, got nil")
+	} else if !strings.Contains(err.Error(), "cycle") && !strings.Contains(err.Error(), "import") {
+		t.Errorf("Expected cycle-related error, got: %v", err)
+	}
+}
+
+// Test duplicate namespace names
+func TestDuplicateNamespace(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Both files use namespace "inc"
+	file1Content := `namespace inc
+
+struct Struct1 {
+    value string
+}`
+	createTestFile(t, tmpDir, "file1.idl", file1Content)
+
+	file2Content := `namespace inc
+
+struct Struct2 {
+    value int
+}`
+	createTestFile(t, tmpDir, "file2.idl", file2Content)
+
+	mainContent := `import "file1.idl"
+import "file2.idl"
+
+struct MainStruct {
+    value bool
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	_, err := parseIDLFromFile(t, mainFile)
+	if err == nil {
+		t.Error("Expected error for duplicate namespace, got nil")
+	} else if !strings.Contains(err.Error(), "namespace") && !strings.Contains(err.Error(), "duplicate") {
+		t.Errorf("Expected namespace-related error, got: %v", err)
+	}
+}
+
+// Test missing import file
+func TestMissingImportFile(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	mainContent := `import "nonexistent.idl"
+
+struct MainStruct {
+    value string
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	_, err := parseIDLFromFile(t, mainFile)
+	if err == nil {
+		t.Error("Expected error for missing import file, got nil")
+	} else if !strings.Contains(err.Error(), "nonexistent") && !strings.Contains(err.Error(), "not found") && !strings.Contains(err.Error(), "no such file") {
+		t.Errorf("Expected file-not-found error, got: %v", err)
+	}
+}
+
+// Test invalid namespace identifier
+func TestInvalidNamespace(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Namespace with invalid characters (if we want to test this at parse time)
+	// This might be caught during parsing or validation
+	invalidContent := `namespace 123invalid
+
+struct Test {
+    value string
+}`
+	invalidFile := createTestFile(t, tmpDir, "invalid.idl", invalidContent)
+
+	_, err := parseIDLFromFile(t, invalidFile)
+	// This might parse but fail validation, or fail parsing
+	// We just check that it doesn't succeed silently
+	if err == nil {
+		// If it parsed, validate it
+		idl, _ := parseIDLFromFile(t, invalidFile)
+		if idl != nil {
+			err = ValidateIDL(idl)
+			if err == nil {
+				t.Error("Expected error for invalid namespace identifier")
+			}
+		}
+	}
+}
+
+// Test qualified name with non-existent namespace
+func TestQualifiedNameNonExistentNamespace(t *testing.T) {
+	input := `struct Test {
+    value nonexistent.Type
+}`
+
+	idl, err := ParseIDL("test.idl", input)
+	if err != nil {
+		// Parse error is acceptable
+		return
+	}
+
+	err = ValidateIDL(idl)
+	if err == nil {
+		t.Error("Expected validation error for non-existent namespace")
+	} else if !strings.Contains(err.Error(), "nonexistent") && !strings.Contains(err.Error(), "unknown") {
+		t.Errorf("Expected namespace-related validation error, got: %v", err)
+	}
+}
+
+// Test qualified name with non-existent type
+func TestQualifiedNameNonExistentType(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace inc
+
+struct Response {
+    status string
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	mainContent := `import "imported.idl"
+
+struct Test {
+    value inc.NonExistent
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected parse to succeed, got: %v", err)
+	}
+
+	err = ValidateIDL(idl)
+	if err == nil {
+		t.Error("Expected validation error for non-existent type in namespace")
+	} else if !strings.Contains(err.Error(), "NonExistent") && !strings.Contains(err.Error(), "unknown") {
+		t.Errorf("Expected type-not-found validation error, got: %v", err)
+	}
+}
+
+// Test import file without namespace
+func TestImportFileWithoutNamespace(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// File without namespace
+	importedContent := `struct ImportedStruct {
+    value string
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	mainContent := `import "imported.idl"
+
+struct MainStruct {
+    imported ImportedStruct
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify imported type is accessible without prefix
+	foundImported := false
+	for _, s := range idl.Structs {
+		if s.Name == "ImportedStruct" && s.Namespace == "" {
+			foundImported = true
+		}
+	}
+
+	if !foundImported {
+		t.Error("Expected to find ImportedStruct without namespace prefix")
+	}
+}
+
+// Test import same file multiple times
+func TestImportSameFileMultipleTimes(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace inc
+
+struct Response {
+    status string
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	mainContent := `import "imported.idl"
+import "imported.idl"
+
+struct MainStruct {
+    value string
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Count occurrences of inc.Response
+	count := 0
+	for _, s := range idl.Structs {
+		if s.Name == "inc.Response" {
+			count++
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("Expected inc.Response to appear once, found %d times", count)
+	}
+}
+
+// Test relative path resolution
+func TestImportPathResolution(t *testing.T) {
+	tmpDir := t.TempDir()
+	subDir := filepath.Join(tmpDir, "subdir")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	// Create file in subdirectory
+	subFileContent := `namespace sub
+
+struct SubStruct {
+    value string
+}`
+	createTestFile(t, subDir, "sub.idl", subFileContent)
+
+	// Main file with relative import
+	mainContent := `import "subdir/sub.idl"
+
+struct MainStruct {
+    sub sub.SubStruct
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse with relative path, got error: %v", err)
+	}
+
+	// Verify imported type is accessible
+	foundSub := false
+	for _, s := range idl.Structs {
+		if s.Name == "sub.SubStruct" {
+			foundSub = true
+		}
+	}
+
+	if !foundSub {
+		t.Error("Expected to find sub.SubStruct from relative import")
+	}
+}
+
+// Test type name conflicts across namespaces
+func TestTypeNameConflictsAcrossNamespaces(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Both have Response type
+	file1Content := `namespace a
+
+struct Response {
+    value string
+}`
+	createTestFile(t, tmpDir, "a.idl", file1Content)
+
+	file2Content := `namespace b
+
+struct Response {
+    value int
+}`
+	createTestFile(t, tmpDir, "b.idl", file2Content)
+
+	mainContent := `import "a.idl"
+import "b.idl"
+
+struct MainStruct {
+    aResp a.Response
+    bResp b.Response
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse, got error: %v", err)
+	}
+
+	// Verify both Response types exist with different namespaces
+	foundAResponse := false
+	foundBResponse := false
+
+	for _, s := range idl.Structs {
+		if s.Name == "a.Response" {
+			foundAResponse = true
+		}
+		if s.Name == "b.Response" {
+			foundBResponse = true
+		}
+	}
+
+	if !foundAResponse {
+		t.Error("Expected to find a.Response")
+	}
+	if !foundBResponse {
+		t.Error("Expected to find b.Response")
+	}
+}
+
+// Test import statement ordering (imports can be anywhere)
+func TestImportStatementOrdering(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	importedContent := `namespace inc
+
+struct Response {
+    status string
+}`
+	createTestFile(t, tmpDir, "imported.idl", importedContent)
+
+	// Import after type definition
+	mainContent := `struct LocalStruct {
+    value string
+}
+
+import "imported.idl"
+
+interface Service {
+    method() inc.Response
+}`
+	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+
+	idl, err := parseIDLFromFile(t, mainFile)
+	if err != nil {
+		t.Fatalf("Expected valid parse regardless of import order, got error: %v", err)
+	}
+
+	// Verify both types exist
+	foundLocal := false
+	foundImported := false
+
+	for _, s := range idl.Structs {
+		if s.Name == "LocalStruct" {
+			foundLocal = true
+		}
+		if s.Name == "inc.Response" {
+			foundImported = true
+		}
+	}
+
+	if !foundLocal {
+		t.Error("Expected to find LocalStruct")
+	}
+	if !foundImported {
+		t.Error("Expected to find inc.Response")
+	}
 }

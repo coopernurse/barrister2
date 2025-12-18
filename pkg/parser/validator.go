@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/alecthomas/participle/v2/lexer"
 )
@@ -27,8 +28,10 @@ func ValidateIDL(idl *IDL) error {
 	typeNames := make(map[string]string) // type name -> "interface", "struct", or "enum"
 
 	// First pass: register all types and check for duplicates
+	// For qualified names (namespace.Type), validate the base name part
 	for _, iface := range idl.Interfaces {
-		if !validateIdentifierName(iface.Name, errors, iface.Pos.Line, iface.Pos.Column) {
+		baseName := getBaseName(iface.Name)
+		if !validateIdentifierName(baseName, errors, iface.Pos.Line, iface.Pos.Column) {
 			continue
 		}
 		if existingPos, exists := typeRegistry[iface.Name]; exists {
@@ -45,7 +48,8 @@ func ValidateIDL(idl *IDL) error {
 
 	// Register all structs
 	for _, s := range idl.Structs {
-		if !validateIdentifierName(s.Name, errors, s.Pos.Line, s.Pos.Column) {
+		baseName := getBaseName(s.Name)
+		if !validateIdentifierName(baseName, errors, s.Pos.Line, s.Pos.Column) {
 			continue
 		}
 		if existingPos, exists := typeRegistry[s.Name]; exists {
@@ -62,7 +66,8 @@ func ValidateIDL(idl *IDL) error {
 
 	// Register all enums
 	for _, enum := range idl.Enums {
-		if !validateIdentifierName(enum.Name, errors, enum.Pos.Line, enum.Pos.Column) {
+		baseName := getBaseName(enum.Name)
+		if !validateIdentifierName(baseName, errors, enum.Pos.Line, enum.Pos.Column) {
 			continue
 		}
 		if existingPos, exists := typeRegistry[enum.Name]; exists {
@@ -157,11 +162,12 @@ func validateType(t *Type, typeRegistry map[string]lexer.Position, errors *Valid
 	}
 
 	if t.IsUserDefined() {
-		if _, exists := typeRegistry[t.UserDefined]; !exists && !builtInTypes[t.UserDefined] {
+		typeName := t.UserDefined
+		if _, exists := typeRegistry[typeName]; !exists && !builtInTypes[typeName] {
 			errors.Add(&ValidationError{
 				Line:   line,
 				Column: column,
-				Msg:    fmt.Sprintf("unknown type: %s", t.UserDefined),
+				Msg:    fmt.Sprintf("unknown type: %s", typeName),
 			})
 		}
 		return
@@ -185,6 +191,12 @@ func validateIdentifierName(name string, errors *ValidationErrors, line, column 
 		return false
 	}
 	return true
+}
+
+// getBaseName extracts the base name from a qualified name (e.g., "inc.Response" -> "Response")
+func getBaseName(name string) string {
+	parts := strings.Split(name, ".")
+	return parts[len(parts)-1]
 }
 
 // getReferencedTypes extracts user-defined type names from a Type

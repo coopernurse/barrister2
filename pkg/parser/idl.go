@@ -13,9 +13,10 @@ type IDL struct {
 
 // Interface represents a service interface with methods
 type Interface struct {
-	Pos     lexer.Position
-	Name    string
-	Methods []*Method
+	Pos       lexer.Position
+	Name      string
+	Namespace string
+	Methods   []*Method
 }
 
 // Method represents an interface method with parameters and return type
@@ -35,10 +36,11 @@ type Parameter struct {
 
 // Struct represents a struct definition with fields and optional extends
 type Struct struct {
-	Pos     lexer.Position
-	Name    string
-	Extends string // Empty if no extends
-	Fields  []*Field
+	Pos       lexer.Position
+	Name      string
+	Namespace string
+	Extends   string // Empty if no extends, can be qualified (e.g., "inc.Response")
+	Fields    []*Field
 }
 
 // Field represents a struct field with type, optional flag, and comments
@@ -51,9 +53,10 @@ type Field struct {
 
 // Enum represents an enum definition with values
 type Enum struct {
-	Pos    lexer.Position
-	Name   string
-	Values []string
+	Pos       lexer.Position
+	Name      string
+	Namespace string
+	Values    []string
 }
 
 // Type represents a type (built-in, array, map, or user-defined)
