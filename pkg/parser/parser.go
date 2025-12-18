@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
@@ -25,12 +24,6 @@ var (
 		{Name: "Ident", Pattern: `[a-zA-Z][a-zA-Z0-9_]*`},
 		{Name: "Punct", Pattern: `[{}[\]();,]`},
 	})
-
-	typeParser = participle.MustBuild[TypeExpr](
-		participle.Lexer(idlLexer),
-		participle.Elide("Whitespace", "Comment"),
-		participle.UseLookahead(2),
-	)
 
 	parser = participle.MustBuild[IDLFile](
 		participle.Lexer(idlLexer),
@@ -121,62 +114,6 @@ type MapTypeExpr struct {
 	MapPattern string `parser:"@Map '[' @String ']'"`
 	// Capture the value type - can be nested
 	ValueType *TypeExpr `parser:"@@"`
-}
-
-// extractTypeExpression extracts a complete type expression from input starting at offset
-func extractTypeExpression(input string, startOffset int) string {
-	if startOffset >= len(input) {
-		return ""
-	}
-
-	remaining := input[startOffset:]
-	depth := 0
-	inBrackets := false
-	endIdx := 0
-
-	for i, r := range remaining {
-		if r == '[' {
-			depth++
-			inBrackets = true
-		} else if r == ']' {
-			depth--
-			if depth == 0 && inBrackets {
-				inBrackets = false
-			}
-		} else if (r == ' ' || r == '\t' || r == '\n' || r == '\r') && depth == 0 && !inBrackets {
-			// Check if next is [optional] or a field name
-			rest := remaining[i:]
-			if strings.HasPrefix(strings.TrimSpace(rest), "[optional]") {
-				endIdx = i
-				break
-			}
-			// Check if we've hit a new field (identifier at start of line after whitespace)
-			trimmed := strings.TrimSpace(rest)
-			if len(trimmed) > 0 {
-				firstChar := trimmed[0]
-				if (firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') {
-					// Might be a new field, but could also be part of the type
-					// Only end if we're sure (after some whitespace and it looks like a field)
-					if i > 0 && (remaining[i-1] == ' ' || remaining[i-1] == '\t') {
-						// Check if it's followed by a type (has a space and then a type keyword)
-						parts := strings.Fields(trimmed)
-						if len(parts) >= 2 {
-							// Likely a new field: "fieldName typeName"
-							endIdx = i
-							break
-						}
-					}
-				}
-			}
-		}
-		endIdx = i + 1
-	}
-
-	if endIdx == 0 {
-		endIdx = len(remaining)
-	}
-
-	return strings.TrimSpace(remaining[:endIdx])
 }
 
 // parseNestedTypes post-processes the AST to parse nested types recursively
