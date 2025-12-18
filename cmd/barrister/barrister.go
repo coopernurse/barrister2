@@ -105,4 +105,3 @@ func prettyPrintIDL(idl *parser.IDL) {
 		}
 	}
 }
-

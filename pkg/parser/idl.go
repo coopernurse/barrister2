@@ -1,5 +1,9 @@
 package parser
 
+import (
+	"github.com/alecthomas/participle/v2/lexer"
+)
+
 // IDL represents the root structure containing all parsed IDL elements
 type IDL struct {
 	Interfaces []*Interface
@@ -9,12 +13,14 @@ type IDL struct {
 
 // Interface represents a service interface with methods
 type Interface struct {
+	Pos     lexer.Position
 	Name    string
 	Methods []*Method
 }
 
 // Method represents an interface method with parameters and return type
 type Method struct {
+	Pos        lexer.Position
 	Name       string
 	Parameters []*Parameter
 	ReturnType *Type
@@ -22,12 +28,14 @@ type Method struct {
 
 // Parameter represents a method parameter
 type Parameter struct {
+	Pos  lexer.Position
 	Name string
 	Type *Type
 }
 
 // Struct represents a struct definition with fields and optional extends
 type Struct struct {
+	Pos     lexer.Position
 	Name    string
 	Extends string // Empty if no extends
 	Fields  []*Field
@@ -35,6 +43,7 @@ type Struct struct {
 
 // Field represents a struct field with type, optional flag, and comments
 type Field struct {
+	Pos      lexer.Position
 	Name     string
 	Type     *Type
 	Optional bool
@@ -42,12 +51,15 @@ type Field struct {
 
 // Enum represents an enum definition with values
 type Enum struct {
+	Pos    lexer.Position
 	Name   string
 	Values []string
 }
 
 // Type represents a type (built-in, array, map, or user-defined)
 type Type struct {
+	Pos lexer.Position
+
 	// For built-in types: string, int, float, bool
 	BuiltIn string
 

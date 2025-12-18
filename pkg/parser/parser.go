@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
@@ -48,8 +49,8 @@ type IDLFile struct {
 type IDLElement struct {
 	Pos       lexer.Position
 	Interface *InterfaceDef `parser:"  'interface' @@"`
-	Struct    *StructDef     `parser:"| 'struct' @@"`
-	Enum      *EnumDef       `parser:"| 'enum' @@"`
+	Struct    *StructDef    `parser:"| 'struct' @@"`
+	Enum      *EnumDef      `parser:"| 'enum' @@"`
 }
 
 // InterfaceDef represents an interface definition
@@ -70,7 +71,7 @@ type MethodDef struct {
 // ParameterDef represents a parameter definition
 type ParameterDef struct {
 	Pos  lexer.Position
-	Name string   `parser:"@Ident"`
+	Name string    `parser:"@Ident"`
 	Type *TypeExpr `parser:"@@"`
 }
 
@@ -100,24 +101,177 @@ type EnumDef struct {
 // TypeExpr represents a type expression
 type TypeExpr struct {
 	Pos         lexer.Position
-	BuiltIn     *string        `parser:"( @String | @Int | @Float | @Bool )"`
-	Array       *ArrayType     `parser:"| @@"`
-	MapType     *MapTypeExpr   `parser:"| @@"`
-	UserDefined *string        `parser:"| @Ident"`
+	BuiltIn     *string      `parser:"( @String | @Int | @Float | @Bool )"`
+	Array       *ArrayType   `parser:"| @@"`
+	MapType     *MapTypeExpr `parser:"| @@"`
+	UserDefined *string      `parser:"| @Ident"`
 }
 
-// ArrayType represents []Type - we'll parse element type separately to avoid recursion
+// ArrayType represents []Type - uses TextUnmarshaler for recursive parsing
 type ArrayType struct {
-	Pos         lexer.Position
-	// Store raw tokens for element type, will parse in post-processing
-	ElementTypeRaw string `parser:"'[' ']' @(String|Int|Float|Bool|Ident)"`
+	Pos          lexer.Position
+	ArrayMarkers string `parser:"'[' ']'"`
+	ElementStart string `parser:"@(String|Int|Float|Bool|Ident|Map)"`
+	ElementType  *TypeExpr
+	// For nested arrays, we'll handle in post-processing
 }
 
-// MapTypeExpr represents map[string]ValueType - we'll parse value type separately  
+// MapTypeExpr represents map[string]ValueType - matches map pattern, value type parsed in post-processing
 type MapTypeExpr struct {
 	Pos        lexer.Position
-	// Store raw token for value type, will parse in post-processing
-	ValueTypeRaw string `parser:"@Map '[' @String ']' @(String|Int|Float|Bool|Ident)"`
+	MapPattern string `parser:"@Map '[' @String ']'"`
+	ValueStart string `parser:"@(String|Int|Float|Bool|Ident|Map|'[')"`
+	ValueType  *TypeExpr
+}
+
+// extractTypeExpression extracts a complete type expression from input starting at offset
+func extractTypeExpression(input string, startOffset int) string {
+	if startOffset >= len(input) {
+		return ""
+	}
+
+	remaining := input[startOffset:]
+	depth := 0
+	inBrackets := false
+	endIdx := 0
+
+	for i, r := range remaining {
+		if r == '[' {
+			depth++
+			inBrackets = true
+		} else if r == ']' {
+			depth--
+			if depth == 0 && inBrackets {
+				inBrackets = false
+			}
+		} else if (r == ' ' || r == '\t' || r == '\n' || r == '\r') && depth == 0 && !inBrackets {
+			// Check if next is [optional] or a field name
+			rest := remaining[i:]
+			if strings.HasPrefix(strings.TrimSpace(rest), "[optional]") {
+				endIdx = i
+				break
+			}
+			// Check if we've hit a new field (identifier at start of line after whitespace)
+			trimmed := strings.TrimSpace(rest)
+			if len(trimmed) > 0 {
+				firstChar := trimmed[0]
+				if (firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') {
+					// Might be a new field, but could also be part of the type
+					// Only end if we're sure (after some whitespace and it looks like a field)
+					if i > 0 && (remaining[i-1] == ' ' || remaining[i-1] == '\t') {
+						// Check if it's followed by a type (has a space and then a type keyword)
+						parts := strings.Fields(trimmed)
+						if len(parts) >= 2 {
+							// Likely a new field: "fieldName typeName"
+							endIdx = i
+							break
+						}
+					}
+				}
+			}
+		}
+		endIdx = i + 1
+	}
+
+	if endIdx == 0 {
+		endIdx = len(remaining)
+	}
+
+	return strings.TrimSpace(remaining[:endIdx])
+}
+
+// parseNestedTypes post-processes the AST to parse nested types recursively
+func parseNestedTypes(expr *TypeExpr, input string) error {
+	if expr == nil {
+		return nil
+	}
+
+	if expr.Array != nil && expr.Array.ElementType == nil {
+		// Extract the type expression after [] from the input
+		pos := expr.Array.Pos
+		if pos.Offset+2 < len(input) {
+			// Always extract the full type expression to handle nested types
+			// ElementStart might just be the first token (e.g., "[" for nested arrays)
+			typeStr := extractTypeExpression(input, pos.Offset+2)
+			if typeStr != "" {
+				elemType, err := typeParser.ParseString("", typeStr)
+				if err == nil {
+					expr.Array.ElementType = elemType
+					// Recursively parse nested types
+					parseNestedTypes(elemType, input)
+				} else if expr.Array.ElementStart != "" && expr.Array.ElementStart != "[" && expr.Array.ElementStart != "map" {
+					// Fallback for simple types: use ElementStart directly
+					elemType, err := typeParser.ParseString("", expr.Array.ElementStart)
+					if err == nil {
+						expr.Array.ElementType = elemType
+					} else {
+						// Final fallback: treat as user-defined type
+						expr.Array.ElementType = &TypeExpr{
+							Pos:         expr.Array.Pos,
+							UserDefined: &expr.Array.ElementStart,
+						}
+					}
+				}
+			} else if expr.Array.ElementStart != "" && expr.Array.ElementStart != "[" && expr.Array.ElementStart != "map" {
+				// No extracted type, use ElementStart
+				elemType, err := typeParser.ParseString("", expr.Array.ElementStart)
+				if err == nil {
+					expr.Array.ElementType = elemType
+				} else {
+					expr.Array.ElementType = &TypeExpr{
+						Pos:         expr.Array.Pos,
+						UserDefined: &expr.Array.ElementStart,
+					}
+				}
+			}
+		}
+	}
+
+	if expr.MapType != nil && expr.MapType.ValueType == nil {
+		// Extract the value type after map[string] from the input
+		pos := expr.MapType.Pos
+		if pos.Offset < len(input) {
+			remaining := input[pos.Offset:]
+			mapPrefix := "map[string]"
+			if strings.HasPrefix(remaining, mapPrefix) {
+				// Always extract the full type expression to handle nested types
+				typeStr := extractTypeExpression(input, pos.Offset+len(mapPrefix))
+				if typeStr != "" {
+					valueType, err := typeParser.ParseString("", typeStr)
+					if err == nil {
+						expr.MapType.ValueType = valueType
+						// Recursively parse nested types
+						parseNestedTypes(valueType, input)
+					} else if expr.MapType.ValueStart != "" && expr.MapType.ValueStart != "[" && expr.MapType.ValueStart != "map" {
+						// Fallback for simple types: use ValueStart directly
+						valueType, err := typeParser.ParseString("", expr.MapType.ValueStart)
+						if err == nil {
+							expr.MapType.ValueType = valueType
+						} else {
+							// Final fallback: treat as user-defined type
+							expr.MapType.ValueType = &TypeExpr{
+								Pos:         expr.MapType.Pos,
+								UserDefined: &expr.MapType.ValueStart,
+							}
+						}
+					}
+				} else if expr.MapType.ValueStart != "" && expr.MapType.ValueStart != "[" && expr.MapType.ValueStart != "map" {
+					// No extracted type, use ValueStart
+					valueType, err := typeParser.ParseString("", expr.MapType.ValueStart)
+					if err == nil {
+						expr.MapType.ValueType = valueType
+					} else {
+						expr.MapType.ValueType = &TypeExpr{
+							Pos:         expr.MapType.Pos,
+							UserDefined: &expr.MapType.ValueStart,
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // ParseIDL parses an IDL file string and returns the parsed IDL structure
@@ -125,6 +279,31 @@ func ParseIDL(input string) (*IDL, error) {
 	file, err := parser.ParseString("", input)
 	if err != nil {
 		return nil, fmt.Errorf("parse error: %w", err)
+	}
+
+	// Post-process to parse nested types recursively
+	var processTypeExpr func(expr *TypeExpr) error
+	processTypeExpr = func(expr *TypeExpr) error {
+		if expr == nil {
+			return nil
+		}
+		parseNestedTypes(expr, input)
+		return nil
+	}
+
+	for _, elem := range file.Elements {
+		if elem.Interface != nil {
+			for _, m := range elem.Interface.Methods {
+				processTypeExpr(m.ReturnType)
+				for _, p := range m.Parameters {
+					processTypeExpr(p.Type)
+				}
+			}
+		} else if elem.Struct != nil {
+			for _, f := range elem.Struct.Fields {
+				processTypeExpr(f.Type)
+			}
+		}
 	}
 
 	idl := &IDL{
@@ -136,17 +315,20 @@ func ParseIDL(input string) (*IDL, error) {
 	for _, elem := range file.Elements {
 		if elem.Interface != nil {
 			iface := &Interface{
+				Pos:     elem.Interface.Pos,
 				Name:    elem.Interface.Name,
 				Methods: make([]*Method, 0),
 			}
 			for _, m := range elem.Interface.Methods {
 				method := &Method{
+					Pos:        m.Pos,
 					Name:       m.Name,
 					Parameters: make([]*Parameter, 0),
 					ReturnType: convertTypeExpr(m.ReturnType),
 				}
 				for _, p := range m.Parameters {
 					method.Parameters = append(method.Parameters, &Parameter{
+						Pos:  p.Pos,
 						Name: p.Name,
 						Type: convertTypeExpr(p.Type),
 					})
@@ -156,6 +338,7 @@ func ParseIDL(input string) (*IDL, error) {
 			idl.Interfaces = append(idl.Interfaces, iface)
 		} else if elem.Struct != nil {
 			s := &Struct{
+				Pos:     elem.Struct.Pos,
 				Name:    elem.Struct.Name,
 				Extends: "",
 				Fields:  make([]*Field, 0),
@@ -165,6 +348,7 @@ func ParseIDL(input string) (*IDL, error) {
 			}
 			for _, f := range elem.Struct.Fields {
 				s.Fields = append(s.Fields, &Field{
+					Pos:      f.Pos,
 					Name:     f.Name,
 					Type:     convertTypeExpr(f.Type),
 					Optional: f.Optional,
@@ -173,6 +357,7 @@ func ParseIDL(input string) (*IDL, error) {
 			idl.Structs = append(idl.Structs, s)
 		} else if elem.Enum != nil {
 			idl.Enums = append(idl.Enums, &Enum{
+				Pos:    elem.Enum.Pos,
 				Name:   elem.Enum.Name,
 				Values: elem.Enum.Values,
 			})
@@ -188,7 +373,9 @@ func convertTypeExpr(expr *TypeExpr) *Type {
 		return nil
 	}
 
-	t := &Type{}
+	t := &Type{
+		Pos: expr.Pos,
+	}
 
 	if expr.BuiltIn != nil {
 		t.BuiltIn = *expr.BuiltIn
@@ -196,26 +383,18 @@ func convertTypeExpr(expr *TypeExpr) *Type {
 	}
 
 	if expr.Array != nil {
-		// Parse the element type from the raw string
-		elemType, err := typeParser.ParseString("", expr.Array.ElementTypeRaw)
-		if err != nil {
-			// If parsing fails, treat as user-defined type
-			t.Array = &Type{UserDefined: expr.Array.ElementTypeRaw}
-			return t
+		// ElementType should be parsed by post-processing
+		if expr.Array.ElementType != nil {
+			t.Array = convertTypeExpr(expr.Array.ElementType)
 		}
-		t.Array = convertTypeExpr(elemType)
 		return t
 	}
 
 	if expr.MapType != nil {
-		// Parse the value type from the raw string
-		valueType, err := typeParser.ParseString("", expr.MapType.ValueTypeRaw)
-		if err != nil {
-			// If parsing fails, treat as user-defined type
-			t.MapValue = &Type{UserDefined: expr.MapType.ValueTypeRaw}
-			return t
+		// ValueType should be parsed by now (post-processing)
+		if expr.MapType.ValueType != nil {
+			t.MapValue = convertTypeExpr(expr.MapType.ValueType)
 		}
-		t.MapValue = convertTypeExpr(valueType)
 		return t
 	}
 
@@ -226,5 +405,3 @@ func convertTypeExpr(expr *TypeExpr) *Type {
 
 	return t
 }
-
-
