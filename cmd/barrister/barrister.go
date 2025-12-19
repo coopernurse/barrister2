@@ -7,18 +7,37 @@ import (
 	"os"
 	"strings"
 
+	"github.com/coopernurse/barrister2/pkg/generator"
 	"github.com/coopernurse/barrister2/pkg/parser"
 )
 
 func main() {
+	// Register all available plugins
+	registerPlugins()
+
+	// Define global flags
 	var validate = flag.Bool("validate", false, "Validate the IDL after parsing")
 	var toJSON = flag.String("to-json", "", "Write parsed IDL as JSON to the specified file")
 	var fromJSON = flag.String("from-json", "", "Read JSON file and generate IDL text on STDOUT")
+	var pluginName = flag.String("plugin", "", "Code generation plugin to use (e.g., python-flask-server)")
+	_ = flag.String("dir", "", "Output directory for generated code") // Available to plugins via FlagSet
+
+	// Register flags for all plugins
+	allPlugins := getAllPlugins()
+	for _, plugin := range allPlugins {
+		plugin.RegisterFlags(flag.CommandLine)
+	}
+
 	flag.Parse()
 
 	// Check for mutual exclusivity
 	if *toJSON != "" && *fromJSON != "" {
 		fmt.Fprintf(os.Stderr, "error: -to-json and -from-json cannot be used together\n")
+		os.Exit(1)
+	}
+
+	if *pluginName != "" && (*toJSON != "" || *fromJSON != "") {
+		fmt.Fprintf(os.Stderr, "error: -plugin cannot be used with -to-json or -from-json\n")
 		os.Exit(1)
 	}
 
@@ -63,6 +82,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "error: validation failed: %v\n", err)
 			os.Exit(1)
 		}
+	}
+
+	// Handle plugin generation mode
+	if *pluginName != "" {
+		handlePluginGeneration(*pluginName, idl)
+		return
 	}
 
 	// Handle JSON output mode
@@ -326,5 +351,39 @@ func writeComment(sb *strings.Builder, comment string) {
 	lines := strings.Split(comment, "\n")
 	for _, line := range lines {
 		fmt.Fprintf(sb, "// %s\n", line)
+	}
+}
+
+// registerPlugins registers all available code generation plugins
+func registerPlugins() {
+	generator.Register(generator.NewPythonFlaskServer())
+	// Add more plugins here as they are implemented
+}
+
+// getAllPlugins returns a slice of all registered plugins
+func getAllPlugins() []generator.Plugin {
+	pluginNames := generator.List()
+	plugins := make([]generator.Plugin, 0, len(pluginNames))
+	for _, name := range pluginNames {
+		if plugin, ok := generator.Get(name); ok {
+			plugins = append(plugins, plugin)
+		}
+	}
+	return plugins
+}
+
+// handlePluginGeneration routes IDL to the specified plugin for code generation
+func handlePluginGeneration(pluginName string, idl *parser.IDL) {
+	plugin, ok := generator.Get(pluginName)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "error: unknown plugin %q\n", pluginName)
+		fmt.Fprintf(os.Stderr, "available plugins: %v\n", generator.List())
+		os.Exit(1)
+	}
+
+	// Pass the global FlagSet so the plugin can access all parsed flag values
+	if err := plugin.Generate(idl, flag.CommandLine); err != nil {
+		fmt.Fprintf(os.Stderr, "error: plugin %q failed: %v\n", pluginName, err)
+		os.Exit(1)
 	}
 }
