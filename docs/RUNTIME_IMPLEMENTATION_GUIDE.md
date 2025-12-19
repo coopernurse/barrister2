@@ -1,0 +1,669 @@
+# Barrister Runtime Implementation Guide
+
+This document describes how to implement a new language runtime for Barrister. It is based on the Python implementation and provides a comprehensive guide for creating runtimes for other languages.
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [Separation of Concerns](#separation-of-concerns)
+3. [Plugin Requirements](#plugin-requirements)
+4. [Runtime Library Requirements](#runtime-library-requirements)
+5. [Generated Code Requirements](#generated-code-requirements)
+6. [Build System Integration](#build-system-integration)
+7. [Additional Considerations](#additional-considerations)
+
+## Architecture Overview
+
+The Barrister code generation system consists of two main components:
+
+1. **Code Generator Plugin** (Go): Generates language-specific code from IDL
+2. **Runtime Library** (Target Language): Provides validation, RPC handling, and type utilities
+
+```
+┌─────────────────┐
+│   IDL File      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Go Parser      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐      ┌──────────────────┐
+│  Plugin (Go)    │─────▶│  Generated Code   │
+│                 │      │  (Target Lang)    │
+└────────┬────────┘      └────────┬──────────┘
+         │                        │
+         │                        │ imports
+         │                        ▼
+         │              ┌──────────────────┐
+         └──────────────▶│  Runtime Library │
+                        │  (Target Lang)    │
+                        └───────────────────┘
+```
+
+## Separation of Concerns
+
+### Runtime Library vs Generated Code
+
+**Runtime Library** (`runtimes/{lang}/barrister2/`):
+- **Purpose**: Reusable library code that is copied into the output directory
+- **Contents**:
+  - Type validation functions (struct, enum, built-in types, arrays, maps)
+  - RPC error handling (exception/error classes)
+  - Type helper utilities (finding structs/enums, resolving inheritance)
+  - **No IDL-specific code** - works with type definitions passed as data structures
+
+**Generated Code** (created by plugin):
+- **Purpose**: IDL-specific code that uses the runtime library
+- **Contents**:
+  - `idl.{ext}` - IDL-specific type definitions (structs, enums) as data structures
+  - `server.{ext}` - HTTP server with interface stubs and request handling
+  - `client.{ext}` - Client classes with transport abstraction
+  - `idl.json` - JSON representation of the IDL (for `barrister-idl` RPC method)
+
+### Runtime Directory Structure
+
+For a language `{lang}`, the runtime should be organized as:
+
+```
+runtimes/{lang}/
+├── barrister2/              # Runtime library package/module
+│   ├── __init__.{ext}       # Package exports (if applicable)
+│   ├── rpc.{ext}            # RPC error handling
+│   ├── validation.{ext}     # Type validation functions
+│   └── types.{ext}          # Type helper functions
+├── tests/                   # Unit tests for runtime
+│   ├── test_validation.{ext}
+│   ├── test_types.{ext}
+│   └── test_rpc.{ext}
+├── Makefile                 # Build/test targets
+└── README.md                # Runtime-specific documentation
+```
+
+### Runtime Library Components
+
+#### 1. RPC Error Handling (`rpc.{ext}`)
+
+Must provide an exception/error class for JSON-RPC errors:
+
+- **Class name**: `RPCError` (or language-appropriate equivalent)
+- **Properties**:
+  - `code` (int): JSON-RPC error code
+  - `message` (string): Error message
+  - `data` (any): Optional error data
+- **Usage**: Thrown/returned when JSON-RPC calls fail
+
+**Example (Python)**:
+```python
+class RPCError(Exception):
+    def __init__(self, code: int, message: str, data: Any = None):
+        self.code = code
+        self.message = message
+        self.data = data
+```
+
+#### 2. Type Validation (`validation.{ext}`)
+
+Must provide validation functions for all Barrister types:
+
+- **Built-in types**: `string`, `int`, `float`, `bool`
+- **Arrays**: `[]Type` - validate array structure and element types
+- **Maps**: `map[string]Type` - validate map structure, string keys, value types
+- **Enums**: Validate string value matches enum definition
+- **Structs**: Validate dict/object structure, required fields, optional fields, inheritance
+- **Main function**: `validate_type(value, type_def, all_structs, all_enums, is_optional)`
+
+**Key Requirements**:
+- Must handle optional types (None/null values)
+- Must handle struct inheritance (`extends`)
+- Must provide clear error messages indicating what failed and where
+- Must validate nested types recursively
+
+**Type Definition Format**:
+Type definitions are passed as dictionaries/objects with the following structure:
+```json
+{
+  "builtIn": "string" | "int" | "float" | "bool",
+  "array": <type_def>,
+  "mapValue": <type_def>,
+  "userDefined": "TypeName"
+}
+```
+
+#### 3. Type Helpers (`types.{ext}`)
+
+Must provide utility functions for working with type definitions:
+
+- `find_struct(name, all_structs)` - Find struct definition by name
+- `find_enum(name, all_enums)` - Find enum definition by name
+- `get_struct_fields(name, all_structs)` - Get all fields including parent fields (handles `extends`)
+
+**Struct Definition Format**:
+```json
+{
+  "extends": "ParentStruct",  // optional
+  "fields": [
+    {
+      "name": "fieldName",
+      "type": <type_def>,
+      "optional": true/false
+    }
+  ]
+}
+```
+
+**Enum Definition Format**:
+```json
+{
+  "values": [
+    {"name": "VALUE1"},
+    {"name": "VALUE2"}
+  ]
+}
+```
+
+## Plugin Requirements
+
+### Plugin Interface
+
+All plugins must implement the `generator.Plugin` interface:
+
+```go
+type Plugin interface {
+    Name() string                    // e.g., "python-client-server"
+    RegisterFlags(fs *flag.FlagSet)  // Register CLI flags
+    Generate(idl *parser.IDL, fs *flag.FlagSet) error
+}
+```
+
+### Plugin Registration
+
+Plugins are registered in `cmd/barrister/barrister.go`:
+
+```go
+func registerPlugins() {
+    generator.Register(generator.NewPythonClientServer())
+    // Add new plugins here
+}
+```
+
+### Plugin Implementation Steps
+
+1. **Create plugin file**: `pkg/generator/{lang}_client_server.go`
+2. **Implement Plugin interface**:
+   - `Name()`: Return plugin identifier (e.g., "java-client-server")
+   - `RegisterFlags()`: Register any language-specific flags
+   - `Generate()`: Main code generation logic
+3. **Register plugin**: Add to `registerPlugins()` in `cmd/barrister/barrister.go`
+
+### Generate() Method Responsibilities
+
+The `Generate()` method must:
+
+1. **Access output directory**: Read `-dir` flag from FlagSet
+2. **Build type registries**: Create maps of structs, enums, interfaces for efficient lookup
+3. **Copy runtime files**: Copy runtime library from `runtimes/{lang}/barrister2/` to output directory
+4. **Generate IDL-specific file**: Create `idl.{ext}` with type definitions
+5. **Generate server file**: Create `server.{ext}` with HTTP server and interface stubs
+6. **Generate client file**: Create `client.{ext}` with client classes and transport
+7. **Generate IDL JSON**: Create `idl.json` for `barrister-idl` RPC method
+
+### Runtime File Copying
+
+The plugin must copy runtime library files to the output directory. The Python implementation shows the pattern:
+
+```go
+func (p *PythonClientServer) copyRuntimeFiles(outputDir string) error {
+    runtimeDir := filepath.Join(outputDir, "barrister2")
+    // Create directory
+    // Find source directory (try multiple locations)
+    // Copy all runtime files
+}
+```
+
+**Considerations**:
+- Try multiple possible source locations (workspace root, relative to binary, etc.)
+- Only copy relevant files (e.g., `.py` files for Python, `.java` for Java)
+- Preserve directory structure if language requires it (e.g., package directories)
+
+## Runtime Library Requirements
+
+### Standard Library Preference
+
+- **Use standard library whenever possible** - avoid third-party dependencies
+- If third-party libraries are necessary, document them clearly and minimize the set
+- Consider the impact on users who must install dependencies
+
+### Language-Specific Considerations
+
+- **Package/module structure**: Follow language conventions
+- **Naming conventions**: Follow language style guides
+- **Error handling**: Use language-appropriate mechanisms (exceptions, errors, etc.)
+- **Type system**: Leverage language type system where possible, but runtime validation is still required
+
+## Generated Code Requirements
+
+### 1. IDL-Specific File (`idl.{ext}`)
+
+**Purpose**: Define IDL-specific type definitions as data structures
+
+**Contents**:
+- `ALL_STRUCTS` - Dictionary/map of struct definitions
+- `ALL_ENUMS` - Dictionary/map of enum definitions
+- Imports from runtime library
+
+**Format**: Type definitions match the format expected by runtime validation functions
+
+**Example structure**:
+```python
+from barrister2 import validate_type, validate_struct, validate_enum, ...
+
+ALL_STRUCTS = {
+    'User': {
+        'extends': 'Base',  # optional
+        'fields': [
+            {
+                'name': 'id',
+                'type': {'builtIn': 'string'},
+                'optional': False
+            }
+        ]
+    }
+}
+
+ALL_ENUMS = {
+    'Platform': {
+        'values': [
+            {'name': 'kindle'},
+            {'name': 'nook'}
+        ]
+    }
+}
+```
+
+### 2. Server File (`server.{ext}`)
+
+**Purpose**: HTTP server that handles JSON-RPC 2.0 requests
+
+**Requirements**:
+
+1. **Interface Stubs**:
+   - Generate abstract base class/interface for each IDL interface
+   - Each method should be abstract/must implement
+   - Include method signatures matching IDL
+
+2. **Server Class**:
+   - **Registration**: Easy way to register interface implementations
+     ```python
+     server.register("InterfaceName", implementation_instance)
+     ```
+   - **HTTP Compatibility**: Use standard HTTP server for the language
+     - Python: `http.server.BaseHTTPRequestHandler`
+     - Java: `javax.servlet.http.HttpServlet` or `com.sun.net.httpserver.HttpServer`
+     - Node.js: `http.Server` or Express middleware
+     - Go: `net/http.Server`
+   - **Request Handling**:
+     - Parse JSON-RPC 2.0 requests
+     - Handle batch requests (array of requests)
+     - Handle notifications (requests without `id`)
+     - Route to appropriate interface/method handler
+   - **Validation**:
+     - Validate JSON-RPC 2.0 structure (jsonrpc, method, params, id)
+     - Validate method name format (`interface.method`)
+     - Validate parameter count matches IDL
+     - Validate each parameter type using runtime validation
+     - Validate return value type using runtime validation
+   - **Error Handling**:
+     - Return JSON-RPC 2.0 error responses
+     - Handle `RPCError` exceptions from handlers
+     - Handle validation errors
+     - Handle internal errors
+   - **Special Method**: `barrister-idl`
+     - Returns the IDL JSON document (read from `idl.json`)
+     - Allows clients to introspect the IDL
+
+3. **Server Lifecycle**:
+   - `serve_forever()` or equivalent - start server
+   - `shutdown()` or equivalent - stop server
+   - Configurable host and port
+
+**Example Server Structure**:
+```python
+class BarristerServer:
+    def __init__(self, host='localhost', port=8080):
+        self.handlers = {}
+    
+    def register(self, interface_name, instance):
+        self.handlers[interface_name] = instance
+    
+    def handle_request(self, request_json):
+        # Validate JSON-RPC structure
+        # Handle barrister-idl
+        # Route to handler
+        # Validate params
+        # Call handler method
+        # Validate response
+        # Return JSON-RPC response
+    
+    def serve_forever(self):
+        # Start HTTP server
+```
+
+### 3. Client File (`client.{ext}`)
+
+**Purpose**: Client classes for making RPC calls
+
+**Requirements**:
+
+1. **Transport Abstraction**:
+   - Abstract base class/interface for transports
+   - `call(method, params)` method that returns JSON-RPC response
+   - Allows pluggable transports (HTTP, ZeroMQ, etc.)
+
+2. **HTTP Transport** (default implementation):
+   - Uses standard HTTP library for the language
+   - Configurable base URL
+   - **Configurable headers**: Must allow setting HTTP headers (for auth, etc.)
+   - Handles JSON-RPC 2.0 request/response
+   - Handles errors (HTTP errors, JSON-RPC errors)
+   - Generates unique request IDs
+
+3. **Client Classes**:
+   - One class per interface: `{Interface}Client`
+   - Constructor takes `Transport` instance
+   - One method per interface method
+   - **Parameter validation**: Validate parameters before sending
+   - **Response validation**: Validate response before returning
+   - Raise `RPCError` on JSON-RPC errors
+
+**Example Client Structure**:
+```python
+class Transport(ABC):
+    @abstractmethod
+    def call(self, method: str, params: list) -> dict:
+        pass
+
+class HTTPTransport(Transport):
+    def __init__(self, base_url: str, headers: Optional[Dict[str, str]] = None):
+        self.base_url = base_url
+        self.headers = headers or {}
+    
+    def call(self, method: str, params: list) -> dict:
+        # Build JSON-RPC request
+        # Add headers
+        # Send HTTP POST
+        # Parse response
+        # Handle errors
+
+class BookServiceClient:
+    def __init__(self, transport: Transport):
+        self.transport = transport
+    
+    def getBook(self, bookId: str):
+        # Validate params
+        # Call transport
+        # Validate response
+        # Return result
+```
+
+### 4. IDL JSON File (`idl.json`)
+
+**Purpose**: JSON representation of the IDL for the `barrister-idl` RPC method
+
+**Format**: JSON-serialized `parser.IDL` structure
+
+**Usage**: Server reads this file when handling `barrister-idl` requests
+
+## Build System Integration
+
+### Makefile Structure
+
+The root `Makefile` should include targets for testing each runtime:
+
+```makefile
+# Test {lang} runtime
+test-runtime-{lang}:
+	@echo "Testing {lang} runtime..."
+	@cd runtimes/{lang} && $(MAKE) test
+
+# Test all runtimes
+test-runtimes: test-runtime-python test-runtime-{lang}
+	@echo "All runtime tests passed"
+```
+
+### Runtime-Specific Makefile
+
+Each runtime should have its own `Makefile` in `runtimes/{lang}/`:
+
+**Required Targets**:
+- `test` - Run tests (should use Docker if available)
+- `test-docker` - Run tests in Docker container
+- `clean` - Clean build artifacts
+
+**Docker Testing Pattern**:
+
+```makefile
+# Variables
+{LANG}_IMAGE={lang}:{version}  # e.g., openjdk:17-slim, node:18-slim
+DOCKER_AVAILABLE := $(shell command -v docker >/dev/null 2>&1 && echo "yes" || echo "no")
+
+# Test using local {lang} if available, otherwise Docker
+test:
+ifeq ($(DOCKER_AVAILABLE),yes)
+	@echo "Using Docker for testing..."
+	@$(MAKE) test-docker
+else
+	@echo "Using local {lang} for testing..."
+	@{lang-specific test command}
+endif
+
+# Test using Docker
+test-docker:
+	@echo "Testing {lang} runtime in Docker..."
+	@docker run --rm -v $(PWD):/workspace -w /workspace \
+		$({LANG}_IMAGE) \
+		{lang-specific test command}
+```
+
+**Benefits**:
+- No assumption that user has the language installed
+- Consistent test environment
+- Easy CI/CD integration
+- Works on any platform with Docker
+
+### Docker Image Selection
+
+Choose appropriate official Docker images:
+- **Python**: `python:3.11-slim` or similar
+- **Java**: `openjdk:17-slim` or `eclipse-temurin:17-jdk`
+- **Node.js**: `node:18-slim` or `node:20-slim`
+- **Go**: `golang:1.21-alpine`
+- **Ruby**: `ruby:3.2-slim`
+- **Rust**: `rust:1.75-slim`
+
+## Additional Considerations
+
+### 1. JSON-RPC 2.0 Compliance
+
+Both server and client must fully comply with JSON-RPC 2.0 specification:
+- Request format: `{jsonrpc: "2.0", method: "...", params: [...], id: "..."}`
+- Response format: `{jsonrpc: "2.0", result: ..., id: "..."}` or `{jsonrpc: "2.0", error: {...}, id: "..."}`
+- Batch requests: Array of requests
+- Notifications: Requests without `id` field (no response sent)
+- Error codes: Standard JSON-RPC error codes (-32700, -32600, -32601, -32602, -32603)
+
+### 2. Type System Integration
+
+- **Static typing**: If language supports static typing, use it where possible
+- **Runtime validation**: Still required even with static types (defense in depth)
+- **Type definitions**: May need to generate type definitions for static type checkers (e.g., TypeScript `.d.ts`, Java generics)
+
+### 3. Error Messages
+
+- **Clear validation errors**: Indicate what failed, where, and why
+- **Context**: Include field names, parameter indices, type names
+- **User-friendly**: Errors should help users fix their code
+
+### 4. Performance Considerations
+
+- **Validation**: Can be expensive for large nested structures - consider performance
+- **Caching**: Consider caching type definitions, compiled validators
+- **Lazy validation**: Consider making validation optional in production
+
+### 5. Documentation
+
+- **Runtime README**: Document installation, usage, API
+- **Generated code comments**: Include helpful comments in generated code
+- **Examples**: Provide example usage in runtime README
+
+### 6. Testing
+
+**Runtime Tests**:
+- Test all validation functions
+- Test error handling
+- Test type helpers
+- Test edge cases (null, empty arrays, inheritance, etc.)
+
+**Integration Tests** (optional but recommended):
+- Test full server/client interaction
+- Test with real IDL files
+- Test error scenarios
+- Test batch requests
+- Test notifications
+
+### 7. Namespace Handling
+
+- **IDL namespaces**: May need to map to language namespaces/packages
+- **Qualified names**: Handle qualified type names (e.g., `inc.Response`)
+- **Import statements**: Generate appropriate import/using statements
+
+### 8. Comments
+
+- **IDL comments**: Preserve and include in generated code where appropriate
+- **Generated code comments**: Mark generated code clearly ("Generated by barrister - do not edit")
+
+### 9. Code Style
+
+- **Consistent formatting**: Use language formatters (gofmt, black, prettier, etc.)
+- **Naming conventions**: Follow language conventions
+- **File organization**: Follow language project structure conventions
+
+### 10. Optional Fields
+
+- **Struct fields**: Must handle optional fields correctly
+- **Validation**: Optional fields can be missing or null
+- **Serialization**: Ensure optional fields are handled correctly in JSON
+
+### 11. Struct Inheritance
+
+- **Extends**: Must handle struct inheritance (`struct Child extends Parent`)
+- **Field resolution**: Get all fields including parent fields
+- **Field override**: Handle field name conflicts (child overrides parent)
+
+### 12. Method Return Types
+
+- **Void returns**: Handle methods that return void/null
+- **Optional returns**: Handle optional return types (if supported by IDL)
+- **Validation**: Validate return values match IDL definition
+
+### 13. Request ID Generation
+
+- **Unique IDs**: Generate unique request IDs for each RPC call
+- **Type**: Can be string, number, or null (per JSON-RPC 2.0)
+- **UUID**: Consider using UUIDs for string IDs
+
+### 14. HTTP Headers
+
+- **Content-Type**: Must set `application/json`
+- **Content-Length**: Should set for proper HTTP compliance
+- **Custom headers**: Allow users to set custom headers (auth, etc.)
+
+### 15. Logging
+
+- **Server logging**: Consider logging requests/responses (optional, configurable)
+- **Error logging**: Log errors appropriately
+- **Debug mode**: Consider debug mode for verbose logging
+
+### 16. Concurrency
+
+- **Thread safety**: Consider thread safety if language/runtime requires it
+- **Async support**: Consider async/await support if language supports it
+- **Connection pooling**: For HTTP clients, consider connection pooling
+
+### 17. Security
+
+- **Input validation**: Always validate input (defense in depth)
+- **Error messages**: Don't leak sensitive information in error messages
+- **HTTP security**: Consider security headers, HTTPS support
+
+### 18. Backward Compatibility
+
+- **Runtime changes**: Consider impact on existing generated code
+- **Versioning**: Consider versioning runtime library
+- **Breaking changes**: Document breaking changes clearly
+
+## Implementation Checklist
+
+When implementing a new runtime, ensure:
+
+- [ ] Plugin implements `generator.Plugin` interface
+- [ ] Plugin registered in `registerPlugins()`
+- [ ] Runtime library structure created in `runtimes/{lang}/`
+- [ ] Runtime files copied to output directory
+- [ ] `idl.{ext}` generated with type definitions
+- [ ] `server.{ext}` generated with HTTP server
+- [ ] `client.{ext}` generated with transport abstraction
+- [ ] `idl.json` generated for `barrister-idl` method
+- [ ] Runtime validation functions implemented
+- [ ] RPC error class implemented
+- [ ] Type helper functions implemented
+- [ ] Interface stubs generated
+- [ ] Server validates requests and responses
+- [ ] Client validates parameters and responses
+- [ ] HTTP transport supports custom headers
+- [ ] Server handles `barrister-idl` method
+- [ ] Server handles batch requests
+- [ ] Server handles notifications
+- [ ] Makefile targets for testing
+- [ ] Docker testing setup
+- [ ] Runtime tests written
+- [ ] Documentation written
+- [ ] Examples provided
+
+## Example: Java Runtime (Hypothetical)
+
+To illustrate the concepts, here's how a Java runtime might be structured:
+
+**Runtime Structure**:
+```
+runtimes/java/
+├── barrister2/
+│   ├── RPCError.java
+│   ├── Validation.java
+│   └── Types.java
+├── tests/
+│   ├── ValidationTest.java
+│   └── TypesTest.java
+└── Makefile
+```
+
+**Generated Files**:
+- `Idl.java` - Contains `ALL_STRUCTS` and `ALL_ENUMS` as static maps
+- `Server.java` - HTTP server using `HttpServer` or Servlet
+- `Client.java` - Client classes with `Transport` interface
+- `idl.json` - IDL JSON document
+
+**Server Integration**:
+- Could use `com.sun.net.httpserver.HttpServer` (standard library)
+- Or generate Servlet for integration with Servlet containers
+- Interface stubs as abstract classes or interfaces
+
+**Client Transport**:
+- `Transport` interface
+- `HTTPTransport` using `java.net.http.HttpClient` (Java 11+)
+- Support for custom headers via `HttpRequest.Builder`
+
+This guide should provide a comprehensive foundation for implementing new language runtimes. Refer to the Python implementation as a reference, and adapt the patterns to your target language's conventions and capabilities.
+
