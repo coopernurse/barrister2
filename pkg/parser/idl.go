@@ -6,84 +6,84 @@ import (
 
 // IDL represents the root structure containing all parsed IDL elements
 type IDL struct {
-	Interfaces []*Interface
-	Structs    []*Struct
-	Enums      []*Enum
+	Interfaces []*Interface `json:"interfaces,omitempty"`
+	Structs    []*Struct    `json:"structs,omitempty"`
+	Enums      []*Enum      `json:"enums,omitempty"`
 }
 
 // Interface represents a service interface with methods
 type Interface struct {
-	Pos       lexer.Position
-	Name      string
-	Namespace string
-	Comment   string
-	Methods   []*Method
+	Pos       lexer.Position `json:"-"`
+	Name      string         `json:"name"`
+	Namespace string         `json:"namespace,omitempty"`
+	Comment   string         `json:"comment,omitempty"`
+	Methods   []*Method      `json:"methods,omitempty"`
 }
 
 // Method represents an interface method with parameters and return type
 type Method struct {
-	Pos        lexer.Position
-	Name       string
-	Parameters []*Parameter
-	ReturnType *Type
+	Pos        lexer.Position `json:"-"`
+	Name       string         `json:"name"`
+	Parameters []*Parameter   `json:"parameters,omitempty"`
+	ReturnType *Type          `json:"returnType"`
 }
 
 // Parameter represents a method parameter
 type Parameter struct {
-	Pos  lexer.Position
-	Name string
-	Type *Type
+	Pos  lexer.Position `json:"-"`
+	Name string         `json:"name"`
+	Type *Type          `json:"type"`
 }
 
 // Struct represents a struct definition with fields and optional extends
 type Struct struct {
-	Pos       lexer.Position
-	Name      string
-	Namespace string
-	Extends   string // Empty if no extends, can be qualified (e.g., "inc.Response")
-	Comment   string
-	Fields    []*Field
+	Pos       lexer.Position `json:"-"`
+	Name      string         `json:"name"`
+	Namespace string         `json:"namespace,omitempty"`
+	Extends   string         `json:"extends,omitempty"` // Empty if no extends, can be qualified (e.g., "inc.Response")
+	Comment   string         `json:"comment,omitempty"`
+	Fields    []*Field       `json:"fields,omitempty"`
 }
 
 // Field represents a struct field with type, optional flag, and comments
 type Field struct {
-	Pos      lexer.Position
-	Name     string
-	Type     *Type
-	Optional bool
-	Comment  string
+	Pos      lexer.Position `json:"-"`
+	Name     string         `json:"name"`
+	Type     *Type          `json:"type"`
+	Optional bool           `json:"optional,omitempty"`
+	Comment  string         `json:"comment,omitempty"`
 }
 
 // EnumValue represents a single enum value with optional comment
 type EnumValue struct {
-	Name    string
-	Comment string
+	Name    string `json:"name"`
+	Comment string `json:"comment,omitempty"`
 }
 
 // Enum represents an enum definition with values
 type Enum struct {
-	Pos       lexer.Position
-	Name      string
-	Namespace string
-	Comment   string
-	Values    []*EnumValue
+	Pos       lexer.Position `json:"-"`
+	Name      string         `json:"name"`
+	Namespace string         `json:"namespace,omitempty"`
+	Comment   string         `json:"comment,omitempty"`
+	Values    []*EnumValue   `json:"values,omitempty"`
 }
 
 // Type represents a type (built-in, array, map, or user-defined)
 type Type struct {
-	Pos lexer.Position
+	Pos lexer.Position `json:"-"`
 
 	// For built-in types: string, int, float, bool
-	BuiltIn string
+	BuiltIn string `json:"builtIn,omitempty"`
 
 	// For arrays: []Type
-	Array *Type
+	Array *Type `json:"array,omitempty"`
 
 	// For maps: map[string]ValueType
-	MapValue *Type
+	MapValue *Type `json:"mapValue,omitempty"`
 
 	// For user-defined types (interfaces, structs, enums)
-	UserDefined string
+	UserDefined string `json:"userDefined,omitempty"`
 }
 
 // IsBuiltIn returns true if this is a built-in type

@@ -1,17 +1,34 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coopernurse/barrister2/pkg/parser"
 )
 
 func main() {
 	var validate = flag.Bool("validate", false, "Validate the IDL after parsing")
+	var toJSON = flag.String("to-json", "", "Write parsed IDL as JSON to the specified file")
+	var fromJSON = flag.String("from-json", "", "Read JSON file and generate IDL text on STDOUT")
 	flag.Parse()
 
+	// Check for mutual exclusivity
+	if *toJSON != "" && *fromJSON != "" {
+		fmt.Fprintf(os.Stderr, "error: -to-json and -from-json cannot be used together\n")
+		os.Exit(1)
+	}
+
+	// Handle JSON input mode
+	if *fromJSON != "" {
+		handleJSONInput(*fromJSON)
+		return
+	}
+
+	// Handle normal IDL parsing or JSON output mode
 	args := flag.Args()
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "error: filename required\n")
@@ -48,8 +65,54 @@ func main() {
 		}
 	}
 
+	// Handle JSON output mode
+	if *toJSON != "" {
+		handleJSONOutput(idl, *toJSON)
+		return
+	}
+
 	// Pretty print to STDOUT
 	prettyPrintIDL(idl)
+}
+
+func handleJSONInput(jsonFile string) {
+	// Read JSON file
+	content, err := os.ReadFile(jsonFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to read JSON file %s: %v\n", jsonFile, err)
+		os.Exit(1)
+	}
+
+	// Unmarshal JSON
+	var idl parser.IDL
+	if err := json.Unmarshal(content, &idl); err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to parse JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Always validate JSON input
+	if err := parser.ValidateIDL(&idl); err != nil {
+		fmt.Fprintf(os.Stderr, "error: validation failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Generate IDL text on STDOUT
+	fmt.Print(generateIDLText(&idl))
+}
+
+func handleJSONOutput(idl *parser.IDL, outputFile string) {
+	// Marshal to JSON with indentation
+	jsonData, err := json.MarshalIndent(idl, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to marshal IDL to JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Write to file
+	if err := os.WriteFile(outputFile, jsonData, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to write JSON file %s: %v\n", outputFile, err)
+		os.Exit(1)
+	}
 }
 
 func prettyPrintIDL(idl *parser.IDL) {
@@ -112,5 +175,156 @@ func prettyPrintIDL(idl *parser.IDL) {
 			}
 			fmt.Println()
 		}
+	}
+}
+
+// generateIDLText converts a parsed IDL structure back to IDL text format
+func generateIDLText(idl *parser.IDL) string {
+	var sb strings.Builder
+
+	// Group elements by namespace
+	namespaceInterfaces := make(map[string][]*parser.Interface)
+	namespaceStructs := make(map[string][]*parser.Struct)
+	namespaceEnums := make(map[string][]*parser.Enum)
+
+	// Collect all elements by namespace
+	for _, iface := range idl.Interfaces {
+		ns := iface.Namespace
+		namespaceInterfaces[ns] = append(namespaceInterfaces[ns], iface)
+	}
+
+	for _, s := range idl.Structs {
+		ns := s.Namespace
+		namespaceStructs[ns] = append(namespaceStructs[ns], s)
+	}
+
+	for _, enum := range idl.Enums {
+		ns := enum.Namespace
+		namespaceEnums[ns] = append(namespaceEnums[ns], enum)
+	}
+
+	// Collect all unique namespaces (excluding empty string)
+	allNamespaces := make(map[string]bool)
+	for ns := range namespaceInterfaces {
+		if ns != "" {
+			allNamespaces[ns] = true
+		}
+	}
+	for ns := range namespaceStructs {
+		if ns != "" {
+			allNamespaces[ns] = true
+		}
+	}
+	for ns := range namespaceEnums {
+		if ns != "" {
+			allNamespaces[ns] = true
+		}
+	}
+
+	// Output elements without namespace first (no namespace declaration)
+	if ifaces, ok := namespaceInterfaces[""]; ok {
+		for _, iface := range ifaces {
+			writeInterface(&sb, iface)
+		}
+	}
+	if structs, ok := namespaceStructs[""]; ok {
+		for _, s := range structs {
+			writeStruct(&sb, s)
+		}
+	}
+	if enums, ok := namespaceEnums[""]; ok {
+		for _, enum := range enums {
+			writeEnum(&sb, enum)
+		}
+	}
+
+	// Output elements with namespaces, grouped by namespace
+	for ns := range allNamespaces {
+		// Output namespace declaration
+		fmt.Fprintf(&sb, "namespace %s\n\n", ns)
+
+		// Output all interfaces in this namespace
+		if ifaces, ok := namespaceInterfaces[ns]; ok {
+			for _, iface := range ifaces {
+				writeInterface(&sb, iface)
+			}
+		}
+
+		// Output all structs in this namespace
+		if structs, ok := namespaceStructs[ns]; ok {
+			for _, s := range structs {
+				writeStruct(&sb, s)
+			}
+		}
+
+		// Output all enums in this namespace
+		if enums, ok := namespaceEnums[ns]; ok {
+			for _, enum := range enums {
+				writeEnum(&sb, enum)
+			}
+		}
+	}
+
+	return sb.String()
+}
+
+func writeInterface(sb *strings.Builder, iface *parser.Interface) {
+	if iface.Comment != "" {
+		writeComment(sb, iface.Comment)
+	}
+	fmt.Fprintf(sb, "interface %s {\n", iface.Name)
+	for _, method := range iface.Methods {
+		fmt.Fprintf(sb, "  %s(", method.Name)
+		for i, param := range method.Parameters {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			fmt.Fprintf(sb, "%s %s", param.Name, param.Type.String())
+		}
+		fmt.Fprintf(sb, ") %s\n", method.ReturnType.String())
+	}
+	sb.WriteString("}\n\n")
+}
+
+func writeStruct(sb *strings.Builder, s *parser.Struct) {
+	if s.Comment != "" {
+		writeComment(sb, s.Comment)
+	}
+	if s.Extends != "" {
+		fmt.Fprintf(sb, "struct %s extends %s {\n", s.Name, s.Extends)
+	} else {
+		fmt.Fprintf(sb, "struct %s {\n", s.Name)
+	}
+	for _, field := range s.Fields {
+		if field.Comment != "" {
+			writeComment(sb, field.Comment)
+		}
+		optional := ""
+		if field.Optional {
+			optional = " [optional]"
+		}
+		fmt.Fprintf(sb, "  %s %s%s\n", field.Name, field.Type.String(), optional)
+	}
+	sb.WriteString("}\n\n")
+}
+
+func writeEnum(sb *strings.Builder, enum *parser.Enum) {
+	if enum.Comment != "" {
+		writeComment(sb, enum.Comment)
+	}
+	fmt.Fprintf(sb, "enum %s {\n", enum.Name)
+	for _, value := range enum.Values {
+		if value.Comment != "" {
+			writeComment(sb, value.Comment)
+		}
+		fmt.Fprintf(sb, "  %s\n", value.Name)
+	}
+	sb.WriteString("}\n\n")
+}
+
+func writeComment(sb *strings.Builder, comment string) {
+	lines := strings.Split(comment, "\n")
+	for _, line := range lines {
+		fmt.Fprintf(sb, "// %s\n", line)
 	}
 }
