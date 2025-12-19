@@ -22,10 +22,11 @@ type Interface struct {
 
 // Method represents an interface method with parameters and return type
 type Method struct {
-	Pos        lexer.Position `json:"-"`
-	Name       string         `json:"name"`
-	Parameters []*Parameter   `json:"parameters,omitempty"`
-	ReturnType *Type          `json:"returnType"`
+	Pos            lexer.Position `json:"-"`
+	Name           string         `json:"name"`
+	Parameters     []*Parameter   `json:"parameters,omitempty"`
+	ReturnType     *Type          `json:"returnType"`
+	ReturnOptional bool           `json:"returnOptional,omitempty"`
 }
 
 // Parameter represents a method parameter

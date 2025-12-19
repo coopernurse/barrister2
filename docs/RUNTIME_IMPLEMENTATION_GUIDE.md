@@ -604,6 +604,147 @@ Both server and client must fully comply with JSON-RPC 2.0 specification:
 - **Versioning**: Consider versioning runtime library
 - **Breaking changes**: Document breaking changes clearly
 
+### 19. Integration Testing
+
+To verify that generated client and server code can interoperate correctly, each generator plugin should support automated integration testing.
+
+#### Test Generation Flag
+
+Plugins should check for the `-test-server` flag in the `Generate()` method:
+
+```go
+testServerFlag := fs.Lookup("test-server")
+generateTestServer := false
+if testServerFlag != nil && testServerFlag.Value.String() == "true" {
+    generateTestServer = true
+}
+```
+
+When this flag is set, the plugin should generate two additional files:
+
+1. **`test_server.{ext}`** - Concrete implementations of all interface stubs
+2. **`test_client.{ext}`** - Test program that exercises all client methods
+
+#### Test Server Generation (`test_server.{ext}`)
+
+The test server must:
+
+- **Implement all interface methods**: Create concrete implementation classes for each interface
+- **Follow IDL comments**: Where methods have comments describing behavior, implement accordingly
+- **Handle all type cases**: Built-ins, structs, arrays, maps, enums, optional fields and returns
+- **Return appropriate types**: Match the IDL return types exactly
+- **Handle special cases**: For example, `B.echo` should return `None`/`null` when input is `"return-null"`
+
+**Example structure**:
+```python
+class AImpl:
+    def add(self, a: int, b: int) -> int:
+        return a + b
+    
+    def sqrt(self, a: float) -> float:
+        return math.sqrt(a)
+    # ... other methods
+
+if __name__ == "__main__":
+    server = BarristerServer(host="0.0.0.0", port=8080)
+    server.register("A", AImpl())
+    server.serve_forever()
+```
+
+#### Test Client Generation (`test_client.{ext}`)
+
+The test client must:
+
+- **Exercise all interface methods**: Call every method on every interface
+- **Validate responses**: Assert that responses match expected values
+- **Handle optional returns**: Test both null and non-null cases where applicable
+- **Report test results**: Print pass/fail for each test and exit with appropriate code
+- **Wait for server**: Include logic to wait for server to be ready before running tests
+
+**Example structure**:
+```python
+def main():
+    transport = HTTPTransport("http://localhost:8080")
+    client = AClient(transport)
+    
+    errors = []
+    
+    try:
+        result = client.add(2, 3)
+        assert result == 5
+        print("✓ A.add passed")
+    except Exception as e:
+        errors.append(f"A.add failed: {e}")
+    
+    if errors:
+        print(f"FAILED: {len(errors)} test(s) failed")
+        sys.exit(1)
+    else:
+        print("SUCCESS: All tests passed!")
+        sys.exit(0)
+```
+
+#### Docker Test Harness
+
+A test harness script (`tests/integration/test_generator.sh`) should:
+
+1. **Build the barrister binary** (if needed)
+2. **Generate code** from `examples/conform.idl` with `-test-server` flag
+3. **Start the test server** in background
+4. **Wait for server to be ready** (poll or timeout)
+5. **Run the test client** program
+6. **Capture results** and exit codes
+7. **Clean up** server process and temporary files
+
+The script should use Docker to ensure a consistent test environment:
+
+```bash
+docker run --rm \
+    -v $(pwd):/workspace \
+    -w /workspace \
+    python:3.11-slim \
+    /bin/bash -c "bash tests/integration/test_generator.sh"
+```
+
+#### Makefile Integration
+
+Each runtime should add a `test-integration` target to its Makefile:
+
+```makefile
+test-integration:
+	@echo "Testing {lang} generator integration..."
+	@cd ../.. && docker run --rm \
+		-v $$(pwd):/workspace \
+		-w /workspace \
+		$({LANG}_IMAGE) \
+		/bin/bash -c "bash tests/integration/test_generator.sh"
+```
+
+The root Makefile should include generator test targets:
+
+```makefile
+test-generator-{lang}:
+	@echo "Testing {lang} generator integration..."
+	@cd runtimes/{lang} && $(MAKE) test-integration
+
+test-generators: test-generator-python test-generator-{lang}
+	@echo "All generator tests passed"
+```
+
+#### Test IDL
+
+The `examples/conform.idl` file is designed to exercise all IDL features:
+
+- All built-in types (string, int, float, bool)
+- Arrays and maps
+- Structs and inheritance (`extends`)
+- Enums (including namespaced enums)
+- Optional fields and optional returns
+- Multiple interfaces
+- Namespaces
+
+This IDL should be used for all integration tests to ensure comprehensive coverage.
+
 ## Implementation Checklist
 
 When implementing a new runtime, ensure:
@@ -629,6 +770,9 @@ When implementing a new runtime, ensure:
 - [ ] Makefile targets for testing
 - [ ] Docker testing setup
 - [ ] Runtime tests written
+- [ ] Test server generation implemented (`-test-server` flag)
+- [ ] Test client generation implemented
+- [ ] Integration test harness works
 - [ ] Documentation written
 - [ ] Examples provided
 

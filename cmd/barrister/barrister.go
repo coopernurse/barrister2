@@ -21,6 +21,7 @@ func main() {
 	var fromJSON = flag.String("from-json", "", "Read JSON file and generate IDL text on STDOUT")
 	var pluginName = flag.String("plugin", "", "Code generation plugin to use (e.g., python-client-server)")
 	_ = flag.String("dir", "", "Output directory for generated code") // Available to plugins via FlagSet
+	_ = flag.Bool("test-server", false, "Generate test server and client implementations") // Available to plugins via FlagSet
 
 	// Register flags for all plugins
 	allPlugins := getAllPlugins()

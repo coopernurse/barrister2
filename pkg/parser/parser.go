@@ -490,10 +490,11 @@ func parseIDLWithImports(filename string, input string, visited map[string]bool)
 			}
 			for _, m := range elem.Interface.Methods {
 				method := &Method{
-					Pos:        m.Pos,
-					Name:       m.Name,
-					Parameters: make([]*Parameter, 0),
-					ReturnType: convertTypeExpr(m.ReturnType),
+					Pos:            m.Pos,
+					Name:           m.Name,
+					Parameters:     make([]*Parameter, 0),
+					ReturnType:     convertTypeExpr(m.ReturnType),
+					ReturnOptional: m.ReturnOptional,
 				}
 				for _, p := range m.Parameters {
 					method.Parameters = append(method.Parameters, &Parameter{
