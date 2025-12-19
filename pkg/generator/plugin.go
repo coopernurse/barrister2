@@ -8,7 +8,7 @@ import (
 
 // Plugin defines the interface that all code generation plugins must implement
 type Plugin interface {
-	// Name returns the unique identifier for this plugin (e.g., "python-flask-server")
+	// Name returns the unique identifier for this plugin (e.g., "python-server")
 	Name() string
 
 	// RegisterFlags is called to allow the plugin to register its own CLI flags.
