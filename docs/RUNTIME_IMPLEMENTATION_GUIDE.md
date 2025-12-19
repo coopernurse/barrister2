@@ -204,7 +204,7 @@ The `Generate()` method must:
 
 1. **Access output directory**: Read `-dir` flag from FlagSet
 2. **Build type registries**: Create maps of structs, enums, interfaces for efficient lookup
-3. **Copy runtime files**: Copy runtime library from `runtimes/{lang}/barrister2/` to output directory
+3. **Copy runtime files**: Use `runtime.CopyRuntimeFiles(lang, outputDir)` to copy embedded runtime files to output directory
 4. **Generate IDL-specific file**: Create `idl.{ext}` with type definitions
 5. **Generate server file**: Create `server.{ext}` with HTTP server and interface stubs
 6. **Generate client file**: Create `client.{ext}` with client classes and transport
@@ -212,21 +212,54 @@ The `Generate()` method must:
 
 ### Runtime File Copying
 
-The plugin must copy runtime library files to the output directory. The Python implementation shows the pattern:
+Runtime files are embedded directly into the barrister binary using Go's `embed` package. This allows the binary to be self-contained and work without requiring the source tree at runtime.
+
+Plugins should use the `runtime` package to copy embedded runtime files:
 
 ```go
+import "github.com/coopernurse/barrister2/pkg/runtime"
+
 func (p *PythonClientServer) copyRuntimeFiles(outputDir string) error {
-    runtimeDir := filepath.Join(outputDir, "barrister2")
-    // Create directory
-    // Find source directory (try multiple locations)
-    // Copy all runtime files
+    return runtime.CopyRuntimeFiles("python", outputDir)
 }
 ```
 
-**Considerations**:
-- Try multiple possible source locations (workspace root, relative to binary, etc.)
-- Only copy relevant files (e.g., `.py` files for Python, `.java` for Java)
-- Preserve directory structure if language requires it (e.g., package directories)
+The `runtime.CopyRuntimeFiles()` function:
+- Extracts embedded runtime files from the binary
+- Copies them to `outputDir/{runtimePackageName}/` (e.g., `outputDir/barrister2/` for Python)
+- Handles directory creation and file permissions automatically
+
+**Adding a New Runtime**:
+
+To add runtime files for a new language, you must:
+
+1. **Copy runtime files to embed location**: Copy your runtime files from `runtimes/{lang}/barrister2/` to `pkg/runtime/runtimes/{lang}/barrister2/`
+   ```bash
+   cp -r runtimes/java/barrister2 pkg/runtime/runtimes/java/
+   ```
+
+2. **Add embed directive**: In `pkg/runtime/embed.go`, add a new embed variable:
+   ```go
+   //go:embed all:runtimes/java/barrister2
+   var javaRuntimeFiles embed.FS
+   ```
+
+3. **Register in runtimeMap**: Add the new runtime to the `runtimeMap`:
+   ```go
+   var runtimeMap = map[string]embed.FS{
+       "python": pythonRuntimeFiles,
+       "java": javaRuntimeFiles,  // Add new runtime here
+   }
+   ```
+
+4. **Update file filtering** (if needed): In `GetRuntimeFiles()`, add language-specific file filtering if your language has different file extensions:
+   ```go
+   if lang == "java" && !strings.HasSuffix(entry.Name(), ".java") {
+       continue
+   }
+   ```
+
+**Note**: Go's `embed` directive doesn't support `..` paths, so runtime files must be copied to `pkg/runtime/runtimes/` to enable embedding. This is a one-time setup step when adding a new runtime.
 
 ## Runtime Library Requirements
 
@@ -752,7 +785,10 @@ When implementing a new runtime, ensure:
 - [ ] Plugin implements `generator.Plugin` interface
 - [ ] Plugin registered in `registerPlugins()`
 - [ ] Runtime library structure created in `runtimes/{lang}/`
-- [ ] Runtime files copied to output directory
+- [ ] Runtime files copied to `pkg/runtime/runtimes/{lang}/barrister2/` for embedding
+- [ ] Embed directive added in `pkg/runtime/embed.go` for new language
+- [ ] New runtime added to `runtimeMap` in `pkg/runtime/embed.go`
+- [ ] Plugin uses `runtime.CopyRuntimeFiles()` to copy embedded runtime files
 - [ ] `idl.{ext}` generated with type definitions
 - [ ] `server.{ext}` generated with HTTP server
 - [ ] `client.{ext}` generated with transport abstraction

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/barrister2/pkg/runtime"
 )
 
 // PythonClientServer is a plugin that generates Python HTTP server and client code from IDL
@@ -116,63 +117,9 @@ func (p *PythonClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 }
 
 // copyRuntimeFiles copies the Python runtime library files to the output directory
+// Uses embedded runtime files from the binary
 func (p *PythonClientServer) copyRuntimeFiles(outputDir string) error {
-	runtimeDir := filepath.Join(outputDir, "barrister2")
-	if err := os.MkdirAll(runtimeDir, 0755); err != nil {
-		return fmt.Errorf("failed to create runtime directory: %w", err)
-	}
-
-	// Find runtime source directory relative to the binary
-	// Try multiple possible locations (workspace root, or relative to binary)
-	sourceDirs := []string{
-		"runtimes/python/barrister2",                                  // From workspace root
-		filepath.Join("..", "..", "runtimes", "python", "barrister2"), // From pkg/generator
-		filepath.Join(".", "runtimes", "python", "barrister2"),        // Current dir
-	}
-
-	var sourceDir string
-	for _, dir := range sourceDirs {
-		if _, err := os.Stat(dir); err == nil {
-			sourceDir = dir
-			break
-		}
-	}
-
-	if sourceDir == "" {
-		return fmt.Errorf("could not find runtime source directory (tried: %v)", sourceDirs)
-	}
-
-	// Read all .py files from source directory
-	entries, err := os.ReadDir(sourceDir)
-	if err != nil {
-		return fmt.Errorf("failed to read runtime source directory %s: %w", sourceDir, err)
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		// Only copy .py files
-		if !strings.HasSuffix(entry.Name(), ".py") {
-			continue
-		}
-
-		// Read from source
-		srcPath := filepath.Join(sourceDir, entry.Name())
-		data, err := os.ReadFile(srcPath)
-		if err != nil {
-			return fmt.Errorf("failed to read runtime file %s: %w", srcPath, err)
-		}
-
-		// Write to output directory
-		dstPath := filepath.Join(runtimeDir, entry.Name())
-		if err := os.WriteFile(dstPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write runtime file %s: %w", dstPath, err)
-		}
-	}
-
-	return nil
+	return runtime.CopyRuntimeFiles("python", outputDir)
 }
 
 // generateIdlPy generates the idl.py file with IDL-specific type definitions
