@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtimes
 
 # Variables
 BINARY_NAME=barrister
@@ -58,6 +58,15 @@ install-tools:
 	else \
 		echo "golangci-lint already installed"; \
 	fi
+
+# Test Python runtime
+test-runtime-python:
+	@echo "Testing Python runtime..."
+	@cd runtimes/python && $(MAKE) test
+
+# Test all runtimes
+test-runtimes: test-runtime-python
+	@echo "All runtime tests passed"
 
 # Clean build artifacts
 clean:
