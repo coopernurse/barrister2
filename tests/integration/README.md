@@ -96,7 +96,7 @@ From the project root:
 make test-generator-python
 ```
 
-Or from `runtimes/python/`:
+Or from `pkg/runtime/runtimes/python/`:
 
 ```bash
 make test-integration
@@ -152,7 +152,7 @@ When implementing a new language runtime:
    - Generate `test_client.{ext}` with test cases
 
 2. **Update Makefiles**:
-   - Add `test-integration` target to `runtimes/{lang}/Makefile`
+   - Add `test-integration` target to `pkg/runtime/runtimes/{lang}/Makefile`
    - Add `test-generator-{lang}` target to root `Makefile`
    - Update `test-generators` target
 

@@ -62,12 +62,12 @@ install-tools:
 # Test Python runtime
 test-runtime-python:
 	@echo "Testing Python runtime..."
-	@cd runtimes/python && $(MAKE) test
+	@cd pkg/runtime/runtimes/python && $(MAKE) test
 
 # Test TypeScript runtime
 test-runtime-ts:
 	@echo "Testing TypeScript runtime..."
-	@cd runtimes/ts && $(MAKE) test
+	@cd pkg/runtime/runtimes/ts && $(MAKE) test
 
 # Test all runtimes
 test-runtimes: test-runtime-python test-runtime-ts
@@ -76,12 +76,12 @@ test-runtimes: test-runtime-python test-runtime-ts
 # Test Python generator integration
 test-generator-python:
 	@echo "Testing Python generator integration..."
-	@cd runtimes/python && $(MAKE) test-integration
+	@cd pkg/runtime/runtimes/python && $(MAKE) test-integration
 
 # Test TypeScript generator integration
 test-generator-ts:
 	@echo "Testing TypeScript generator integration..."
-	@cd runtimes/ts && $(MAKE) test-integration
+	@cd pkg/runtime/runtimes/ts && $(MAKE) test-integration
 
 # Test all generators
 test-generators: test-generator-python test-generator-ts

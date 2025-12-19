@@ -10,7 +10,7 @@ import (
 
 // Embed all Python runtime files
 // The embed path is relative to this file's location in pkg/runtime/
-// Note: Go's embed doesn't support ".." paths, so runtime files are copied to
+// Note: Go's embed doesn't support ".." paths, so runtime files are located in
 // pkg/runtime/runtimes/ to enable embedding. This allows the binary to be
 // self-contained without requiring the source tree at runtime.
 //go:embed all:runtimes/python/barrister2

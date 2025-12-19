@@ -93,3 +93,4 @@ This uses Docker to run tests in a consistent Node.js 18+ environment if Docker 
 ## Module System
 
 Generated code uses CommonJS (`module.exports`) for maximum Node.js compatibility.
+

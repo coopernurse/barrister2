@@ -47,7 +47,7 @@ The Barrister code generation system consists of two main components:
 
 ### Runtime Library vs Generated Code
 
-**Runtime Library** (`runtimes/{lang}/barrister2/`):
+**Runtime Library** (`pkg/runtime/runtimes/{lang}/barrister2/`):
 - **Purpose**: Reusable library code that is copied into the output directory
 - **Contents**:
   - Type validation functions (struct, enum, built-in types, arrays, maps)
@@ -68,7 +68,7 @@ The Barrister code generation system consists of two main components:
 For a language `{lang}`, the runtime should be organized as:
 
 ```
-runtimes/{lang}/
+pkg/runtime/runtimes/{lang}/
 ├── barrister2/              # Runtime library package/module
 │   ├── __init__.{ext}       # Package exports (if applicable)
 │   ├── rpc.{ext}            # RPC error handling
@@ -233,12 +233,7 @@ The `runtime.CopyRuntimeFiles()` function:
 
 To add runtime files for a new language, you must:
 
-1. **Copy runtime files to embed location**: Copy your runtime files from `runtimes/{lang}/barrister2/` to `pkg/runtime/runtimes/{lang}/barrister2/`
-   ```bash
-   cp -r runtimes/java/barrister2 pkg/runtime/runtimes/java/
-   ```
-
-2. **Add embed directive**: In `pkg/runtime/embed.go`, add a new embed variable:
+1. **Add embed directive**: In `pkg/runtime/embed.go`, add a new embed variable:
    ```go
    //go:embed all:runtimes/java/barrister2
    var javaRuntimeFiles embed.FS
@@ -259,7 +254,7 @@ To add runtime files for a new language, you must:
    }
    ```
 
-**Note**: Go's `embed` directive doesn't support `..` paths, so runtime files must be copied to `pkg/runtime/runtimes/` to enable embedding. This is a one-time setup step when adding a new runtime.
+**Note**: Go's `embed` directive doesn't support `..` paths, so runtime files must be located in `pkg/runtime/runtimes/` to enable embedding.
 
 ## Runtime Library Requirements
 
@@ -459,7 +454,7 @@ The root `Makefile` should include targets for testing each runtime:
 # Test {lang} runtime
 test-runtime-{lang}:
 	@echo "Testing {lang} runtime..."
-	@cd runtimes/{lang} && $(MAKE) test
+	@cd pkg/runtime/runtimes/{lang} && $(MAKE) test
 
 # Test all runtimes
 test-runtimes: test-runtime-python test-runtime-{lang}
@@ -468,7 +463,7 @@ test-runtimes: test-runtime-python test-runtime-{lang}
 
 ### Runtime-Specific Makefile
 
-Each runtime should have its own `Makefile` in `runtimes/{lang}/`:
+Each runtime should have its own `Makefile` in `pkg/runtime/runtimes/{lang}/`:
 
 **Required Targets**:
 - `test` - Run tests (should use Docker if available)
@@ -758,7 +753,7 @@ The root Makefile should include generator test targets:
 ```makefile
 test-generator-{lang}:
 	@echo "Testing {lang} generator integration..."
-	@cd runtimes/{lang} && $(MAKE) test-integration
+	@cd pkg/runtime/runtimes/{lang} && $(MAKE) test-integration
 
 test-generators: test-generator-python test-generator-{lang}
 	@echo "All generator tests passed"
@@ -784,8 +779,7 @@ When implementing a new runtime, ensure:
 
 - [ ] Plugin implements `generator.Plugin` interface
 - [ ] Plugin registered in `registerPlugins()`
-- [ ] Runtime library structure created in `runtimes/{lang}/`
-- [ ] Runtime files copied to `pkg/runtime/runtimes/{lang}/barrister2/` for embedding
+- [ ] Runtime library structure created in `pkg/runtime/runtimes/{lang}/`
 - [ ] Embed directive added in `pkg/runtime/embed.go` for new language
 - [ ] New runtime added to `runtimeMap` in `pkg/runtime/embed.go`
 - [ ] Plugin uses `runtime.CopyRuntimeFiles()` to copy embedded runtime files
@@ -818,7 +812,7 @@ To illustrate the concepts, here's how a Java runtime might be structured:
 
 **Runtime Structure**:
 ```
-runtimes/java/
+pkg/runtime/runtimes/java/
 ├── barrister2/
 │   ├── RPCError.java
 │   ├── Validation.java

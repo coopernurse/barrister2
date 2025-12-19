@@ -30,7 +30,7 @@ test-integration:
 		echo "Error: Docker is required for integration tests"; \
 		exit 1; \
 	fi
-	@cd ../.. && docker run --rm \
+	@cd ../../../.. && docker run --rm \
 		-v $$(pwd):/workspace \
 		-w /workspace \
 		node:18-slim \
@@ -41,3 +41,4 @@ clean:
 	find . -type f -name "*.js" -not -path "./node_modules/*" -delete 2>/dev/null || true
 	find . -type f -name "*.js.map" -delete 2>/dev/null || true
 	find . -type d -name "node_modules" -exec rm -r {} + 2>/dev/null || true
+
