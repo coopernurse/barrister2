@@ -301,7 +301,7 @@ func generateBarristerPy(idl *parser.IDL, structMap map[string]*parser.Struct, e
 func writeTypeDict(sb *strings.Builder, t *parser.Type) {
 	sb.WriteString("{")
 	if t.IsBuiltIn() {
-		sb.WriteString(fmt.Sprintf("'builtIn': '%s'", t.BuiltIn))
+		fmt.Fprintf(sb, "'builtIn': '%s'", t.BuiltIn)
 	} else if t.IsArray() {
 		sb.WriteString("'array': ")
 		writeTypeDict(sb, t.Array)
@@ -309,7 +309,7 @@ func writeTypeDict(sb *strings.Builder, t *parser.Type) {
 		sb.WriteString("'mapValue': ")
 		writeTypeDict(sb, t.MapValue)
 	} else if t.IsUserDefined() {
-		sb.WriteString(fmt.Sprintf("'userDefined': '%s'", t.UserDefined))
+		fmt.Fprintf(sb, "'userDefined': '%s'", t.UserDefined)
 	}
 	sb.WriteString("}")
 }
@@ -478,20 +478,20 @@ func writeInterfaceStub(sb *strings.Builder, iface *parser.Interface) {
 	if iface.Comment != "" {
 		lines := strings.Split(strings.TrimSpace(iface.Comment), "\n")
 		for _, line := range lines {
-			sb.WriteString(fmt.Sprintf("# %s\n", line))
+			fmt.Fprintf(sb, "# %s\n", line)
 		}
 	}
-	sb.WriteString(fmt.Sprintf("class %s(abc.ABC):\n", iface.Name))
+	fmt.Fprintf(sb, "class %s(abc.ABC):\n", iface.Name)
 	if iface.Comment != "" {
-		sb.WriteString(fmt.Sprintf("    \"\"\"%s\"\"\"\n", strings.TrimSpace(iface.Comment)))
+		fmt.Fprintf(sb, "    \"\"\"%s\"\"\"\n", strings.TrimSpace(iface.Comment))
 	}
 	sb.WriteString("\n")
 
 	for _, method := range iface.Methods {
 		sb.WriteString("    @abc.abstractmethod\n")
-		sb.WriteString(fmt.Sprintf("    def %s(self", method.Name))
+		fmt.Fprintf(sb, "    def %s(self", method.Name)
 		for _, param := range method.Parameters {
-			sb.WriteString(fmt.Sprintf(", %s", param.Name))
+			fmt.Fprintf(sb, ", %s", param.Name)
 		}
 		sb.WriteString("):\n")
 		sb.WriteString("        pass\n\n")
@@ -506,17 +506,17 @@ func writeInterfaceMethodLookup(sb *strings.Builder, interfaces []*parser.Interf
 	sb.WriteString("        # Interface method lookup\n")
 	for i, iface := range interfaces {
 		if i == 0 {
-			sb.WriteString(fmt.Sprintf("        if interface_name == '%s':\n", iface.Name))
+			fmt.Fprintf(sb, "        if interface_name == '%s':\n", iface.Name)
 		} else {
-			sb.WriteString(fmt.Sprintf("        elif interface_name == '%s':\n", iface.Name))
+			fmt.Fprintf(sb, "        elif interface_name == '%s':\n", iface.Name)
 		}
 		sb.WriteString("            interface_methods = {\n")
 		for _, method := range iface.Methods {
-			sb.WriteString(fmt.Sprintf("                '%s': {\n", method.Name))
+			fmt.Fprintf(sb, "                '%s': {\n", method.Name)
 			sb.WriteString("                    'parameters': [\n")
 			for _, param := range method.Parameters {
 				sb.WriteString("                        {\n")
-				sb.WriteString(fmt.Sprintf("                            'name': '%s',\n", param.Name))
+				fmt.Fprintf(sb, "                            'name': '%s',\n", param.Name)
 				sb.WriteString("                            'type': ")
 				writeTypeDict(sb, param.Type)
 				sb.WriteString(",\n")
