@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtimes test-generator-python test-generators
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators
 
 # Variables
 BINARY_NAME=barrister
@@ -64,8 +64,13 @@ test-runtime-python:
 	@echo "Testing Python runtime..."
 	@cd runtimes/python && $(MAKE) test
 
+# Test TypeScript runtime
+test-runtime-ts:
+	@echo "Testing TypeScript runtime..."
+	@cd runtimes/ts && $(MAKE) test
+
 # Test all runtimes
-test-runtimes: test-runtime-python
+test-runtimes: test-runtime-python test-runtime-ts
 	@echo "All runtime tests passed"
 
 # Test Python generator integration
@@ -73,8 +78,13 @@ test-generator-python:
 	@echo "Testing Python generator integration..."
 	@cd runtimes/python && $(MAKE) test-integration
 
+# Test TypeScript generator integration
+test-generator-ts:
+	@echo "Testing TypeScript generator integration..."
+	@cd runtimes/ts && $(MAKE) test-integration
+
 # Test all generators
-test-generators: test-generator-python
+test-generators: test-generator-python test-generator-ts
 	@echo "All generator tests passed"
 
 # Clean build artifacts

@@ -16,9 +16,14 @@ import (
 //go:embed all:runtimes/python/barrister2
 var pythonRuntimeFiles embed.FS
 
+// Embed all TypeScript runtime files
+//go:embed all:runtimes/ts/barrister2
+var tsRuntimeFiles embed.FS
+
 // runtimeMap maps language names to their embedded file systems
 var runtimeMap = map[string]embed.FS{
 	"python": pythonRuntimeFiles,
+	"ts":     tsRuntimeFiles,
 }
 
 // ListRuntimes returns a list of all available embedded runtimes
@@ -53,8 +58,11 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 			continue
 		}
 
-		// Only include .py files for Python (can be extended for other languages)
+		// Filter files by language-specific extension
 		if lang == "python" && !strings.HasSuffix(entry.Name(), ".py") {
+			continue
+		}
+		if lang == "ts" && !strings.HasSuffix(entry.Name(), ".ts") {
 			continue
 		}
 
