@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui
 
 # Variables
 BINARY_NAME=barrister
@@ -10,8 +10,13 @@ COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 # Default target
 .DEFAULT_GOAL := build
 
+# Build the web UI
+build-webui:
+	@echo "Building web UI..."
+	@cd webui && $(MAKE) build
+
 # Build the binary
-build:
+build: build-webui
 	go build -o $(BINARY_PATH) cmd/barrister/barrister.go
 	@echo "Built successfully at $(BINARY_PATH)"
 
@@ -42,8 +47,13 @@ lint: install-tools
 		exit 1; \
 	fi
 
-# Run quality checks (lint + test)
-quality: lint test
+# Run linter for webui
+lint-webui:
+	@echo "Running webui linter..."
+	@cd webui && $(MAKE) lint
+
+# Run quality checks (lint + test + webui lint)
+quality: lint test lint-webui
 	@echo "Quality checks completed"
 
 # Install required tools
@@ -92,4 +102,5 @@ clean:
 	@echo "Cleaning..."
 	rm -rf $(TARGET_DIR)
 	go clean ./...
+	@cd webui && $(MAKE) clean || true
 

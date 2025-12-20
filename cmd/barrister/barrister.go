@@ -9,6 +9,7 @@ import (
 
 	"github.com/coopernurse/barrister2/pkg/generator"
 	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/barrister2/pkg/webui"
 )
 
 func main() {
@@ -20,7 +21,9 @@ func main() {
 	var toJSON = flag.String("to-json", "", "Write parsed IDL as JSON to the specified file")
 	var fromJSON = flag.String("from-json", "", "Read JSON file and generate IDL text on STDOUT")
 	var pluginName = flag.String("plugin", "", "Code generation plugin to use (e.g., python-client-server)")
-	_ = flag.String("dir", "", "Output directory for generated code") // Available to plugins via FlagSet
+	var uiMode = flag.Bool("ui", false, "Start the embedded web UI server")
+	var uiPort = flag.Int("ui-port", 8080, "Port for the web UI server (default: 8080)")
+	_ = flag.String("dir", "", "Output directory for generated code")                      // Available to plugins via FlagSet
 	_ = flag.Bool("test-server", false, "Generate test server and client implementations") // Available to plugins via FlagSet
 
 	// Register flags for all plugins
@@ -30,6 +33,16 @@ func main() {
 	}
 
 	flag.Parse()
+
+	// Handle UI server mode - must be checked early
+	if *uiMode {
+		server := webui.NewServer(*uiPort)
+		if err := server.Start(); err != nil {
+			fmt.Fprintf(os.Stderr, "error: failed to start web UI server: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	// Check for mutual exclusivity
 	if *toJSON != "" && *fromJSON != "" {

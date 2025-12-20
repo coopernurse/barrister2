@@ -1,2 +1,6 @@
 target
 *.pyc
+pkg/webui/dist/
+webui/dist/
+__pycache__/
+node_modules/

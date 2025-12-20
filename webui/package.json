@@ -1,0 +1,20 @@
+{
+  "name": "barrister-webui",
+  "version": "1.0.0",
+  "description": "Universal Barrister RPC Client Web UI",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/app.js --bundle --outfile=dist/app.js --format=iife --global-name=BarristerUI --external:mithril",
+    "dev": "esbuild src/app.js --bundle --outfile=dist/app.js --format=iife --global-name=BarristerUI --external:mithril --watch",
+    "lint": "eslint src/**/*.js || true",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "mithril": "^2.3.6"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.2",
+    "eslint": "^8.55.0"
+  }
+}
+
