@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui test-webui
 
 # Variables
 BINARY_NAME=barrister
@@ -52,8 +52,13 @@ lint-webui:
 	@echo "Running webui linter..."
 	@cd webui && $(MAKE) lint
 
-# Run quality checks (lint + test + webui lint)
-quality: lint test lint-webui
+# Run tests for webui
+test-webui:
+	@echo "Running webui tests..."
+	@cd webui && $(MAKE) test
+
+# Run quality checks (lint + test + webui lint + webui test)
+quality: lint test lint-webui test-webui
 	@echo "Quality checks completed"
 
 # Install required tools
