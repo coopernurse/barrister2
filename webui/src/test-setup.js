@@ -119,21 +119,34 @@ global.window.m = (tag, attrs, ...children) => {
                 if (child === null || child === undefined || child === false) {
                     return;
                 }
+                // Handle arrays - flatten and recurse
+                if (Array.isArray(child)) {
+                    const filtered = child.filter(c => c !== null && c !== undefined && c !== false);
+                    processChildren(filtered);
+                    return;
+                }
+                // Handle strings and numbers - convert to text nodes
                 if (typeof child === 'string' || typeof child === 'number') {
                     element.appendChild(document.createTextNode(String(child)));
-                } else if (child && child.nodeType) {
-                    element.appendChild(child);
-                } else if (Array.isArray(child)) {
-                    processChildren(child.filter(c => c !== null && c !== undefined && c !== false));
-                } else if (typeof child === 'object' && child.tagName) {
-                    element.appendChild(child);
+                    return;
                 }
-                // Skip other falsy values
+                // Handle DOM nodes
+                if (child && child.nodeType) {
+                    element.appendChild(child);
+                    return;
+                }
+                // Handle objects with tagName (already created elements)
+                if (typeof child === 'object' && child.tagName) {
+                    element.appendChild(child);
+                    return;
+                }
+                // Skip other types
             });
         };
 
-        // Filter children before processing
-        const filteredChildren = children.filter(child => child !== null && child !== undefined && child !== false);
+        // Flatten and filter children before processing
+        const flattenedChildren = children.flat(Infinity);
+        const filteredChildren = flattenedChildren.filter(child => child !== null && child !== undefined && child !== false);
         processChildren(filteredChildren);
         return element;
     }

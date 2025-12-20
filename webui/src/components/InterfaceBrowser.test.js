@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import InterfaceBrowser from './InterfaceBrowser.js';
 
 describe('InterfaceBrowser Component', () => {
     let idl;
     let onMethodSelectCallback;
+    let container;
 
     beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
         idl = {
             interfaces: [
                 {
@@ -42,6 +45,13 @@ describe('InterfaceBrowser Component', () => {
             ]
         };
         onMethodSelectCallback = vi.fn();
+    });
+
+    afterEach(() => {
+        if (container && container.parentNode) {
+            document.body.removeChild(container);
+        }
+        InterfaceBrowser.expandedInterfaces.clear();
     });
 
     describe('Component initialization', () => {
@@ -155,18 +165,8 @@ describe('InterfaceBrowser Component', () => {
         });
     });
 
-    describe.skip('View rendering', () => {
-        it.skip('should render interfaces and methods', () => {
-            // Skipped due to Mithril mock limitations
-        });
-
-        it.skip('should handle IDL with no interfaces', () => {
-            // Skipped due to Mithril mock limitations
-        });
-
-        it.skip('should handle null IDL', () => {
-            // Skipped due to Mithril mock limitations
-        });
-    });
+    // View rendering tests removed - the Mithril mock has limitations with complex
+    // nested structures (arrays with conditional rendering). The component logic
+    // is already well-tested through initialization, method selection, and type formatting tests.
 });
 
