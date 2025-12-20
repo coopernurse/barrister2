@@ -29,7 +29,10 @@ func (p *PythonClientServer) Name() string {
 
 // RegisterFlags registers CLI flags for this plugin
 func (p *PythonClientServer) RegisterFlags(fs *flag.FlagSet) {
-	fs.String("base-dir", "", "Base directory for namespace packages/modules (defaults to -dir if not specified)")
+	// Only register base-dir if it hasn't been registered by another plugin
+	if fs.Lookup("base-dir") == nil {
+		fs.String("base-dir", "", "Base directory for namespace packages/modules (defaults to -dir if not specified)")
+	}
 }
 
 // Generate generates Python HTTP server and client code from the parsed IDL
