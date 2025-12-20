@@ -23,6 +23,21 @@ var (
 func ValidateIDL(idl *IDL) error {
 	errors := &ValidationErrors{Errors: make([]*ValidationError, 0)}
 
+	// Validate that the root file has a namespace declaration
+	// Exception: empty files (no types defined) are allowed without a namespace
+	isEmpty := len(idl.Interfaces) == 0 && len(idl.Structs) == 0 && len(idl.Enums) == 0
+	if idl.RootNamespace == "" && !isEmpty {
+		errors.Add(&ValidationError{
+			Line:   0,
+			Column: 0,
+			Msg:    "IDL file must declare a namespace at the top level",
+		})
+		// Return early if no namespace - other validations may not make sense
+		if errors.HasErrors() {
+			return errors
+		}
+	}
+
 	// Build type registry and track positions for duplicate detection
 	typeRegistry := make(map[string]lexer.Position)
 	typeNames := make(map[string]string) // type name -> "interface", "struct", or "enum"

@@ -9,6 +9,28 @@ import (
 
 // Helper function to parse and validate in one call
 func parseAndValidate(input string) (*IDL, error) {
+	// Add a default namespace if the input doesn't have one (for test convenience)
+	// Exception: don't add namespace for empty/whitespace-only inputs (empty files are valid)
+	trimmedInput := strings.TrimSpace(input)
+	if trimmedInput != "" {
+		hasNamespace := false
+		lines := strings.Split(input, "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "namespace ") {
+				hasNamespace = true
+				break
+			}
+			// Stop checking if we hit a non-comment, non-whitespace, non-import line
+			if trimmed != "" && !strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "import ") {
+				break
+			}
+		}
+		if !hasNamespace {
+			input = "namespace test\n\n" + input
+		}
+	}
+	
 	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		return nil, err
@@ -36,6 +58,27 @@ func assertParseError(t *testing.T, input string, expectedErrorSubstring string)
 // Helper to assert validation errors
 func assertValidationError(t *testing.T, input string, expectedErrorSubstring string) {
 	t.Helper()
+	// Add a default namespace if the input doesn't have one (for test convenience)
+	trimmedInput := strings.TrimSpace(input)
+	if trimmedInput != "" {
+		hasNamespace := false
+		lines := strings.Split(input, "\n")
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "namespace ") {
+				hasNamespace = true
+				break
+			}
+			// Stop checking if we hit a non-comment, non-whitespace, non-import line
+			if trimmed != "" && !strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "import ") {
+				break
+			}
+		}
+		if !hasNamespace {
+			input = "namespace test\n\n" + input
+		}
+	}
+	
 	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Errorf("Unexpected parse error for input:\n%s\nError: %v", input, err)
@@ -1257,7 +1300,7 @@ struct CStruct {
 	}
 }
 
-// Test duplicate namespace names
+// Test duplicate namespace names across different files
 func TestDuplicateNamespace(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -1289,6 +1332,28 @@ struct MainStruct {
 		t.Error("Expected error for duplicate namespace, got nil")
 	} else if !strings.Contains(err.Error(), "namespace") && !strings.Contains(err.Error(), "duplicate") {
 		t.Errorf("Expected namespace-related error, got: %v", err)
+	}
+}
+
+// Test multiple namespace declarations in the same file
+func TestMultipleNamespaceInSameFile(t *testing.T) {
+	input := `namespace first
+
+struct Test1 {
+    value string
+}
+
+namespace second
+
+struct Test2 {
+    value int
+}`
+
+	_, err := ParseIDL("test.idl", input)
+	if err == nil {
+		t.Error("Expected error for multiple namespace declarations in same file, got nil")
+	} else if !strings.Contains(err.Error(), "multiple namespace declarations") {
+		t.Errorf("Expected error about multiple namespace declarations, got: %v", err)
 	}
 }
 
@@ -1341,7 +1406,9 @@ struct Test {
 
 // Test qualified name with non-existent namespace
 func TestQualifiedNameNonExistentNamespace(t *testing.T) {
-	input := `struct Test {
+	input := `namespace test
+
+struct Test {
     value nonexistent.Type
 }`
 
@@ -1370,7 +1437,9 @@ struct Response {
 }`
 	createTestFile(t, tmpDir, "imported.idl", importedContent)
 
-	mainContent := `import "imported.idl"
+	mainContent := `namespace main
+
+import "imported.idl"
 
 struct Test {
     value inc.NonExistent

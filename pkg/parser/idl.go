@@ -6,9 +6,10 @@ import (
 
 // IDL represents the root structure containing all parsed IDL elements
 type IDL struct {
-	Interfaces []*Interface `json:"interfaces,omitempty"`
-	Structs    []*Struct    `json:"structs,omitempty"`
-	Enums      []*Enum      `json:"enums,omitempty"`
+	RootNamespace string       `json:"rootNamespace,omitempty"` // Namespace of the root file being parsed
+	Interfaces    []*Interface `json:"interfaces,omitempty"`
+	Structs       []*Struct    `json:"structs,omitempty"`
+	Enums         []*Enum      `json:"enums,omitempty"`
 }
 
 // Interface represents a service interface with methods

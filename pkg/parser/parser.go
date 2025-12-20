@@ -471,9 +471,10 @@ func parseIDLWithImports(filename string, input string, visited map[string]bool)
 	}
 
 	idl := &IDL{
-		Interfaces: make([]*Interface, 0),
-		Structs:    make([]*Struct, 0),
-		Enums:      make([]*Enum, 0),
+		RootNamespace: namespace,
+		Interfaces:    make([]*Interface, 0),
+		Structs:       make([]*Struct, 0),
+		Enums:         make([]*Enum, 0),
 	}
 
 	// Process local elements
