@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui test-webui
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
 
 # Variables
 BINARY_NAME=barrister
@@ -101,6 +101,18 @@ test-generator-ts:
 # Test all generators
 test-generators: test-generator-python test-generator-ts
 	@echo "All generator tests passed"
+
+# Start all test servers for web UI
+start-test-servers:
+	@./scripts/test-servers.sh start
+
+# Stop all test servers
+stop-test-servers:
+	@./scripts/test-servers.sh stop
+
+# Show status of test servers
+status-test-servers:
+	@./scripts/test-servers.sh status
 
 # Clean build artifacts
 clean:

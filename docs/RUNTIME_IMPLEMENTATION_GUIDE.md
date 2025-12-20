@@ -773,6 +773,103 @@ The `examples/conform.idl` file is designed to exercise all IDL features:
 
 This IDL should be used for all integration tests to ensure comprehensive coverage.
 
+### 20. Test Server Management
+
+To facilitate testing with the web UI, a centralized script manages test servers for all runtimes in Docker containers.
+
+#### Script Location
+
+The test server management script is located at `scripts/test-servers.sh` and provides three commands:
+
+- **`start`**: Starts all test server containers
+- **`stop`**: Stops and removes all test server containers
+- **`status`**: Shows the status of running containers
+
+#### Usage
+
+```bash
+# Start all test servers
+./scripts/test-servers.sh start
+
+# Check status
+./scripts/test-servers.sh status
+
+# Stop all servers
+./scripts/test-servers.sh stop
+```
+
+#### Adding a New Runtime
+
+When implementing a new runtime, you must add it to the `RUNTIMES` array in `scripts/test-servers.sh`:
+
+```bash
+RUNTIMES=(
+    "python:python-client-server:python:3.11-slim:9000:python3 test_server.py"
+    "ts:ts-client-server:node:18-slim:9001:ts-node --project tsconfig.json test_server.ts"
+    "java:java-client-server:openjdk:17-slim:9002:java -cp . TestServer"  # New runtime
+)
+```
+
+The format is: `name:plugin:image:port:start_command`
+
+- **name**: Short identifier for the runtime (e.g., `python`, `ts`, `java`)
+- **plugin**: Plugin name used with the `-plugin` flag (e.g., `python-client-server`)
+- **image**: Docker image to use (e.g., `python:3.11-slim`, `node:18-slim`)
+- **port**: Host port to map (starting at 9000, increment for each runtime)
+- **start_command**: Command to run the test server inside the container
+
+#### Port Assignment
+
+Ports are assigned starting at 9000 and incrementing for each runtime:
+- Python: 9000
+- TypeScript: 9001
+- Java (if added): 9002
+- etc.
+
+#### Container Naming
+
+Containers are named using the pattern `barrister-test-{name}`:
+- `barrister-test-python`
+- `barrister-test-ts`
+- `barrister-test-java` (if added)
+
+This naming convention allows the script to easily find and manage all test server containers.
+
+#### Container Configuration
+
+Each container:
+- Runs in detached mode (`-d`)
+- Maps host port to container port 8080 (e.g., `-p 9000:8080`)
+- Mounts the generated code directory as `/workspace`
+- Uses the appropriate Docker image for the runtime
+- Runs the test server command in the workspace directory
+
+#### Health Checks
+
+The script performs health checks by calling the `barrister-idl` RPC method on each server. Servers must respond to this method within 30 seconds to be considered ready.
+
+#### Makefile Integration
+
+The root `Makefile` includes convenience targets:
+
+```makefile
+start-test-servers:
+	@./scripts/test-servers.sh start
+
+stop-test-servers:
+	@./scripts/test-servers.sh stop
+
+status-test-servers:
+	@./scripts/test-servers.sh status
+```
+
+These can be used as:
+```bash
+make start-test-servers
+make stop-test-servers
+make status-test-servers
+```
+
 ## Implementation Checklist
 
 When implementing a new runtime, ensure:
@@ -803,6 +900,7 @@ When implementing a new runtime, ensure:
 - [ ] Test server generation implemented (`-test-server` flag)
 - [ ] Test client generation implemented
 - [ ] Integration test harness works
+- [ ] Runtime added to `scripts/test-servers.sh` RUNTIMES array
 - [ ] Documentation written
 - [ ] Examples provided
 
