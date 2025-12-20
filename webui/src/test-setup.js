@@ -153,3 +153,8 @@ global.window.m = (tag, attrs, ...children) => {
     return null;
 };
 
+// Add m.redraw mock
+global.window.m.redraw = () => {
+    // No-op in tests
+};
+

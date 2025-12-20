@@ -39,9 +39,10 @@ describe('MethodForm Component', () => {
 
             expect(onFormChangeCallback).toHaveBeenCalled();
             const formValues = onFormChangeCallback.mock.calls[0][0];
-            expect(formValues.id).toBe(0);
-            expect(formValues.name).toBe('');
-            expect(formValues.active).toBe(false);
+            // Form fields now initialize with null to show placeholder text
+            expect(formValues.id).toBeNull();
+            expect(formValues.name).toBeNull();
+            expect(formValues.active).toBeNull();
         });
 
         it('should handle method with no parameters', () => {
