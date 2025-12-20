@@ -29,7 +29,7 @@ test-integration:
 		echo "Error: Docker is required for integration tests"; \
 		exit 1; \
 	fi
-	@cd ../../../.. && docker run --rm \
+	@cd ../../../.. && $(MAKE) build-linux && docker run --rm \
 		-v $$(pwd):/workspace \
 		-w /workspace \
 		-e GOTOOLCHAIN=auto \

@@ -16,7 +16,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
 TEST_IDL_INC="$PROJECT_ROOT/examples/conform-inc.idl"
 OUTPUT_DIR="/tmp/barrister_test_$$"
-BINARY_PATH="$PROJECT_ROOT/target/barrister"
+BINARY_PATH="$PROJECT_ROOT/target/barrister-amd64"
 SERVER_PORT=8080
 SERVER_URL="http://localhost:$SERVER_PORT"
 TIMEOUT=30
@@ -36,9 +36,11 @@ trap cleanup EXIT
 echo -e "${GREEN}=== Barrister Generator Integration Test ===${NC}"
 echo ""
 
-# Step 1: Build the barrister binary
-# Check if we're in Docker (check for Go availability or use pre-built binary)
-if command -v go >/dev/null 2>&1; then
+# Step 1: Build the barrister binary (if needed)
+# Prefer using pre-built binary if it exists, otherwise build it
+if [ -f "$BINARY_PATH" ] && [ -x "$BINARY_PATH" ]; then
+    echo -e "${GREEN}Using pre-built barrister binary at $BINARY_PATH${NC}"
+elif command -v go >/dev/null 2>&1; then
     # We're in a container with Go - build the binary
     echo -e "${YELLOW}Building barrister binary in container...${NC}"
     cd "$PROJECT_ROOT"
@@ -52,7 +54,7 @@ elif [ ! -f "$BINARY_PATH" ]; then
     echo -e "${YELLOW}Building barrister binary on host...${NC}"
     cd "$PROJECT_ROOT"
     if command -v make >/dev/null 2>&1; then
-        make build
+        make build-linux
     else
         echo -e "${RED}ERROR: Cannot build binary - Go not available and binary doesn't exist${NC}"
         exit 1

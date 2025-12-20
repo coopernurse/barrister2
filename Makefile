@@ -1,9 +1,10 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
+.PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
 
 # Variables
 BINARY_NAME=barrister
 TARGET_DIR=target
 BINARY_PATH=$(TARGET_DIR)/$(BINARY_NAME)
+BINARY_PATH_LINUX=$(TARGET_DIR)/barrister-amd64
 COVERAGE_FILE=$(TARGET_DIR)/coverage.out
 COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 
@@ -19,6 +20,22 @@ build-webui:
 build: build-webui
 	go build -o $(BINARY_PATH) cmd/barrister/barrister.go
 	@echo "Built successfully at $(BINARY_PATH)"
+	@echo "Building Linux binary for Docker containers..."
+	@mkdir -p $(TARGET_DIR)
+	GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/barrister/barrister.go
+	@echo "Built Linux binary successfully at $(BINARY_PATH_LINUX)"
+
+# Build Linux binary for Docker containers (cross-compile) - only if it doesn't exist
+build-linux:
+	@if [ -f $(BINARY_PATH_LINUX) ]; then \
+		echo "Linux binary already exists at $(BINARY_PATH_LINUX), skipping build"; \
+	else \
+		$(MAKE) build-webui; \
+		echo "Building Linux binary for Docker containers..."; \
+		mkdir -p $(TARGET_DIR); \
+		GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/barrister/barrister.go; \
+		echo "Built Linux binary successfully at $(BINARY_PATH_LINUX)"; \
+	fi
 
 # Run tests
 test:
