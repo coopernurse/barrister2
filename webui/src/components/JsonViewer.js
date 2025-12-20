@@ -4,9 +4,13 @@ const m = window.m;
 
 export default {
     activeTab: 'response', // 'request' or 'response'
+    parentVnode: null,
     
     view(vnode) {
         const { request, response } = vnode.attrs;
+        
+        // Store parent vnode for use in oncreate/onupdate
+        this.parentVnode = vnode;
         
         if (!request && !response) {
             return null;
@@ -22,6 +26,7 @@ export default {
                             onclick: (e) => {
                                 e.preventDefault();
                                 this.activeTab = 'request';
+                                m.redraw();
                             }
                         }, 'Request')
                     ]),
@@ -32,6 +37,7 @@ export default {
                             onclick: (e) => {
                                 e.preventDefault();
                                 this.activeTab = 'response';
+                                m.redraw();
                             }
                         }, 'Response')
                     ])
@@ -39,11 +45,16 @@ export default {
             ]),
             m('div.card-body', [
                 m('div.json-viewer-container', {
-                    oncreate: (vnode) => {
-                        this.renderJsonViewer(vnode, vnode.attrs);
+                    // Include data identifiers in key to force update when data changes
+                    key: 'viewer-' + this.activeTab + '-' + (request && request.id ? request.id : 'no-req') + '-' + (response && response.id ? response.id : 'no-res'),
+                    oncreate: (containerVnode) => {
+                        this.containerVnode = containerVnode;
+                        this.renderJsonViewer(containerVnode, vnode.attrs);
                     },
-                    onupdate: (vnode) => {
-                        this.renderJsonViewer(vnode, vnode.attrs);
+                    onupdate: (containerVnode) => {
+                        this.containerVnode = containerVnode;
+                        // Always use the current parent vnode attrs (updated each render)
+                        this.renderJsonViewer(containerVnode, this.parentVnode.attrs);
                     }
                 })
             ])
@@ -51,7 +62,12 @@ export default {
     },
     
     renderJsonViewer(vnode, attrs) {
-        const { request, response } = attrs;
+        if (!vnode || !vnode.dom) {
+            console.warn('JsonViewer: vnode or vnode.dom is null');
+            return;
+        }
+        
+        const { request, response } = attrs || {};
         const data = this.activeTab === 'request' ? request : response;
         
         if (!data) {
@@ -60,10 +76,12 @@ export default {
         }
         
         // Use @andypf/json-viewer web component if available
-        if (customElements && customElements.get('andypf-json-viewer')) {
+        if (window.customElements && window.customElements.get('andypf-json-viewer')) {
             try {
                 // Clear existing content
-                vnode.dom.innerHTML = '';
+                while (vnode.dom.firstChild) {
+                    vnode.dom.removeChild(vnode.dom.firstChild);
+                }
                 
                 // Create the web component
                 const jsonViewer = document.createElement('andypf-json-viewer');
@@ -77,6 +95,7 @@ export default {
                 
                 vnode.dom.appendChild(jsonViewer);
             } catch (e) {
+                console.error('Error rendering json-viewer:', e);
                 // Fallback to pretty-printed JSON
                 this.renderFallback(vnode, data);
             }

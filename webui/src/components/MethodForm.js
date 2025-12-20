@@ -27,12 +27,10 @@ export default {
             return;
         }
         
-        // Initialize with default values
+        // Initialize with null/undefined - let TypeInput show placeholders
         this.formValues = {};
         method.parameters.forEach(param => {
-            // Get default value based on type
-            const defaultValue = this.getDefaultValue(param.type);
-            this.formValues[param.name] = defaultValue;
+            this.formValues[param.name] = null;
         });
         
         if (vnode.attrs.onFormChange) {
@@ -56,10 +54,10 @@ export default {
                         m('div.mb-3', [
                             m('label.form-label', [
                                 m('strong', param.name),
-                                m('span.text-muted.ml-2', this.formatType(param.type)),
+                                m('span.text-muted.ml-2', ' - ' + this.formatType(param.type)),
                                 param.comment && m('div.small.text-muted.mt-1', param.comment)
                             ]),
-                            m('div', { component: TypeInput }, {
+                            m(TypeInput, {
                                 type: param.type,
                                 value: this.formValues[param.name],
                                 onchange: (newValue) => {

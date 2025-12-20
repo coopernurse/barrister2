@@ -108,7 +108,9 @@ const TypeInput = {
                 }, '+ Add Item')
             ]),
             items.map((item, index) =>
-                m('div.array-item', [
+                m('div.array-item', {
+                    key: path + '[' + index + ']'
+                }, [
                     m('div.flex-grow-1', 
                         m(TypeInput, {
                             type: elementTypeDef,
@@ -150,7 +152,9 @@ const TypeInput = {
                 }, '+ Add Entry')
             ]),
             entriesList.map(([key, val]) =>
-                m('div.map-item', [
+                m('div.map-item', {
+                    key: path + '.' + key
+                }, [
                     m('input.form-control[type=text][placeholder=Key]', {
                         value: key,
                         oninput: (e) => {

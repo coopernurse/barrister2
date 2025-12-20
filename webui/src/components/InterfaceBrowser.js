@@ -4,9 +4,25 @@ const m = window.m;
 
 export default {
     expandedInterfaces: new Set(),
+    lastIdl: null,
     
     oninit(vnode) {
         // Expand first interface by default
+        this.updateExpandedInterfaces(vnode);
+    },
+    
+    onbeforeupdate(vnode) {
+        // Reinitialize when IDL changes
+        if (vnode.attrs.idl !== this.lastIdl) {
+            this.lastIdl = vnode.attrs.idl;
+            this.updateExpandedInterfaces(vnode);
+        }
+        return true;
+    },
+    
+    updateExpandedInterfaces(vnode) {
+        // Reset and expand first interface by default
+        this.expandedInterfaces.clear();
         if (vnode.attrs.idl && vnode.attrs.idl.interfaces && vnode.attrs.idl.interfaces.length > 0) {
             this.expandedInterfaces.add(vnode.attrs.idl.interfaces[0].name);
         }
@@ -28,7 +44,9 @@ export default {
                 m('div.card-header', 'Interfaces & Methods'),
                 m('div.card-body', 
                     idl.interfaces.map(iface => 
-                        m('div.mb-3', [
+                        m('div.mb-3', {
+                            key: iface.name
+                        }, [
                             m('div.d-flex.align-items-center.mb-2', [
                                 m('h6.mb-0.flex-grow-1', iface.name),
                                 m('button.btn.btn-sm.btn-outline-secondary', {
@@ -38,12 +56,14 @@ export default {
                                         } else {
                                             this.expandedInterfaces.add(iface.name);
                                         }
+                                        m.redraw();
                                     }
                                 }, this.expandedInterfaces.has(iface.name) ? '−' : '+')
                             ]),
                             iface.comment && m('p.small.text-muted.mb-2', iface.comment),
                             this.expandedInterfaces.has(iface.name) && iface.methods && iface.methods.map(method =>
                                 m('div.list-group-item.mb-2', {
+                                    key: iface.name + '.' + method.name,
                                     style: { cursor: 'pointer' },
                                     onclick: () => {
                                         if (onMethodSelect) {

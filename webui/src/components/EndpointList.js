@@ -38,6 +38,12 @@ export default {
                         onclick: () => this.handleAddEndpoint(vnode),
                         disabled: this.adding || this.discovering || !this.newEndpointUrl.trim()
                     }, this.adding ? 'Adding...' : '+')
+                ]),
+                this.discovering && m('div.small.text-muted.mt-1', [
+                    m('span.spinner-border.spinner-border-sm[role=status]', {
+                        style: { width: '0.875rem', height: '0.875rem', marginRight: '0.25rem', display: 'inline-block' }
+                    }),
+                    'Loading...'
                 ])
             ]),
             
@@ -77,6 +83,7 @@ export default {
         if (!url) return;
         
         this.adding = true;
+        m.redraw();
         try {
             saveEndpoint(url);
             this.endpoints = getEndpoints();
@@ -88,12 +95,14 @@ export default {
             alert('Failed to add endpoint: ' + error.message);
         } finally {
             this.adding = false;
+            m.redraw();
         }
     },
     
     async handleSelectEndpoint(url, vnode) {
         const { onEndpointSelect } = vnode.attrs;
         this.discovering = true;
+        m.redraw();
         
         try {
             // Discover IDL
@@ -111,6 +120,7 @@ export default {
             alert('Failed to discover IDL: ' + error.message);
         } finally {
             this.discovering = false;
+            m.redraw();
         }
     },
     

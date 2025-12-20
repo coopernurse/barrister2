@@ -77,10 +77,17 @@ const App = {
                                     onSubmit: async (values) => {
                                         AppState.loading = true;
                                         AppState.error = null;
+                                        m.redraw();
+                                        
+                                        // Convert params object to array based on method parameter order
+                                        const paramsArray = AppState.selectedMethod.parameters
+                                            ? AppState.selectedMethod.parameters.map(param => values[param.name])
+                                            : [];
+                                        
                                         AppState.requestJson = {
                                             jsonrpc: '2.0',
                                             method: `${AppState.selectedInterface.name}.${AppState.selectedMethod.name}`,
-                                            params: values,
+                                            params: paramsArray,
                                             id: Date.now()
                                         };
                                         
@@ -90,7 +97,7 @@ const App = {
                                                 AppState.currentEndpoint,
                                                 AppState.selectedInterface.name,
                                                 AppState.selectedMethod.name,
-                                                values
+                                                paramsArray
                                             );
                                             AppState.responseJson = response;
                                         } catch (err) {
@@ -103,23 +110,23 @@ const App = {
                                             };
                                         } finally {
                                             AppState.loading = false;
+                                            m.redraw();
                                         }
                                     }
                                 }),
                                 
-                                (AppState.requestJson || AppState.responseJson) && m(JsonViewer, {
-                                    request: AppState.requestJson,
-                                    response: AppState.responseJson
-                                }),
-                                
-                                AppState.loading && m('div.card.mt-3', [
+                                AppState.loading ? m('div.card.mt-3', [
+                                    m('div.card-header', 'Request / Response'),
                                     m('div.card-body.text-center', [
                                         m('div.spinner-border[role=status]', [
                                             m('span.visually-hidden', 'Loading...')
                                         ]),
                                         m('p.mt-2', 'Calling method...')
                                     ])
-                                ]),
+                                ]) : (AppState.requestJson || AppState.responseJson) ? m(JsonViewer, {
+                                    request: AppState.requestJson,
+                                    response: AppState.responseJson
+                                }) : null,
                                 
                                 AppState.error && m('div.alert.alert-danger.mt-3', AppState.error)
                             ] : null
