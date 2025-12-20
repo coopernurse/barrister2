@@ -33,6 +33,12 @@ test: install
 	@echo "Running tests..."
 	$(NPM) run test
 
+# Run tests with coverage
+cover: install
+	@echo "Running tests with coverage..."
+	$(NPM) run test:coverage
+	@echo "Coverage report generated in coverage/ directory"
+
 # Development mode with watch
 dev: install
 	@echo "Starting dev mode (watch)..."

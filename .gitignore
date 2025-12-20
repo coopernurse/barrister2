@@ -2,5 +2,6 @@ target
 *.pyc
 pkg/webui/dist/
 webui/dist/
+webui/coverage/
 __pycache__/
 node_modules/

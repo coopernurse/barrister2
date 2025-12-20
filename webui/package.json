@@ -7,14 +7,19 @@
     "build": "esbuild src/app.js --bundle --outfile=dist/app.js --format=iife --global-name=BarristerUI --external:mithril",
     "dev": "esbuild src/app.js --bundle --outfile=dist/app.js --format=iife --global-name=BarristerUI --external:mithril --watch",
     "lint": "eslint src/**/*.js || true",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "mithril": "^2.3.6"
   },
   "devDependencies": {
     "esbuild": "^0.27.2",
-    "eslint": "^8.55.0"
+    "eslint": "^8.55.0",
+    "vitest": "^2.1.8",
+    "@vitest/coverage-v8": "^2.1.8",
+    "jsdom": "^25.0.1"
   }
 }
 
