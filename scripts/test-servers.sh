@@ -28,6 +28,7 @@ TIMEOUT=30
 RUNTIMES=(
     "python:python-client-server:python:3.11-slim:9000:python3 test_server.py"
     "ts:ts-client-server:node:18-slim:9001:ts-node --project tsconfig.json test_server.ts"
+    "csharp:csharp-client-server:mcr.microsoft.com/dotnet/sdk:8.0:9002:dotnet run --project TestServer.csproj"
 )
 
 # Parse runtime config
@@ -133,6 +134,9 @@ generate_code() {
 EOF
             fi
             ;;
+        csharp)
+            test_server_file="$output_dir/TestServer.cs"
+            ;;
     esac
     
     if [ ! -f "$test_server_file" ]; then
@@ -198,6 +202,10 @@ start_runtime() {
         ts)
             # Install TypeScript tools and run server
             container_cmd="cd /workspace && npm install -g typescript ts-node @types/node >/dev/null 2>&1 && $start_cmd"
+            ;;
+        csharp)
+            # Build and run C# server
+            container_cmd="cd /workspace && dotnet build TestServer.csproj >/dev/null 2>&1 && $start_cmd"
             ;;
     esac
     

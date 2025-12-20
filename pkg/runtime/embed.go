@@ -20,10 +20,15 @@ var pythonRuntimeFiles embed.FS
 //go:embed all:runtimes/ts/barrister2
 var tsRuntimeFiles embed.FS
 
+// Embed all C# runtime files
+//go:embed all:runtimes/csharp/barrister2
+var csharpRuntimeFiles embed.FS
+
 // runtimeMap maps language names to their embedded file systems
 var runtimeMap = map[string]embed.FS{
 	"python": pythonRuntimeFiles,
 	"ts":     tsRuntimeFiles,
+	"csharp": csharpRuntimeFiles,
 }
 
 // ListRuntimes returns a list of all available embedded runtimes
@@ -63,6 +68,9 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 			continue
 		}
 		if lang == "ts" && !strings.HasSuffix(entry.Name(), ".ts") {
+			continue
+		}
+		if lang == "csharp" && !strings.HasSuffix(entry.Name(), ".cs") {
 			continue
 		}
 

@@ -1,6 +1,10 @@
 target
 *.pyc
 pkg/webui/dist/
+pkg/runtime/runtimes/csharp/obj/
+pkg/runtime/runtimes/csharp/bin/
+pkg/runtime/runtimes/csharp/tests/obj/
+pkg/runtime/runtimes/csharp/tests/bin/
 webui/dist/
 webui/coverage/
 __pycache__/

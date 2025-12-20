@@ -1,4 +1,4 @@
-.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtimes test-generator-python test-generator-ts test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
+.PHONY: build test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
 
 # Variables
 BINARY_NAME=barrister
@@ -84,8 +84,13 @@ test-runtime-ts:
 	@echo "Testing TypeScript runtime..."
 	@cd pkg/runtime/runtimes/ts && $(MAKE) test
 
+# Test C# runtime
+test-runtime-csharp:
+	@echo "Testing C# runtime..."
+	@cd pkg/runtime/runtimes/csharp && $(MAKE) test
+
 # Test all runtimes
-test-runtimes: test-runtime-python test-runtime-ts
+test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp
 	@echo "All runtime tests passed"
 
 # Test Python generator integration
@@ -98,8 +103,13 @@ test-generator-ts:
 	@echo "Testing TypeScript generator integration..."
 	@cd pkg/runtime/runtimes/ts && $(MAKE) test-integration
 
+# Test C# generator integration
+test-generator-csharp:
+	@echo "Testing C# generator integration..."
+	@cd pkg/runtime/runtimes/csharp && $(MAKE) test-integration
+
 # Test all generators
-test-generators: test-generator-python test-generator-ts
+test-generators: test-generator-python test-generator-ts test-generator-csharp
 	@echo "All generator tests passed"
 
 # Start all test servers for web UI

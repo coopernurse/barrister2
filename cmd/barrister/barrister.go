@@ -372,6 +372,7 @@ func writeComment(sb *strings.Builder, comment string) {
 func registerPlugins() {
 	generator.Register(generator.NewPythonClientServer())
 	generator.Register(generator.NewTSClientServer())
+	generator.Register(generator.NewCSharpClientServer())
 	// Add more plugins here as they are implemented
 }
 
