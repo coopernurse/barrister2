@@ -851,7 +851,7 @@ func generateTestClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, 
 		fmt.Fprintf(&sb, "        var %sClient = new %sClient(transport);\n", strings.ToLower(iface.Name), iface.Name)
 		sb.WriteString("\n")
 		for _, method := range iface.Methods {
-			writeTestClientMethodCallCs(&sb, iface, method)
+			writeTestClientMethodCallCs(&sb, iface, method, structMap, enumMap)
 		}
 	}
 
@@ -908,19 +908,111 @@ func writeTestMethodImplCs(sb *strings.Builder, iface *parser.Interface, method 
 	sb.WriteString(")\n")
 	sb.WriteString("    {\n")
 
-	// Simple implementation based on method name and IDL comments
-	// For now, return basic test values
+	// Implement based on method name and IDL comments
+	writeMethodImplementationCs(sb, iface, method, structMap, enumMap)
+
+	sb.WriteString("    }\n\n")
+}
+
+// writeMethodImplementationCs generates the actual method implementation body
+func writeMethodImplementationCs(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	methodName := method.Name
+	interfaceName := iface.Name
+
+	// Handle specific methods based on IDL comments
+	if interfaceName == "A" {
+		switch methodName {
+		case "add":
+			// returns a+b
+			sb.WriteString("        var aVal = Convert.ToInt32(a);\n")
+			sb.WriteString("        var bVal = Convert.ToInt32(b);\n")
+			sb.WriteString("        return aVal + bVal;\n")
+			return
+		case "calc":
+			// performs the given operation against all the values in nums and returns the result
+			sb.WriteString("        var numsList = (nums as System.Collections.IList) ?? new List<object>();\n")
+			sb.WriteString("        var operationStr = operation?.ToString() ?? \"\";\n")
+			sb.WriteString("        double result = 0.0;\n")
+			sb.WriteString("        if (numsList.Count > 0)\n")
+			sb.WriteString("        {\n")
+			sb.WriteString("            result = Convert.ToDouble(numsList[0]);\n")
+			sb.WriteString("            for (int i = 1; i < numsList.Count; i++)\n")
+			sb.WriteString("            {\n")
+			sb.WriteString("                var val = Convert.ToDouble(numsList[i]);\n")
+			sb.WriteString("                if (operationStr == \"add\")\n")
+			sb.WriteString("                    result += val;\n")
+			sb.WriteString("                else if (operationStr == \"multiply\")\n")
+			sb.WriteString("                    result *= val;\n")
+			sb.WriteString("            }\n")
+			sb.WriteString("        }\n")
+			sb.WriteString("        return result;\n")
+			return
+		case "sqrt":
+			// returns the square root of a
+			sb.WriteString("        var aVal = Convert.ToDouble(a);\n")
+			sb.WriteString("        return Math.Sqrt(aVal);\n")
+			return
+		case "repeat":
+			// Echos the req1.to_repeat string as a list, optionally forcing to_repeat to upper case
+			// RepeatResponse.items should be a list of strings whose length is equal to req1.count
+			sb.WriteString("        var req = req1 as Dictionary<string, object?> ?? new Dictionary<string, object?>();\n")
+			sb.WriteString("        var toRepeat = req.TryGetValue(\"to_repeat\", out var tr) ? tr?.ToString() ?? \"\" : \"\";\n")
+			sb.WriteString("        var count = req.TryGetValue(\"count\", out var c) ? Convert.ToInt32(c) : 0;\n")
+			sb.WriteString("        var forceUpper = req.TryGetValue(\"force_uppercase\", out var fu) && fu is bool fuBool && fuBool;\n")
+			sb.WriteString("        if (forceUpper) toRepeat = toRepeat.ToUpper();\n")
+			sb.WriteString("        var items = new List<object>();\n")
+			sb.WriteString("        for (int i = 0; i < count; i++)\n")
+			sb.WriteString("        {\n")
+			sb.WriteString("            items.Add(toRepeat);\n")
+			sb.WriteString("        }\n")
+			sb.WriteString("        return new Dictionary<string, object>\n")
+			sb.WriteString("        {\n")
+			sb.WriteString("            { \"status\", \"ok\" },\n")
+			sb.WriteString("            { \"count\", count },\n")
+			sb.WriteString("            { \"items\", items }\n")
+			sb.WriteString("        };\n")
+			return
+		case "say_hi":
+			// returns a result with: hi="hi" (HiResponse only has hi field, not status)
+			sb.WriteString("        return new Dictionary<string, object>\n")
+			sb.WriteString("        {\n")
+			sb.WriteString("            { \"hi\", \"hi\" }\n")
+			sb.WriteString("        };\n")
+			return
+		case "repeat_num":
+			// returns num as an array repeated 'count' number of times
+			sb.WriteString("        var numVal = Convert.ToInt32(num);\n")
+			sb.WriteString("        var countVal = Convert.ToInt32(count);\n")
+			sb.WriteString("        var result = new List<object>();\n")
+			sb.WriteString("        for (int i = 0; i < countVal; i++)\n")
+			sb.WriteString("        {\n")
+			sb.WriteString("            result.Add(numVal);\n")
+			sb.WriteString("        }\n")
+			sb.WriteString("        return result.ToArray();\n")
+			return
+		case "putPerson":
+			// simply returns p.personId
+			sb.WriteString("        var pDict = p as Dictionary<string, object?> ?? new Dictionary<string, object?>();\n")
+			sb.WriteString("        return pDict.TryGetValue(\"personId\", out var pid) ? pid?.ToString() ?? \"\" : \"\";\n")
+			return
+		}
+	} else if interfaceName == "B" {
+		switch methodName {
+		case "echo":
+			// simply returns s, if s == "return-null" then you should return a null
+			sb.WriteString("        var sStr = s?.ToString() ?? \"\";\n")
+			sb.WriteString("        if (sStr == \"return-null\") return null;\n")
+			sb.WriteString("        return sStr;\n")
+			return
+		}
+	}
+
+	// Default implementation for methods not specifically handled
 	if method.ReturnType != nil {
 		if method.ReturnType.IsBuiltIn() {
 			switch method.ReturnType.BuiltIn {
 			case "string":
-				if len(method.Parameters) > 0 && method.Parameters[0].Name == "s" {
-					sb.WriteString("        var sStr = s?.ToString() ?? \"\";\n")
-					sb.WriteString("        if (sStr == \"return-null\") return null;\n")
-					sb.WriteString("        return sStr;\n")
-				} else {
-					sb.WriteString("        return \"test\";\n")
-				}
+				sb.WriteString("        return \"test\";\n")
 			case "int":
 				sb.WriteString("        return 42;\n")
 			case "float":
@@ -938,12 +1030,10 @@ func writeTestMethodImplCs(sb *strings.Builder, iface *parser.Interface, method 
 	} else {
 		sb.WriteString("        return null;\n")
 	}
-
-	sb.WriteString("    }\n\n")
 }
 
 // writeTestClientMethodCallCs generates a test method call
-func writeTestClientMethodCallCs(sb *strings.Builder, iface *parser.Interface, method *parser.Method) {
+func writeTestClientMethodCallCs(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	fmt.Fprintf(sb, "        try\n")
 	sb.WriteString("        {\n")
 	fmt.Fprintf(sb, "            var result = await %sClient.%sAsync(", strings.ToLower(iface.Name), method.Name)
@@ -953,10 +1043,40 @@ func writeTestClientMethodCallCs(sb *strings.Builder, iface *parser.Interface, m
 		if i > 0 {
 			sb.WriteString(", ")
 		}
-		if param.Type.IsBuiltIn() {
-			switch param.Type.BuiltIn {
+		writeTestParamValueCs(sb, param, structMap, enumMap)
+	}
+	sb.WriteString(");\n")
+	fmt.Fprintf(sb, "            Console.WriteLine($\"✓ %s.%s passed\");\n", iface.Name, method.Name)
+	sb.WriteString("        }\n")
+	sb.WriteString("        catch (Exception e)\n")
+	sb.WriteString("        {\n")
+	fmt.Fprintf(sb, "            errors.Add($\"%s.%s failed: {e.Message}\");\n", iface.Name, method.Name)
+	sb.WriteString("        }\n\n")
+}
+
+// writeTestParamValueCs generates C# code for a test parameter value
+func writeTestParamValueCs(sb *strings.Builder, param *parser.Parameter, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	if param.Type.IsBuiltIn() {
+		switch param.Type.BuiltIn {
+		case "string":
+			fmt.Fprintf(sb, "\"test%s\"", param.Name)
+		case "int":
+			sb.WriteString("42")
+		case "float":
+			sb.WriteString("3.14")
+		case "bool":
+			sb.WriteString("true")
+		default:
+			sb.WriteString("null")
+		}
+	} else if param.Type.IsArray() {
+		sb.WriteString("new object[] { ")
+		// Generate a single element for the array
+		elementType := param.Type.Array
+		if elementType.IsBuiltIn() {
+			switch elementType.BuiltIn {
 			case "string":
-				fmt.Fprintf(sb, "\"test%s\"", param.Name)
+				sb.WriteString("\"test\"")
 			case "int":
 				sb.WriteString("42")
 			case "float":
@@ -969,12 +1089,140 @@ func writeTestClientMethodCallCs(sb *strings.Builder, iface *parser.Interface, m
 		} else {
 			sb.WriteString("null")
 		}
+		sb.WriteString(" }")
+	} else if param.Type.IsUserDefined() {
+		// Check if it's an enum or struct
+		typeName := param.Type.UserDefined
+		// First try with qualified name (for imported types like inc.MathOp)
+		if enumDef, ok := enumMap[typeName]; ok {
+			// It's an enum - use the first enum value
+			if len(enumDef.Values) > 0 {
+				fmt.Fprintf(sb, "\"%s\"", enumDef.Values[0].Name)
+			} else {
+				sb.WriteString("\"test\"")
+			}
+		} else {
+			// Try unqualified name
+			unqualifiedName := typeName
+			if strings.Contains(typeName, ".") {
+				parts := strings.Split(typeName, ".")
+				unqualifiedName = parts[len(parts)-1]
+			}
+			if enumDef, ok := enumMap[unqualifiedName]; ok {
+				// It's an enum - use the first enum value
+				if len(enumDef.Values) > 0 {
+					fmt.Fprintf(sb, "\"%s\"", enumDef.Values[0].Name)
+				} else {
+					sb.WriteString("\"test\"")
+				}
+			} else if structDef, ok := structMap[unqualifiedName]; ok {
+				// It's a struct
+				writeStructDictCs(sb, structDef, structMap, enumMap)
+			} else {
+				// Unknown type - default to string
+				sb.WriteString("\"test\"")
+			}
+		}
+	} else {
+		sb.WriteString("null")
 	}
-	sb.WriteString(");\n")
-	fmt.Fprintf(sb, "            Console.WriteLine($\"✓ %s.%s passed\");\n", iface.Name, method.Name)
-	sb.WriteString("        }\n")
-	sb.WriteString("        catch (Exception e)\n")
-	sb.WriteString("        {\n")
-	fmt.Fprintf(sb, "            errors.Add($\"%s.%s failed: {e.Message}\");\n", iface.Name, method.Name)
-	sb.WriteString("        }\n\n")
+}
+
+// writeStructDictCs generates C# code to create a Dictionary for a struct
+func writeStructDictCs(sb *strings.Builder, structDef *parser.Struct, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	sb.WriteString("new Dictionary<string, object> {\n")
+	fieldCount := 0
+	for _, field := range structDef.Fields {
+		// For optional fields, sometimes omit them, sometimes set to null
+		// For Person.email specifically, set to null to test optional enforcement
+		if field.Optional && field.Name == "email" {
+			if fieldCount > 0 {
+				sb.WriteString(",\n")
+			}
+			fmt.Fprintf(sb, "            { \"%s\", null }", field.Name)
+			fieldCount++
+		} else if !field.Optional {
+			if fieldCount > 0 {
+				sb.WriteString(",\n")
+			}
+			fmt.Fprintf(sb, "            { \"%s\", ", field.Name)
+			writeTestFieldValueCs(sb, field.Type, structMap, enumMap)
+			sb.WriteString(" }")
+			fieldCount++
+		}
+		// Skip optional fields that aren't email (they can be omitted)
+	}
+	sb.WriteString("\n        }")
+}
+
+// writeTestFieldValueCs generates C# code for a field value in a struct
+func writeTestFieldValueCs(sb *strings.Builder, fieldType *parser.Type, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	if fieldType.IsBuiltIn() {
+		switch fieldType.BuiltIn {
+		case "string":
+			sb.WriteString("\"test\"")
+		case "int":
+			sb.WriteString("42")
+		case "float":
+			sb.WriteString("3.14")
+		case "bool":
+			sb.WriteString("true")
+		default:
+			sb.WriteString("null")
+		}
+	} else if fieldType.IsArray() {
+		sb.WriteString("new object[] { ")
+		elementType := fieldType.Array
+		if elementType.IsBuiltIn() {
+			switch elementType.BuiltIn {
+			case "string":
+				sb.WriteString("\"test\"")
+			case "int":
+				sb.WriteString("42")
+			case "float":
+				sb.WriteString("3.14")
+			case "bool":
+				sb.WriteString("true")
+			default:
+				sb.WriteString("null")
+			}
+		} else {
+			sb.WriteString("null")
+		}
+		sb.WriteString(" }")
+	} else if fieldType.IsUserDefined() {
+		typeName := fieldType.UserDefined
+		// First try with qualified name (for imported types like inc.MathOp)
+		if enumDef, ok := enumMap[typeName]; ok {
+			// It's an enum - use the first enum value
+			if len(enumDef.Values) > 0 {
+				fmt.Fprintf(sb, "\"%s\"", enumDef.Values[0].Name)
+			} else {
+				sb.WriteString("\"test\"")
+			}
+		} else {
+			// Try unqualified name
+			unqualifiedName := typeName
+			if strings.Contains(typeName, ".") {
+				parts := strings.Split(typeName, ".")
+				unqualifiedName = parts[len(parts)-1]
+			}
+			if enumDef, ok := enumMap[unqualifiedName]; ok {
+				// It's an enum - use the first enum value
+				if len(enumDef.Values) > 0 {
+					fmt.Fprintf(sb, "\"%s\"", enumDef.Values[0].Name)
+				} else {
+					sb.WriteString("\"test\"")
+				}
+			} else if structDef, ok := structMap[unqualifiedName]; ok {
+				// It's a struct
+				writeStructDictCs(sb, structDef, structMap, enumMap)
+			} else {
+				// Unknown type - default to string
+				sb.WriteString("\"test\"")
+			}
+		}
+	} else {
+		sb.WriteString("null")
+	}
 }
