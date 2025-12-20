@@ -1140,7 +1140,7 @@ func generateTestClientPy(idl *parser.IDL, structMap map[string]*parser.Struct, 
 	sb.WriteString("import time\n")
 	sb.WriteString("import urllib.request\n")
 	sb.WriteString("from client import HTTPTransport\n")
-	sb.WriteString("from idl import ALL_STRUCTS, ALL_ENUMS\n\n")
+	sb.WriteString("\n")
 
 	// Generate client imports
 	for _, iface := range idl.Interfaces {
