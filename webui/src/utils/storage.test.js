@@ -54,10 +54,7 @@ describe('storage utilities', () => {
         it('should update existing endpoint', () => {
             const url = 'http://example.com';
             saveEndpoint(url);
-            
-            // Wait a bit to ensure different timestamp
-            const oldTimestamp = getEndpoints()[0].lastUsed;
-            
+
             // Update the endpoint
             saveEndpoint(url);
             const endpoints = getEndpoints();

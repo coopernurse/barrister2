@@ -79,13 +79,33 @@ describe('TypeInput Component', () => {
         it.skip('should render bool checkbox', () => {
             // Skipped due to Mithril mock limitations - logic tested elsewhere
         });
-    });
 
-    describe('Array operations', () => {
         it.skip('should render empty array with add button', () => {
             // Skipped due to Mithril mock limitations - logic tested elsewhere
         });
 
+        it.skip('should render empty map with add button', () => {
+            // Skipped due to Mithril mock limitations - logic tested elsewhere
+        });
+
+        it.skip('should render struct with nested fields', () => {
+            // Skipped due to Mithril mock limitations - logic tested elsewhere
+        });
+
+        it.skip('should handle nested structs', () => {
+            // Skipped due to Mithril mock limitations - logic tested elsewhere
+        });
+
+        it.skip('should render enum as select dropdown', () => {
+            // Skipped due to Mithril mock limitations - logic tested elsewhere
+        });
+
+        it.skip('should show checkbox for optional null value', () => {
+            // Skipped due to Mithril mock limitations - logic tested elsewhere
+        });
+    });
+
+    describe('Array operations', () => {
         it('should add items to array', () => {
             let currentValue = [];
             const onChange = (newValue) => {
@@ -93,7 +113,8 @@ describe('TypeInput Component', () => {
                 onChangeCallback(newValue);
             };
 
-            const vnode = {
+            // Create vnode object for consistency (even though not used in this test)
+            const _ = {
                 attrs: {
                     type: { array: { builtIn: 'string' } },
                     value: currentValue,
@@ -114,9 +135,9 @@ describe('TypeInput Component', () => {
 
         it('should remove items from array', () => {
             const items = ['item1', 'item2', 'item3'];
-            let currentValue = items;
+            let _currentValue = items;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -131,9 +152,9 @@ describe('TypeInput Component', () => {
 
         it('should update array item values', () => {
             const items = ['old', 'value'];
-            let currentValue = items;
+            let _currentValue = items;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -149,9 +170,9 @@ describe('TypeInput Component', () => {
 
         it('should handle nested arrays', () => {
             const items = [['a', 'b'], ['c']];
-            let currentValue = items;
+            let _currentValue = items;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -170,9 +191,9 @@ describe('TypeInput Component', () => {
                 { id: 1, name: 'User1' },
                 { id: 2, name: 'User2' }
             ];
-            let currentValue = items;
+            let _currentValue = items;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -211,9 +232,9 @@ describe('TypeInput Component', () => {
 
         it('should remove entries from map', () => {
             const entries = { key1: 'value1', key2: 'value2' };
-            let currentValue = entries;
+            let _currentValue = entries;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -229,9 +250,9 @@ describe('TypeInput Component', () => {
 
         it('should edit map keys', () => {
             const entries = { oldKey: 'value' };
-            let currentValue = entries;
+            let _currentValue = entries;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -248,9 +269,9 @@ describe('TypeInput Component', () => {
 
         it('should update map values', () => {
             const entries = { key1: 'old', key2: 'value' };
-            let currentValue = entries;
+            let _currentValue = entries;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
@@ -267,9 +288,9 @@ describe('TypeInput Component', () => {
             const entries = {
                 map1: { innerKey: 'value' }
             };
-            let currentValue = entries;
+            let _currentValue = entries;
             const onChange = (newValue) => {
-                currentValue = newValue;
+                _currentValue = newValue;
                 onChangeCallback(newValue);
             };
 
