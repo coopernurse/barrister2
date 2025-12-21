@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import InterfaceBrowser from './InterfaceBrowser.js';
+import { renderComponent, findElement, cleanupComponent } from '../test-utils.js';
 
 describe('InterfaceBrowser Component', () => {
     let idl;
@@ -165,8 +166,113 @@ describe('InterfaceBrowser Component', () => {
         });
     });
 
-    // View rendering tests removed - the Mithril mock has limitations with complex
-    // nested structures (arrays with conditional rendering). The component logic
-    // is already well-tested through initialization, method selection, and type formatting tests.
+    describe('Method display format', () => {
+        it('should display method params and response on separate lines', () => {
+            InterfaceBrowser.expandedInterfaces.clear();
+            InterfaceBrowser.expandedInterfaces.add('UserService');
+            
+            const rendered = renderComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
+            
+            const methodItem = findElement(rendered, '.list-group-item');
+            expect(methodItem).not.toBeNull();
+            
+            const textContent = methodItem.textContent;
+            expect(textContent).toContain('Params:');
+            expect(textContent).toContain('id: int');
+            expect(textContent).toContain('Response:');
+            expect(textContent).toContain('User');
+            
+            const paramsIndex = textContent.indexOf('Params:');
+            const responseIndex = textContent.indexOf('Response:');
+            expect(paramsIndex).toBeLessThan(responseIndex);
+            
+            cleanupComponent(rendered);
+        });
+
+        it('should display "Params: none" for methods without parameters', () => {
+            InterfaceBrowser.expandedInterfaces.clear();
+            InterfaceBrowser.expandedInterfaces.add('ProductService');
+            
+            const rendered = renderComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
+            
+            const methodItem = findElement(rendered, '.list-group-item');
+            expect(methodItem).not.toBeNull();
+            
+            const textContent = methodItem.textContent;
+            expect(textContent).toContain('Params: none');
+            expect(textContent).toContain('Response:');
+            
+            cleanupComponent(rendered);
+        });
+
+        it('should display "Response: void" for methods with void return type', () => {
+            const voidIdl = {
+                interfaces: [{
+                    name: 'TestService',
+                    methods: [{
+                        name: 'doSomething',
+                        parameters: [{ name: 'id', type: { builtIn: 'int' } }],
+                        returnType: null
+                    }]
+                }]
+            };
+            
+            InterfaceBrowser.expandedInterfaces.clear();
+            InterfaceBrowser.expandedInterfaces.add('TestService');
+            
+            const rendered = renderComponent(InterfaceBrowser, {
+                idl: voidIdl,
+                onMethodSelect: onMethodSelectCallback
+            });
+            
+            const methodItem = findElement(rendered, '.list-group-item');
+            expect(methodItem).not.toBeNull();
+            
+            const textContent = methodItem.textContent;
+            expect(textContent).toContain('Response: void');
+            
+            cleanupComponent(rendered);
+        });
+    });
+
+    describe('Clickable method styling', () => {
+        it('should have cursor pointer style on method list items', () => {
+            InterfaceBrowser.expandedInterfaces.clear();
+            InterfaceBrowser.expandedInterfaces.add('UserService');
+            
+            const rendered = renderComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
+            
+            const methodItem = findElement(rendered, '.list-group-item');
+            const cursorStyle = methodItem.style.cursor;
+            expect(cursorStyle).toBe('pointer');
+            
+            cleanupComponent(rendered);
+        });
+
+        it('should have nested div structure with method-content class', () => {
+            InterfaceBrowser.expandedInterfaces.clear();
+            InterfaceBrowser.expandedInterfaces.add('UserService');
+            
+            const rendered = renderComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
+            
+            const methodItem = findElement(rendered, '.list-group-item');
+            const methodContent = methodItem.querySelector('.method-content');
+            expect(methodContent).not.toBeNull();
+            
+            cleanupComponent(rendered);
+        });
+    });
 });
 

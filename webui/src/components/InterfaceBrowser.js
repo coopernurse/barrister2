@@ -40,56 +40,56 @@ export default {
         }
         
         return m('div', [
-            m('div.card.mb-3', [
-                m('div.card-header', 'Interfaces & Methods'),
-                m('div.card-body', 
-                    idl.interfaces.map(iface => 
-                        m('div.mb-3', {
-                            key: iface.name
+            m('h5.mb-3', 'Interfaces & Methods'),
+            idl.interfaces.map(iface => 
+                m('div.mb-3', {
+                    key: iface.name
+                }, [
+                    m('div.d-flex.align-items-center.mb-2', [
+                        m('h6.mb-0.flex-grow-1', iface.name),
+                        m('button.btn.btn-sm.btn-outline-secondary', {
+                            onclick: () => {
+                                if (this.expandedInterfaces.has(iface.name)) {
+                                    this.expandedInterfaces.delete(iface.name);
+                                } else {
+                                    this.expandedInterfaces.add(iface.name);
+                                }
+                                m.redraw();
+                            }
+                        }, this.expandedInterfaces.has(iface.name) ? '−' : '+')
+                    ]),
+                    iface.comment && m('p.small.text-muted.mb-2', iface.comment),
+                    this.expandedInterfaces.has(iface.name) && iface.methods && iface.methods.map(method =>
+                        m('div.list-group-item.mb-2.method-item', {
+                            key: iface.name + '.' + method.name,
+                            style: { cursor: 'pointer' },
+                            onclick: () => {
+                                if (onMethodSelect) {
+                                    onMethodSelect(iface, method);
+                                }
+                            }
                         }, [
-                            m('div.d-flex.align-items-center.mb-2', [
-                                m('h6.mb-0.flex-grow-1', iface.name),
-                                m('button.btn.btn-sm.btn-outline-secondary', {
-                                    onclick: () => {
-                                        if (this.expandedInterfaces.has(iface.name)) {
-                                            this.expandedInterfaces.delete(iface.name);
-                                        } else {
-                                            this.expandedInterfaces.add(iface.name);
-                                        }
-                                        m.redraw();
-                                    }
-                                }, this.expandedInterfaces.has(iface.name) ? '−' : '+')
-                            ]),
-                            iface.comment && m('p.small.text-muted.mb-2', iface.comment),
-                            this.expandedInterfaces.has(iface.name) && iface.methods && iface.methods.map(method =>
-                                m('div.list-group-item.mb-2', {
-                                    key: iface.name + '.' + method.name,
-                                    style: { cursor: 'pointer' },
-                                    onclick: () => {
-                                        if (onMethodSelect) {
-                                            onMethodSelect(iface, method);
-                                        }
-                                    }
-                                }, [
-                                    m('div.fw-bold', method.name),
-                                    method.comment && m('div.small.text-muted.mt-1', method.comment),
-                                    m('div.small.mt-1', [
-                                        m('span.text-muted', 'Params: '),
-                                        method.parameters && method.parameters.length > 0
-                                            ? method.parameters.map((p, i) => [
-                                                i > 0 && ', ',
-                                                m('code', p.name + ': ' + this.formatType(p.type))
-                                            ])
-                                            : m('span.text-muted', 'none'),
-                                        m('span.text-muted.ml-2', ' → '),
-                                        m('code', this.formatType(method.returnType))
-                                    ])
+                            m('div.method-content', [
+                                m('div.fw-bold', method.name),
+                                method.comment && m('div.small.text-muted.mt-1', method.comment),
+                                m('div.small.mt-1', [
+                                    m('span.text-muted', 'Params: '),
+                                    method.parameters && method.parameters.length > 0
+                                        ? method.parameters.map((p, i) => [
+                                            i > 0 && ', ',
+                                            m('code', p.name + ': ' + this.formatType(p.type))
+                                        ])
+                                        : m('span.text-muted', 'none')
+                                ]),
+                                m('div.small.mt-1', [
+                                    m('span.text-muted', 'Response: '),
+                                    m('code', this.formatType(method.returnType))
                                 ])
-                            )
+                            ])
                         ])
                     )
-                )
-            ])
+                ])
+            )
         ]);
     },
     
