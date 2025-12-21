@@ -278,11 +278,19 @@ To add runtime files for a new language, you must:
 **Purpose**: Define IDL-specific type definitions as data structures
 
 **Contents**:
-- `ALL_STRUCTS` - Dictionary/map of struct definitions
-- `ALL_ENUMS` - Dictionary/map of enum definitions
-- Imports from runtime library
+- **For static languages** (C#, TypeScript, Java, Go):
+  - Generated classes for all structs (with proper inheritance)
+  - Generated enums for all IDL enums
+  - `ALL_STRUCTS` - Dictionary/map of struct definitions (for runtime validation)
+  - `ALL_ENUMS` - Dictionary/map of enum definitions (for runtime validation)
+  - Imports from runtime library
+  
+- **For dynamic languages** (Python, JavaScript):
+  - `ALL_STRUCTS` - Dictionary/map of struct definitions
+  - `ALL_ENUMS` - Dictionary/map of enum definitions
+  - Imports from runtime library
 
-**Format**: Type definitions match the format expected by runtime validation functions
+**Format**: Type definitions match the format expected by runtime validation functions. Static languages generate both static types (for user code) and dictionary types (for validation).
 
 **Example structure**:
 ```python
@@ -321,6 +329,11 @@ ALL_ENUMS = {
    - Generate abstract base class/interface for each IDL interface
    - Each method should be abstract/must implement
    - Include method signatures matching IDL
+   - **For static languages**: Use generated struct/enum types in method signatures
+     - Example (C#): `public abstract RepeatResponse repeat(RepeatRequest req1);`
+     - Example (Java): `public abstract RepeatResponse repeat(RepeatRequest req1);`
+   - **For dynamic languages**: May use generic types (e.g., `object`, `dict`, `Any`)
+     - Example (Python): `def repeat(self, req1: dict) -> dict:`
 
 2. **Server Class**:
    - **Registration**: Easy way to register interface implementations
@@ -443,6 +456,72 @@ class BookServiceClient:
 **Format**: JSON-serialized `parser.IDL` structure
 
 **Usage**: Server reads this file when handling `barrister-idl` requests
+
+### Static vs Dynamic Type Generation
+
+**Important**: The code generation approach differs significantly between static and dynamic languages.
+
+**Static Languages** (C#, TypeScript, Java, Go):
+
+- **Must generate actual classes** for all IDL structs
+  - Use native class syntax with proper inheritance (`extends` maps to class inheritance)
+  - Include JSON serialization attributes/annotations for field name mapping
+  - Handle optional fields as nullable types
+  
+- **Must generate native enums** for all IDL enums
+  - C#: `enum`, TypeScript: `enum`, Java: `enum`, Go: constants
+  
+- **Interface stub methods** must use these generated types in method signatures
+  - Example (C#): `public abstract RepeatResponse repeat(RepeatRequest req1);`
+  - Example (Java): `public abstract RepeatResponse repeat(RepeatRequest req1);`
+  
+- **Client methods** must use these generated types for parameters and return values
+  - Type-safe method signatures with proper return types
+  - JSON serialization/deserialization at the boundary (client ↔ transport)
+  
+- **Test server implementations** must use these generated types
+  - Create instances of generated struct classes
+  - Use enum values directly (not strings)
+  
+- **Dual type definitions**: Static languages must generate BOTH:
+  1. Static type definitions (classes, enums) for use in user code
+  2. Dictionary-based type definitions (ALL_STRUCTS, ALL_ENUMS) for runtime validation
+  
+- **JSON serialization**: Must work with generated types (may require attributes/annotations)
+  - Field name mapping: IDL uses snake_case, languages may use different conventions
+  - Use appropriate JSON library attributes (e.g., `[JsonPropertyName]` in C#, `@JsonProperty` in Java)
+
+**Dynamic Languages** (Python, JavaScript):
+
+- May use dictionary/map types for structs (Python `dict`, JavaScript `object`)
+- May use string-based enums
+- Runtime validation still required (uses ALL_STRUCTS/ALL_ENUMS dictionaries)
+- Type safety provided by runtime validation, not compile-time types
+
+**Example Comparison**:
+
+**C# (Static)**:
+```csharp
+// Generated class
+public class RepeatRequest {
+    [JsonPropertyName("to_repeat")]
+    public string ToRepeat { get; set; }
+    
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
+}
+
+// Interface stub uses typed parameters
+public abstract RepeatResponse repeat(RepeatRequest req1);
+```
+
+**Python (Dynamic)**:
+```python
+# No generated class, uses dict
+# Interface stub uses object/Any
+def repeat(self, req1: dict) -> dict:
+    pass
+```
 
 ## Build System Integration
 
