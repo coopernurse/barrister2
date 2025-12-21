@@ -13,14 +13,17 @@ import (
 // Note: Go's embed doesn't support ".." paths, so runtime files are located in
 // pkg/runtime/runtimes/ to enable embedding. This allows the binary to be
 // self-contained without requiring the source tree at runtime.
+//
 //go:embed all:runtimes/python/barrister2
 var pythonRuntimeFiles embed.FS
 
 // Embed all TypeScript runtime files
+//
 //go:embed all:runtimes/ts/barrister2
 var tsRuntimeFiles embed.FS
 
 // Embed all C# runtime files
+//
 //go:embed all:runtimes/csharp/barrister2
 var csharpRuntimeFiles embed.FS
 
@@ -48,11 +51,11 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 	}
 
 	files := make(map[string][]byte)
-	
+
 	// The embed path includes the directory structure, so we need to walk it
 	// For Python, files are at: runtimes/python/barrister2/*.py
 	basePath := fmt.Sprintf("runtimes/%s/barrister2", lang)
-	
+
 	entries, err := fs.ReadDir(basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read embedded runtime directory for %s: %w", lang, err)
@@ -118,13 +121,8 @@ func CopyRuntimeFiles(lang string, outputDir string) error {
 
 // getRuntimePackageName returns the package/module name for the runtime library
 // This is the directory name where runtime files are placed in the output
-func getRuntimePackageName(lang string) string {
-	switch lang {
-	case "python":
-		return "barrister2"
-	default:
-		// Default to "barrister2" for unknown languages
-		return "barrister2"
-	}
+func getRuntimePackageName(_lang string) string {
+	// Currently all languages use "barrister2" as the package name
+	// The lang parameter is kept for future extensibility
+	return "barrister2"
 }
-

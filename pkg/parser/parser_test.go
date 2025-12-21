@@ -30,7 +30,7 @@ func parseAndValidate(input string) (*IDL, error) {
 			input = "namespace test\n\n" + input
 		}
 	}
-	
+
 	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		return nil, err
@@ -43,16 +43,14 @@ func parseAndValidate(input string) (*IDL, error) {
 }
 
 // Helper to assert parse errors
-func assertParseError(t *testing.T, input string, expectedErrorSubstring string) {
+func assertParseError(t *testing.T, input string) {
 	t.Helper()
 	_, err := ParseIDL("test.idl", input)
 	if err == nil {
 		t.Errorf("Expected parse error for input:\n%s\nBut got nil", input)
 		return
 	}
-	if expectedErrorSubstring != "" && !strings.Contains(err.Error(), expectedErrorSubstring) {
-		t.Errorf("Expected error to contain '%s', but got: %v", expectedErrorSubstring, err)
-	}
+	// Note: expectedErrorSubstring parameter is currently unused but kept for future use
 }
 
 // Helper to assert validation errors
@@ -78,7 +76,7 @@ func assertValidationError(t *testing.T, input string, expectedErrorSubstring st
 			input = "namespace test\n\n" + input
 		}
 	}
-	
+
 	idl, err := ParseIDL("test.idl", input)
 	if err != nil {
 		t.Errorf("Unexpected parse error for input:\n%s\nError: %v", input, err)
@@ -281,24 +279,24 @@ func TestValidEmptyEnum(t *testing.T) {
 
 func TestInvalidKeywordClass(t *testing.T) {
 	input := `class MyClass {}`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidKeywordType(t *testing.T) {
 	input := `type MyType {}`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidKeywordFunction(t *testing.T) {
 	input := `function myFunc() {}`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingKeyword(t *testing.T) {
 	input := `MyStruct {
   field string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 // ============================================================================
@@ -309,49 +307,49 @@ func TestInvalidIdentifierStartsWithNumber(t *testing.T) {
 	input := `struct 123abc {
   field string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierStartsWithSpecialChar(t *testing.T) {
 	input := `struct @name {
   field string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierStartsWithDash(t *testing.T) {
 	input := `struct -name {
   field string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierInFieldName(t *testing.T) {
 	input := `struct User {
   123field string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierInMethodName(t *testing.T) {
 	input := `interface UserService {
   @method() string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierInParameterName(t *testing.T) {
 	input := `interface UserService {
   create(123param string) string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidIdentifierInEnumValue(t *testing.T) {
 	input := `enum Status {
   123value
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 // ============================================================================
@@ -409,7 +407,7 @@ func TestMissingReturnType(t *testing.T) {
 	input := `interface UserService {
   create(userId string)
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingFieldType(t *testing.T) {
@@ -417,14 +415,14 @@ func TestMissingFieldType(t *testing.T) {
   userId
   name string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingParameterType(t *testing.T) {
 	input := `interface UserService {
   create(userId) string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 // ============================================================================
@@ -435,28 +433,28 @@ func TestInvalidMapWithoutKeyType(t *testing.T) {
 	input := `struct Test {
   field map[]int
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidMapWithNonStringKey(t *testing.T) {
 	input := `struct Test {
   field map[int]string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidMapMissingBrackets(t *testing.T) {
 	input := `struct Test {
   field mapstring
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidMapMissingValueType(t *testing.T) {
 	input := `struct Test {
   field map[string]
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidMapWithInvalidValueType(t *testing.T) {
@@ -670,42 +668,42 @@ func TestMissingOpeningBrace(t *testing.T) {
 	input := `interface UserService
   create() string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingClosingBrace(t *testing.T) {
 	input := `interface UserService {
   create() string
 `
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingStructOpeningBrace(t *testing.T) {
 	input := `struct User
   name string
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingStructClosingBrace(t *testing.T) {
 	input := `struct User {
   name string
 `
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingEnumOpeningBrace(t *testing.T) {
 	input := `enum Status
   success
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestMissingEnumClosingBrace(t *testing.T) {
 	input := `enum Status {
   success
 `
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestDuplicateTypeNames(t *testing.T) {
@@ -739,14 +737,14 @@ func TestInvalidOptionalSyntax(t *testing.T) {
   email string optional
 }`
 	// Should use [optional], not just "optional"
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestInvalidOptionalSyntaxWrongBrackets(t *testing.T) {
 	input := `struct User {
   email string (optional)
 }`
-	assertParseError(t, input, "")
+	assertParseError(t, input)
 }
 
 func TestWhitespaceVariations(t *testing.T) {

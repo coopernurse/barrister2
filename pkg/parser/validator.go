@@ -131,7 +131,7 @@ func ValidateIDL(idl *IDL) error {
 	}
 
 	// Third pass: cycle detection
-	detectCycles(idl, typeRegistry, errors)
+	detectCycles(idl, errors)
 
 	if errors.HasErrors() {
 		return errors
@@ -232,7 +232,7 @@ func getReferencedTypes(t *Type) []string {
 }
 
 // detectCycles detects circular type references in structs
-func detectCycles(idl *IDL, typeRegistry map[string]lexer.Position, errors *ValidationErrors) {
+func detectCycles(idl *IDL, errors *ValidationErrors) {
 	// Build a map of struct name to struct for quick lookup
 	structMap := make(map[string]*Struct)
 	for _, s := range idl.Structs {
@@ -244,8 +244,8 @@ func detectCycles(idl *IDL, typeRegistry map[string]lexer.Position, errors *Vali
 	recursionStack := make(map[string]bool)
 
 	// DFS function to detect cycles
-	var dfs func(structName string, path []string, fieldOptional bool) bool
-	dfs = func(structName string, path []string, fieldOptional bool) bool {
+	var dfs func(structName string, path []string) bool
+	dfs = func(structName string, path []string) bool {
 		// If we've seen this node in the current path, we have a cycle
 		if recursionStack[structName] {
 			// Build cycle path string
@@ -294,7 +294,7 @@ func detectCycles(idl *IDL, typeRegistry map[string]lexer.Position, errors *Vali
 		if s != nil {
 			if s.Extends != "" {
 				if _, isStruct := structMap[s.Extends]; isStruct {
-					if dfs(s.Extends, path, false) {
+					if dfs(s.Extends, path) {
 						return true
 					}
 				}
@@ -309,7 +309,7 @@ func detectCycles(idl *IDL, typeRegistry map[string]lexer.Position, errors *Vali
 						if field.Optional {
 							continue
 						}
-						if dfs(refType, path, false) {
+						if dfs(refType, path) {
 							return true
 						}
 					}
@@ -326,7 +326,7 @@ func detectCycles(idl *IDL, typeRegistry map[string]lexer.Position, errors *Vali
 	// Run DFS on all structs
 	for _, s := range idl.Structs {
 		if !visited[s.Name] {
-			dfs(s.Name, []string{}, false)
+			dfs(s.Name, []string{})
 		}
 	}
 }

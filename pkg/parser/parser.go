@@ -157,21 +157,21 @@ type MapTypeExpr struct {
 }
 
 // parseNestedTypes post-processes the AST to parse nested types recursively
-func parseNestedTypes(expr *TypeExpr, input string) error {
+func parseNestedTypes(expr *TypeExpr) error {
 	if expr == nil {
 		return nil
 	}
 
 	if expr.Array != nil && expr.Array.ElementType != nil {
 		// ElementType is already parsed by the grammar, just recursively parse nested types
-		if err := parseNestedTypes(expr.Array.ElementType, input); err != nil {
+		if err := parseNestedTypes(expr.Array.ElementType); err != nil {
 			return err
 		}
 	}
 
 	if expr.MapType != nil && expr.MapType.ValueType != nil {
 		// ValueType is already parsed by the grammar, just recursively parse nested types
-		if err := parseNestedTypes(expr.MapType.ValueType, input); err != nil {
+		if err := parseNestedTypes(expr.MapType.ValueType); err != nil {
 			return err
 		}
 	}
@@ -446,7 +446,7 @@ func parseIDLWithImports(filename string, input string, visited map[string]bool)
 		if expr == nil {
 			return nil
 		}
-		return parseNestedTypes(expr, input)
+		return parseNestedTypes(expr)
 	}
 
 	for _, elem := range file.Elements {
