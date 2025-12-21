@@ -56,9 +56,9 @@ lint: install-tools
 	@echo "Running linter..."
 	@GOPATH=$$(go env GOPATH); \
 	if command -v golangci-lint > /dev/null 2>&1; then \
-		golangci-lint run ./...; \
+		golangci-lint run --enable=unparam ./...; \
 	elif [ -f "$$GOPATH/bin/golangci-lint" ]; then \
-		$$GOPATH/bin/golangci-lint run ./...; \
+		$$GOPATH/bin/golangci-lint run --enable=unparam ./...; \
 	else \
 		echo "Error: golangci-lint not found. Run 'make install-tools' first."; \
 		exit 1; \
