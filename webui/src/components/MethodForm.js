@@ -8,6 +8,10 @@ export default {
     
     oninit(vnode) {
         // Initialize form values with defaults
+        const { method } = vnode.attrs;
+        if (method) {
+            this.lastMethodName = method.name;
+        }
         this.initializeForm(vnode);
     },
     
@@ -23,12 +27,27 @@ export default {
     initializeForm(vnode) {
         const { method } = vnode.attrs;
         if (!method || !method.parameters) {
-            this.formValues = {};
+            // Reuse existing object, just clear it
+            if (!this.formValues) {
+                this.formValues = {};
+            } else {
+                Object.keys(this.formValues).forEach(key => delete this.formValues[key]);
+            }
             return;
         }
         
         // Initialize with null/undefined - let TypeInput show placeholders
-        this.formValues = {};
+        // Reuse existing formValues object instead of creating a new one
+        // This ensures that references to formValues remain valid
+        if (!this.formValues) {
+            this.formValues = {};
+        }
+        // Clear existing values and set new ones
+        Object.keys(this.formValues).forEach(key => {
+            if (!method.parameters.find(p => p.name === key)) {
+                delete this.formValues[key];
+            }
+        });
         method.parameters.forEach(param => {
             this.formValues[param.name] = null;
         });

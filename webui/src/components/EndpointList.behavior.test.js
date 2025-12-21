@@ -1,12 +1,9 @@
 // Behavior-focused tests for EndpointList component
-// These tests focus on user-visible outcomes rather than implementation details
-//
-// NOTE: These tests demonstrate behavior-focused testing patterns.
-// They test user-visible behavior through state changes and callbacks
-// rather than DOM rendering, which avoids issues with Mithril test setup.
+// These tests focus on user-visible outcomes through DOM interactions
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import EndpointList from './EndpointList.js';
+import { mountComponent, unmountComponent, screen, userEvent } from '../test-utils.js';
 import * as storage from '../utils/storage.js';
 import * as api from '../services/api.js';
 
@@ -15,6 +12,7 @@ vi.mock('../utils/storage.js');
 vi.mock('../services/api.js');
 
 describe('EndpointList Behavior Tests', () => {
+    let container;
     let onEndpointSelectCallback;
 
     beforeEach(() => {
@@ -31,33 +29,42 @@ describe('EndpointList Behavior Tests', () => {
         EndpointList.endpoints = [];
     });
 
+    afterEach(() => {
+        if (container) {
+            unmountComponent(container);
+        }
+    });
+
     describe('Initial state', () => {
         it('loads endpoints from storage on initialization', () => {
-            // Test that component loads existing endpoints (user-visible: list appears)
             const mockEndpoints = [
                 { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' }
             ];
             storage.getEndpoints.mockReturnValue(mockEndpoints);
 
-            EndpointList.oninit();
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
             expect(storage.getEndpoints).toHaveBeenCalled();
-            expect(EndpointList.endpoints).toEqual(mockEndpoints);
+            expect(screen.getByText('http://example.com')).toBeInTheDocument();
         });
 
         it('initializes with empty endpoint list when no endpoints exist', () => {
-            // User-visible: shows "No endpoints yet" message
             storage.getEndpoints.mockReturnValue([]);
 
-            EndpointList.oninit();
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
-            expect(EndpointList.endpoints).toEqual([]);
+            expect(screen.getByText('No endpoints yet')).toBeInTheDocument();
         });
     });
 
     describe('Adding endpoints', () => {
         it('saves endpoint and triggers IDL discovery', async () => {
-            // Test that adding endpoint saves it and discovers IDL (user-visible: endpoint appears, IDL loads)
             const mockIDL = {
                 interfaces: [{ name: 'TestInterface', methods: [] }],
                 structs: [],
@@ -71,65 +78,76 @@ describe('EndpointList Behavior Tests', () => {
                 buildTypeRegistry: () => mockRegistry
             }));
 
-            EndpointList.newEndpointUrl = 'http://example.com';
-            EndpointList.endpoints = [];
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
-            const vnode = {
-                attrs: {
-                    currentEndpoint: null,
-                    onEndpointSelect: onEndpointSelectCallback
-                }
-            };
+            // Type endpoint URL
+            const input = screen.getByPlaceholderText('Endpoint URL');
+            await userEvent.type(input, 'http://example.com');
 
-            await EndpointList.handleAddEndpoint(vnode);
+            // Click add button
+            const addButton = screen.getByRole('button', { name: '+' });
+            await userEvent.click(addButton);
 
-            // Verify endpoint was saved (user-visible: appears in list)
+            // Verify endpoint was saved
             expect(storage.saveEndpoint).toHaveBeenCalledWith('http://example.com');
             
-            // Verify IDL discovery was triggered (user-visible: interfaces appear)
-            expect(api.discoverIDL).toHaveBeenCalledWith('http://example.com');
+            // Verify IDL discovery was triggered
+            await vi.waitFor(() => {
+                expect(api.discoverIDL).toHaveBeenCalledWith('http://example.com');
+            });
             
-            // Verify callback called with IDL (user-visible: UI updates with interfaces)
-            expect(onEndpointSelectCallback).toHaveBeenCalledWith(
-                'http://example.com',
-                mockIDL,
-                mockRegistry
-            );
+            // Verify callback called with IDL
+            await vi.waitFor(() => {
+                expect(onEndpointSelectCallback).toHaveBeenCalledWith(
+                    'http://example.com',
+                    mockIDL,
+                    mockRegistry
+                );
+            });
         });
 
         it('sets discovering state during IDL discovery', async () => {
-            // Test loading state (user-visible: loading indicator appears)
             let resolveDiscover;
             const discoverPromise = new Promise(resolve => {
                 resolveDiscover = resolve;
             });
             api.discoverIDL.mockReturnValue(discoverPromise);
 
-            const vnode = {
+            // Set up endpoint in storage first
+            storage.getEndpoints.mockReturnValue([
+                { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' }
+            ]);
+
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
+
+            // Start discovery directly (not through click, as that's async)
+            const discoveryPromise = EndpointList.handleSelectEndpoint('http://example.com', {
                 attrs: {
                     currentEndpoint: null,
                     onEndpointSelect: onEndpointSelectCallback
                 }
-            };
+            });
 
-            // Start discovery
-            const discoveryPromise = EndpointList.handleSelectEndpoint('http://example.com', vnode);
-            
-            // Verify discovering state is set (user-visible: loading shows)
+            // Verify discovering state is set
             expect(EndpointList.discovering).toBe(true);
 
             // Complete discovery
             resolveDiscover({ interfaces: [] });
             await discoveryPromise;
 
-            // Verify discovering state is cleared (user-visible: loading hides)
+            // Verify discovering state is cleared
             expect(EndpointList.discovering).toBe(false);
         });
     });
 
     describe('Selecting endpoints', () => {
         it('triggers IDL discovery and updates UI', async () => {
-            // Test that selecting endpoint discovers IDL (user-visible: interfaces appear)
             const mockIDL = { interfaces: [], structs: [], enums: [] };
             api.discoverIDL.mockResolvedValue(mockIDL);
 
@@ -138,89 +156,96 @@ describe('EndpointList Behavior Tests', () => {
                 buildTypeRegistry: () => mockRegistry
             }));
 
-            const vnode = {
-                attrs: {
-                    currentEndpoint: null,
-                    onEndpointSelect: onEndpointSelectCallback
-                }
-            };
+            storage.getEndpoints.mockReturnValue([
+                { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' }
+            ]);
 
-            await EndpointList.handleSelectEndpoint('http://example.com', vnode);
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
-            // Verify IDL discovery was triggered (user-visible: UI updates)
-            expect(api.discoverIDL).toHaveBeenCalledWith('http://example.com');
+            // Click endpoint
+            const endpointItem = screen.getByText('http://example.com');
+            await userEvent.click(endpointItem);
+
+            // Verify IDL discovery was triggered
+            await vi.waitFor(() => {
+                expect(api.discoverIDL).toHaveBeenCalledWith('http://example.com');
+            });
             
-            // Verify callback called with IDL (user-visible: interfaces displayed)
-            expect(onEndpointSelectCallback).toHaveBeenCalledWith(
-                'http://example.com',
-                mockIDL,
-                mockRegistry
-            );
+            // Verify callback called with IDL
+            await vi.waitFor(() => {
+                expect(onEndpointSelectCallback).toHaveBeenCalledWith(
+                    'http://example.com',
+                    mockIDL,
+                    mockRegistry
+                );
+            });
         });
     });
 
     describe('Removing endpoints', () => {
-        it('removes endpoint from storage when confirmed', () => {
-            // Test that endpoint removal works (user-visible: endpoint disappears from list)
-            EndpointList.endpoints = [
+        it('removes endpoint from storage when confirmed', async () => {
+            storage.getEndpoints.mockReturnValue([
                 { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' },
                 { url: 'http://test.com', lastUsed: '2023-01-02T00:00:00.000Z' }
-            ];
+            ]);
 
-            const vnode = {
-                attrs: {
-                    currentEndpoint: null,
-                    onEndpointSelect: onEndpointSelectCallback
-                }
-            };
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
             global.confirm = vi.fn(() => true);
 
-            EndpointList.handleRemoveEndpoint('http://example.com', vnode);
+            // Click remove button
+            const removeButtons = screen.getAllByRole('button', { name: '×' });
+            await userEvent.click(removeButtons[0]);
 
-            // Verify endpoint was removed (user-visible: list updates)
+            // Verify endpoint was removed
             expect(storage.removeEndpoint).toHaveBeenCalledWith('http://example.com');
         });
 
-        it('clears selection when current endpoint is removed', () => {
-            // Test that removing selected endpoint clears selection (user-visible: active state removed)
-            EndpointList.endpoints = [
+        it('clears selection when current endpoint is removed', async () => {
+            storage.getEndpoints.mockReturnValue([
                 { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' }
-            ];
+            ]);
 
-            const vnode = {
-                attrs: {
-                    currentEndpoint: 'http://example.com',
-                    onEndpointSelect: onEndpointSelectCallback
-                }
-            };
+            container = mountComponent(EndpointList, {
+                currentEndpoint: 'http://example.com',
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
             global.confirm = vi.fn(() => true);
 
-            EndpointList.handleRemoveEndpoint('http://example.com', vnode);
+            // Click remove button
+            const removeButton = screen.getByRole('button', { name: '×' });
+            await userEvent.click(removeButton);
 
-            // Verify selection is cleared (user-visible: interfaces disappear)
-            expect(onEndpointSelectCallback).toHaveBeenCalledWith(null, null, null);
+            // Verify selection is cleared
+            await vi.waitFor(() => {
+                expect(onEndpointSelectCallback).toHaveBeenCalledWith(null, null, null);
+            });
         });
 
-        it('does not remove endpoint if user cancels', () => {
-            // Test cancellation (user-visible: endpoint remains in list)
-            EndpointList.endpoints = [
+        it('does not remove endpoint if user cancels', async () => {
+            storage.getEndpoints.mockReturnValue([
                 { url: 'http://example.com', lastUsed: '2023-01-01T00:00:00.000Z' }
-            ];
+            ]);
 
-            const vnode = {
-                attrs: {
-                    currentEndpoint: null,
-                    onEndpointSelect: onEndpointSelectCallback
-                }
-            };
+            container = mountComponent(EndpointList, {
+                currentEndpoint: null,
+                onEndpointSelect: onEndpointSelectCallback
+            });
 
             global.confirm = vi.fn(() => false);
 
-            EndpointList.handleRemoveEndpoint('http://example.com', vnode);
+            // Click remove button
+            const removeButton = screen.getByRole('button', { name: '×' });
+            await userEvent.click(removeButton);
 
-            // Verify endpoint was NOT removed (user-visible: still in list)
+            // Verify endpoint was NOT removed
             expect(storage.removeEndpoint).not.toHaveBeenCalled();
         });
     });

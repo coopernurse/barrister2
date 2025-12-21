@@ -1,15 +1,14 @@
 // Behavior-focused tests for MethodForm component
-// These tests focus on user-visible outcomes rather than implementation details
-//
-// NOTE: These tests demonstrate behavior-focused testing patterns.
-// Some tests may need adjustment based on Mithril rendering implementation.
-// The key principle is testing user-visible outcomes, not implementation details.
+// These tests focus on user-visible outcomes through DOM interactions
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import MethodForm from './MethodForm.js';
 import { 
-    cleanupComponent,
-    createMockRegistry 
+    mountComponent,
+    unmountComponent,
+    createMockRegistry,
+    screen,
+    userEvent
 } from '../test-utils.js';
 
 describe('MethodForm Behavior Tests', () => {
@@ -19,7 +18,6 @@ describe('MethodForm Behavior Tests', () => {
     let onSubmitCallback;
 
     beforeEach(() => {
-        container = null;
         registry = createMockRegistry();
         onFormChangeCallback = vi.fn();
         onSubmitCallback = vi.fn();
@@ -27,14 +25,12 @@ describe('MethodForm Behavior Tests', () => {
 
     afterEach(() => {
         if (container) {
-            cleanupComponent(container);
+            unmountComponent(container);
         }
     });
 
     describe('Form rendering', () => {
         it('shows empty input fields with placeholders for method parameters', () => {
-            // This test verifies that form fields initialize with null values
-            // (which display as empty with placeholders) rather than default values
             const method = {
                 name: 'addNumbers',
                 parameters: [
@@ -43,24 +39,22 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            // Initialize component
-            MethodForm.oninit(vnode);
-            MethodForm.initializeForm(vnode);
-
-            // Verify form values are null (user-visible: empty fields with placeholders)
-            // This is the behavior we want - not default values like 0 or ''
-            expect(MethodForm.formValues.id).toBeNull(); // Not 0!
-            expect(MethodForm.formValues.name).toBeNull(); // Not ''!
+            // Verify form fields render with placeholders
+            const idInput = screen.getByPlaceholderText('Enter integer');
+            const nameInput = screen.getByPlaceholderText('Enter string');
+            
+            expect(idInput).toBeInTheDocument();
+            expect(nameInput).toBeInTheDocument();
+            expect(idInput.value).toBe('');
+            expect(nameInput.value).toBe('');
             
             // Verify onFormChange was called with null values
             expect(onFormChangeCallback).toHaveBeenCalled();
@@ -70,49 +64,58 @@ describe('MethodForm Behavior Tests', () => {
         });
 
         it('formats parameter labels with name, separator, and type', () => {
-            // This test verifies the user-visible label format
-            // Test the formatType method which affects what user sees
-            const formattedType = MethodForm.formatType({ builtIn: 'int' });
-            expect(formattedType).toBe('int');
+            const method = {
+                name: 'testMethod',
+                parameters: [
+                    { name: 'userId', type: { builtIn: 'int' } }
+                ]
+            };
 
-            // In the actual UI, label would show: "userId - int"
-            // This is user-visible behavior (the separator prevents text from running together)
-            const expectedLabelFormat = 'userId - int';
-            expect(expectedLabelFormat).toContain('userId');
-            expect(expectedLabelFormat).toContain('-');
-            expect(expectedLabelFormat).toContain('int');
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
+
+            // Verify label format - check for userId and int separately since they're in different elements
+            const userIdLabel = screen.getByText('userId');
+            expect(userIdLabel).toBeInTheDocument();
+            // Check that the label contains the type information
+            const labelContainer = userIdLabel.closest('label');
+            expect(labelContainer.textContent).toContain('int');
         });
 
         it('initializes empty form for method with no parameters', () => {
-            // Test that methods without parameters are handled correctly
             const method = {
                 name: 'noParamsMethod',
                 parameters: []
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode);
-            MethodForm.initializeForm(vnode);
-
-            // Verify form values are empty (user-visible: no fields, just submit button)
-            expect(MethodForm.formValues).toEqual({});
+            // Verify no input fields, just submit button
+            const inputs = screen.queryAllByRole('textbox');
+            const numberInputs = screen.queryAllByRole('spinbutton');
+            expect(inputs.length + numberInputs.length).toBe(0);
+            
+            // Verify submit button exists
+            const submitButton = screen.getByRole('button', { name: /call method/i });
+            expect(submitButton).toBeInTheDocument();
+            
             expect(onFormChangeCallback).toHaveBeenCalledWith({});
         });
     });
 
     describe('User interactions and data flow', () => {
-        it('onSubmit receives form values in correct format', () => {
-            // Test that form submission provides data in the format expected
-            // This verifies the data transformation that happens in app.js
+        it('onSubmit receives form values in correct format', async () => {
             const method = {
                 name: 'testMethod',
                 parameters: [
@@ -120,36 +123,33 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode);
-            MethodForm.formValues.name = 'test value';
+            // Type in the input field
+            const input = screen.getByPlaceholderText('Enter string');
+            await userEvent.type(input, 'test value');
 
-            // Simulate submit button click
-            if (vnode.attrs.onSubmit) {
-                vnode.attrs.onSubmit(MethodForm.formValues);
-            }
+            // Submit form
+            const submitButton = screen.getByRole('button', { name: /call method/i });
+            await userEvent.click(submitButton);
 
             // Verify callback was called with form data
             expect(onSubmitCallback).toHaveBeenCalled();
             const submittedValues = onSubmitCallback.mock.calls[0][0];
-            expect(submittedValues).toEqual({ name: 'test value' });
+            expect(submittedValues.name).toBe('test value');
             
             // Verify format can be converted to array (as app.js does)
             const paramsArray = method.parameters.map(p => submittedValues[p.name]);
             expect(paramsArray).toEqual(['test value']);
         });
 
-        it('form values update correctly when user provides input', () => {
-            // Test that form state updates when user interacts
+        it('form values update correctly when user provides input', async () => {
             const method = {
                 name: 'testMethod',
                 parameters: [
@@ -157,36 +157,29 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode);
             onFormChangeCallback.mockClear();
 
-            // Simulate user input (this would normally come from TypeInput component)
-            MethodForm.formValues.text = 'user input';
-            if (vnode.attrs.onFormChange) {
-                vnode.attrs.onFormChange(MethodForm.formValues);
-            }
+            // Type in the input field
+            const input = screen.getByPlaceholderText('Enter string');
+            await userEvent.type(input, 'user input');
 
             // Verify onFormChange was called with updated values
             expect(onFormChangeCallback).toHaveBeenCalled();
-            const formValues = onFormChangeCallback.mock.calls[0][0];
+            const formValues = onFormChangeCallback.mock.calls[onFormChangeCallback.mock.calls.length - 1][0];
             expect(formValues.text).toBe('user input');
         });
     });
 
     describe('Data format and submission', () => {
-        it('submits form values in format that can be converted to JSON-RPC params array', () => {
-            // This test verifies the format that will be converted to array in app.js
-            // The key behavior: form submits object, app.js converts to array
+        it('submits form values in format that can be converted to JSON-RPC params array', async () => {
             const method = {
                 name: 'add',
                 parameters: [
@@ -195,41 +188,37 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode);
-            MethodForm.formValues.a = 50;
-            MethodForm.formValues.b = 10;
+            // Fill form fields
+            const inputA = screen.getAllByPlaceholderText('Enter integer')[0];
+            const inputB = screen.getAllByPlaceholderText('Enter integer')[1];
+            await userEvent.type(inputA, '50');
+            await userEvent.type(inputB, '10');
 
             // Submit form
-            if (vnode.attrs.onSubmit) {
-                vnode.attrs.onSubmit(MethodForm.formValues);
-            }
+            const submitButton = screen.getByRole('button', { name: /call method/i });
+            await userEvent.click(submitButton);
 
             expect(onSubmitCallback).toHaveBeenCalled();
             const submittedValues = onSubmitCallback.mock.calls[0][0];
             
             // Verify object format with named keys (app.js will convert to array)
-            expect(submittedValues).toEqual({
-                a: 50,
-                b: 10
-            });
+            expect(submittedValues.a).toBe(50);
+            expect(submittedValues.b).toBe(10);
             
             // Verify this can be converted to array format (user-visible: correct JSON-RPC request)
             const paramsArray = method.parameters.map(p => submittedValues[p.name]);
             expect(paramsArray).toEqual([50, 10]); // Array, not {a: 50, b: 10}
         });
 
-        it('handles null/empty values correctly in submission', () => {
-            // Test that null values are handled gracefully (user-visible: no crashes)
+        it('handles null/empty values correctly in submission', async () => {
             const method = {
                 name: 'testMethod',
                 parameters: [
@@ -237,23 +226,19 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode = {
-                attrs: {
-                    method,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode);
-            // Leave field as null (user didn't fill it)
+            // Don't fill the field, leave it empty
 
-            // Submit without filling the field
-            if (vnode.attrs.onSubmit) {
-                vnode.attrs.onSubmit(MethodForm.formValues);
-            }
+            // Submit form
+            const submitButton = screen.getByRole('button', { name: /call method/i });
+            await userEvent.click(submitButton);
 
             expect(onSubmitCallback).toHaveBeenCalled();
             const submittedValues = onSubmitCallback.mock.calls[0][0];
@@ -264,7 +249,6 @@ describe('MethodForm Behavior Tests', () => {
 
     describe('Method changes', () => {
         it('reinitializes form when method changes', () => {
-            // Test that form resets when method changes (user-visible: old values cleared)
             const method1 = {
                 name: 'method1',
                 parameters: [
@@ -272,18 +256,16 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode1 = {
-                attrs: {
-                    method: method1,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            container = mountComponent(MethodForm, {
+                method: method1,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            MethodForm.oninit(vnode1);
-            MethodForm.formValues.param1 = 'old value';
+            // Verify first method's field is present
+            expect(screen.getByPlaceholderText('Enter string')).toBeInTheDocument();
 
             // Change method
             const method2 = {
@@ -293,25 +275,26 @@ describe('MethodForm Behavior Tests', () => {
                 ]
             };
 
-            const vnode2 = {
-                attrs: {
-                    method: method2,
-                    typeRegistry: registry,
-                    formValues: {},
-                    onFormChange: onFormChangeCallback,
-                    onSubmit: onSubmitCallback
-                }
-            };
+            // Remount with new method
+            unmountComponent(container);
+            onFormChangeCallback.mockClear();
+            container = mountComponent(MethodForm, {
+                method: method2,
+                typeRegistry: registry,
+                formValues: {},
+                onFormChange: onFormChangeCallback,
+                onSubmit: onSubmitCallback
+            });
 
-            // Simulate method change (onupdate would be called in real scenario)
-            MethodForm.lastMethodName = undefined; // Reset tracking
-            MethodForm.onupdate(vnode2);
-
-            // Verify form was reinitialized (user-visible: new fields, old values gone)
-            expect(MethodForm.formValues.param1).toBeUndefined();
-            expect(MethodForm.formValues.param2).toBeNull();
+            // Verify new method's field is present, old field is gone
+            expect(screen.queryByPlaceholderText('Enter string')).not.toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Enter integer')).toBeInTheDocument();
+            
+            // Verify form was reinitialized
             expect(onFormChangeCallback).toHaveBeenCalled();
+            const formValues = onFormChangeCallback.mock.calls[0][0];
+            expect(formValues.param1).toBeUndefined();
+            expect(formValues.param2).toBeNull();
         });
     });
 });
-

@@ -1,15 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import InterfaceBrowser from './InterfaceBrowser.js';
-import { renderComponent, findElement, cleanupComponent } from '../test-utils.js';
+import { mountComponent, unmountComponent, screen, userEvent } from '../test-utils.js';
+import m from 'mithril';
 
 describe('InterfaceBrowser Component', () => {
+    let container;
     let idl;
     let onMethodSelectCallback;
-    let container;
 
     beforeEach(() => {
-        container = document.createElement('div');
-        document.body.appendChild(container);
         idl = {
             interfaces: [
                 {
@@ -49,87 +48,78 @@ describe('InterfaceBrowser Component', () => {
     });
 
     afterEach(() => {
-        if (container && container.parentNode) {
-            document.body.removeChild(container);
+        if (container) {
+            unmountComponent(container);
         }
         InterfaceBrowser.expandedInterfaces.clear();
     });
 
     describe('Component initialization', () => {
         it('should expand first interface by default', () => {
-            const vnode = {
-                attrs: {
-                    idl: idl,
-                    onMethodSelect: onMethodSelectCallback
-                }
-            };
+            container = mountComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
 
-            InterfaceBrowser.oninit(vnode);
-
-            expect(InterfaceBrowser.expandedInterfaces.has('UserService')).toBe(true);
+            // First interface should be expanded (methods visible)
+            expect(screen.getByText('getUser')).toBeInTheDocument();
+            expect(screen.getByText('createUser')).toBeInTheDocument();
+            
+            // Second interface should be collapsed (methods not visible)
+            expect(screen.queryByText('listProducts')).not.toBeInTheDocument();
         });
 
         it('should handle IDL with no interfaces', () => {
             const emptyIdl = { interfaces: [] };
-            const vnode = {
-                attrs: {
-                    idl: emptyIdl,
-                    onMethodSelect: onMethodSelectCallback
-                }
-            };
+            container = mountComponent(InterfaceBrowser, {
+                idl: emptyIdl,
+                onMethodSelect: onMethodSelectCallback
+            });
 
-            // Clear any existing expanded interfaces
-            InterfaceBrowser.expandedInterfaces.clear();
-            InterfaceBrowser.oninit(vnode);
-
-            expect(InterfaceBrowser.expandedInterfaces.size).toBe(0);
+            // When interfaces array is empty, component still renders the header
+            // Check that no methods are shown
+            expect(screen.queryByText('getUser')).not.toBeInTheDocument();
+            expect(screen.getByText('Interfaces & Methods')).toBeInTheDocument();
         });
     });
 
     describe('Expand/collapse interfaces', () => {
         it('should toggle interface expansion', () => {
-            const vnode = {
-                attrs: {
-                    idl: idl,
-                    onMethodSelect: onMethodSelectCallback
-                }
-            };
+            // Test that clicking toggle button changes expanded state
+            container = mountComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
 
-            InterfaceBrowser.oninit(vnode);
-            InterfaceBrowser.expandedInterfaces.clear();
+            // Initially expanded
+            expect(screen.getByText('getUser')).toBeInTheDocument();
+            expect(InterfaceBrowser.expandedInterfaces.has('UserService')).toBe(true);
 
-            // Simulate toggle
-            const iface = idl.interfaces[0];
-            if (InterfaceBrowser.expandedInterfaces.has(iface.name)) {
-                InterfaceBrowser.expandedInterfaces.delete(iface.name);
-            } else {
-                InterfaceBrowser.expandedInterfaces.add(iface.name);
-            }
+            // Manually toggle (simulating button click behavior)
+            InterfaceBrowser.expandedInterfaces.delete('UserService');
+            expect(InterfaceBrowser.expandedInterfaces.has('UserService')).toBe(false);
 
+            // Expand again
+            InterfaceBrowser.expandedInterfaces.add('UserService');
             expect(InterfaceBrowser.expandedInterfaces.has('UserService')).toBe(true);
         });
     });
 
     describe('Method selection', () => {
-        it('should call onMethodSelect when method is clicked', () => {
-            const vnode = {
-                attrs: {
-                    idl: idl,
-                    onMethodSelect: onMethodSelectCallback
-                }
-            };
+        it('should call onMethodSelect when method is clicked', async () => {
+            container = mountComponent(InterfaceBrowser, {
+                idl: idl,
+                onMethodSelect: onMethodSelectCallback
+            });
 
-            InterfaceBrowser.oninit(vnode);
-            InterfaceBrowser.expandedInterfaces.add('UserService');
+            // Click on a method
+            const methodItem = screen.getByText('getUser').closest('.list-group-item');
+            await userEvent.click(methodItem);
 
-            // Simulate method selection
-            const iface = idl.interfaces[0];
-            const method = iface.methods[0];
-            if (onMethodSelectCallback) {
-                onMethodSelectCallback(iface, method);
-            }
-
-            expect(onMethodSelectCallback).toHaveBeenCalledWith(iface, method);
+            expect(onMethodSelectCallback).toHaveBeenCalledTimes(1);
+            const [iface, method] = onMethodSelectCallback.mock.calls[0];
+            expect(iface.name).toBe('UserService');
+            expect(method.name).toBe('getUser');
         });
     });
 
@@ -168,18 +158,14 @@ describe('InterfaceBrowser Component', () => {
 
     describe('Method display format', () => {
         it('should display method params and response on separate lines', () => {
-            InterfaceBrowser.expandedInterfaces.clear();
-            InterfaceBrowser.expandedInterfaces.add('UserService');
-            
-            const rendered = renderComponent(InterfaceBrowser, {
+            container = mountComponent(InterfaceBrowser, {
                 idl: idl,
                 onMethodSelect: onMethodSelectCallback
             });
-            
-            const methodItem = findElement(rendered, '.list-group-item');
-            expect(methodItem).not.toBeNull();
-            
+
+            const methodItem = screen.getByText('getUser').closest('.list-group-item');
             const textContent = methodItem.textContent;
+            
             expect(textContent).toContain('Params:');
             expect(textContent).toContain('id: int');
             expect(textContent).toContain('Response:');
@@ -188,27 +174,31 @@ describe('InterfaceBrowser Component', () => {
             const paramsIndex = textContent.indexOf('Params:');
             const responseIndex = textContent.indexOf('Response:');
             expect(paramsIndex).toBeLessThan(responseIndex);
-            
-            cleanupComponent(rendered);
         });
 
         it('should display "Params: none" for methods without parameters', () => {
+            // Create IDL with only ProductService and expand it
+            const productIdl = {
+                interfaces: [{
+                    name: 'ProductService',
+                    methods: [{
+                        name: 'listProducts',
+                        parameters: [],
+                        returnType: { array: { userDefined: 'Product' } }
+                    }]
+                }]
+            };
+            
             InterfaceBrowser.expandedInterfaces.clear();
             InterfaceBrowser.expandedInterfaces.add('ProductService');
             
-            const rendered = renderComponent(InterfaceBrowser, {
-                idl: idl,
+            container = mountComponent(InterfaceBrowser, {
+                idl: productIdl,
                 onMethodSelect: onMethodSelectCallback
             });
-            
-            const methodItem = findElement(rendered, '.list-group-item');
-            expect(methodItem).not.toBeNull();
-            
-            const textContent = methodItem.textContent;
-            expect(textContent).toContain('Params: none');
-            expect(textContent).toContain('Response:');
-            
-            cleanupComponent(rendered);
+
+            const methodItem = screen.getByText('listProducts').closest('.list-group-item');
+            expect(methodItem.textContent).toContain('Params: none');
         });
 
         it('should display "Response: void" for methods with void return type', () => {
@@ -223,56 +213,36 @@ describe('InterfaceBrowser Component', () => {
                 }]
             };
             
-            InterfaceBrowser.expandedInterfaces.clear();
-            InterfaceBrowser.expandedInterfaces.add('TestService');
-            
-            const rendered = renderComponent(InterfaceBrowser, {
+            container = mountComponent(InterfaceBrowser, {
                 idl: voidIdl,
                 onMethodSelect: onMethodSelectCallback
             });
-            
-            const methodItem = findElement(rendered, '.list-group-item');
-            expect(methodItem).not.toBeNull();
-            
-            const textContent = methodItem.textContent;
-            expect(textContent).toContain('Response: void');
-            
-            cleanupComponent(rendered);
+
+            const methodItem = screen.getByText('doSomething').closest('.list-group-item');
+            expect(methodItem.textContent).toContain('Response: void');
         });
     });
 
     describe('Clickable method styling', () => {
         it('should have cursor pointer style on method list items', () => {
-            InterfaceBrowser.expandedInterfaces.clear();
-            InterfaceBrowser.expandedInterfaces.add('UserService');
-            
-            const rendered = renderComponent(InterfaceBrowser, {
+            container = mountComponent(InterfaceBrowser, {
                 idl: idl,
                 onMethodSelect: onMethodSelectCallback
             });
-            
-            const methodItem = findElement(rendered, '.list-group-item');
-            const cursorStyle = methodItem.style.cursor;
-            expect(cursorStyle).toBe('pointer');
-            
-            cleanupComponent(rendered);
+
+            const methodItem = screen.getByText('getUser').closest('.list-group-item');
+            expect(methodItem.style.cursor).toBe('pointer');
         });
 
         it('should have nested div structure with method-content class', () => {
-            InterfaceBrowser.expandedInterfaces.clear();
-            InterfaceBrowser.expandedInterfaces.add('UserService');
-            
-            const rendered = renderComponent(InterfaceBrowser, {
+            container = mountComponent(InterfaceBrowser, {
                 idl: idl,
                 onMethodSelect: onMethodSelectCallback
             });
-            
-            const methodItem = findElement(rendered, '.list-group-item');
+
+            const methodItem = screen.getByText('getUser').closest('.list-group-item');
             const methodContent = methodItem.querySelector('.method-content');
             expect(methodContent).not.toBeNull();
-            
-            cleanupComponent(rendered);
         });
     });
 });
-

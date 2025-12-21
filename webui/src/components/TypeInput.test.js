@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import TypeInput from './TypeInput.js';
-import { createMockRegistry } from '../test-utils.js';
+import { mountComponent, unmountComponent, createMockRegistry, screen } from '../test-utils.js';
+import m from 'mithril';
 
 describe('TypeInput Component', () => {
     let container;
@@ -8,81 +9,72 @@ describe('TypeInput Component', () => {
     let onChangeCallback;
 
     beforeEach(() => {
-        container = document.createElement('div');
-        document.body.appendChild(container);
         registry = createMockRegistry();
         onChangeCallback = vi.fn();
     });
 
     afterEach(() => {
-        document.body.removeChild(container);
+        if (container) {
+            unmountComponent(container);
+        }
     });
 
     describe('Builtin types - Form control generation', () => {
         it('should render string input', () => {
-            const vnode = {
-                attrs: {
-                    type: { builtIn: 'string' },
-                    value: '',
-                    onchange: onChangeCallback,
-                    registry: registry
-                }
-            };
-            const result = TypeInput.view(vnode);
+            container = mountComponent(TypeInput, {
+                type: { builtIn: 'string' },
+                value: '',
+                onchange: onChangeCallback,
+                registry: registry
+            });
             
-            // Render to DOM
-            if (result && result.tagName === 'INPUT') {
-                container.appendChild(result);
-                const input = container.querySelector('input[type="text"]');
-                expect(input).not.toBeNull();
-                expect(input.placeholder).toBe('Enter string');
-            } else {
-                // If result is a container, check for input inside
-                expect(result).not.toBeNull();
-            }
+            const input = screen.getByPlaceholderText('Enter string');
+            expect(input).toBeInTheDocument();
+            expect(input.type).toBe('text');
+            expect(input.value).toBe('');
         });
 
         it('should render int input', () => {
-            const vnode = {
-                attrs: {
-                    type: { builtIn: 'int' },
-                    value: 0,
-                    onchange: onChangeCallback,
-                    registry: registry
-                }
-            };
-            const result = TypeInput.view(vnode);
+            container = mountComponent(TypeInput, {
+                type: { builtIn: 'int' },
+                value: 0,
+                onchange: onChangeCallback,
+                registry: registry
+            });
             
-            expect(result).not.toBeNull();
-            if (result && result.tagName === 'INPUT') {
-                expect(result.step).toBe('1');
-            }
+            const input = screen.getByPlaceholderText('Enter integer');
+            expect(input).toBeInTheDocument();
+            expect(input.type).toBe('number');
+            expect(input.step).toBe('1');
         });
 
         it('should render float input', () => {
-            const vnode = {
-                attrs: {
-                    type: { builtIn: 'float' },
-                    value: 0.0,
-                    onchange: onChangeCallback,
-                    registry: registry
-                }
-            };
-            const result = TypeInput.view(vnode);
+            container = mountComponent(TypeInput, {
+                type: { builtIn: 'float' },
+                value: 0.0,
+                onchange: onChangeCallback,
+                registry: registry
+            });
             
-            expect(result).not.toBeNull();
-            if (result && result.tagName === 'INPUT') {
-                expect(result.getAttribute('step')).toBe('any');
-            }
+            const input = screen.getByPlaceholderText('Enter number');
+            expect(input).toBeInTheDocument();
+            expect(input.type).toBe('number');
+            expect(input.getAttribute('step')).toBe('any');
         });
 
-        // View rendering tests for complex types (bool, enum, optional, arrays, maps, structs)
-        // removed due to Mithril mock limitations with nested structures.
-        // The logic is already well-tested through:
-        // - Array operations tests (add/remove/update items)
-        // - Map operations tests (add/remove/update entries)
-        // - Default value generation tests
-        // - Optional type handling tests
+        it('should render bool checkbox', () => {
+            container = mountComponent(TypeInput, {
+                type: { builtIn: 'bool' },
+                value: false,
+                onchange: onChangeCallback,
+                registry: registry
+            });
+            
+            const checkbox = screen.getByRole('checkbox');
+            expect(checkbox).toBeInTheDocument();
+            expect(checkbox.type).toBe('checkbox');
+            expect(checkbox.checked).toBe(false);
+        });
     });
 
     describe('Array operations', () => {
@@ -91,16 +83,6 @@ describe('TypeInput Component', () => {
             const onChange = (newValue) => {
                 currentValue = newValue;
                 onChangeCallback(newValue);
-            };
-
-            // Create vnode object for consistency (even though not used in this test)
-            const _ = {
-                attrs: {
-                    type: { array: { builtIn: 'string' } },
-                    value: currentValue,
-                    onchange: onChange,
-                    registry: registry
-                }
             };
 
             // Simulate adding an item
@@ -283,6 +265,20 @@ describe('TypeInput Component', () => {
     });
 
     describe('Optional type handling', () => {
+        it('should render checkbox for optional type when value is null', () => {
+            container = mountComponent(TypeInput, {
+                type: { builtIn: 'string' },
+                value: null,
+                onchange: onChangeCallback,
+                registry: registry,
+                optional: true
+            });
+
+            const checkbox = screen.getByRole('checkbox');
+            expect(checkbox).toBeInTheDocument();
+            expect(checkbox.checked).toBe(false);
+        });
+
         it('should initialize optional value when checked', () => {
             let currentValue = null;
             const onChange = (newValue) => {
@@ -336,4 +332,3 @@ describe('TypeInput Component', () => {
         });
     });
 });
-
