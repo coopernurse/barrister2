@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import InterfaceBrowser from './InterfaceBrowser.js';
 import { mountComponent, unmountComponent, screen, userEvent } from '../test-utils.js';
-import m from 'mithril';
 
 describe('InterfaceBrowser Component', () => {
     let container;

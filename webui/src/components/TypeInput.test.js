@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import TypeInput from './TypeInput.js';
 import { mountComponent, unmountComponent, createMockRegistry, screen } from '../test-utils.js';
-import m from 'mithril';
 
 describe('TypeInput Component', () => {
     let container;
