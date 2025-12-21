@@ -106,6 +106,7 @@ test-runtime-csharp:
 	@echo "Testing C# runtime..."
 	@cd pkg/runtime/runtimes/csharp && $(MAKE) test
 
+<<<<<<< HEAD
 # Test Java runtime
 test-runtime-java:
 	@echo "Testing Java runtime..."
@@ -113,6 +114,15 @@ test-runtime-java:
 
 # Test all runtimes
 test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java
+=======
+# Test Go runtime
+test-runtime-go:
+	@echo "Testing Go runtime..."
+	@cd pkg/runtime/runtimes/go && $(MAKE) test
+
+# Test all runtimes
+test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-go
+>>>>>>> e1cbe8d (go: initial go runtime commit)
 	@echo "All runtime tests passed"
 
 # Test Python generator integration
@@ -135,8 +145,13 @@ test-generator-java:
 	@echo "Testing Java generator integration..."
 	@bash tests/integration/test_generator_java.sh
 
+# Test Go generator integration
+test-generator-go:
+	@echo "Testing Go generator integration..."
+	@cd pkg/runtime/runtimes/go && $(MAKE) test-integration
+
 # Test all generators
-test-generators: test-generator-python test-generator-ts test-generator-csharp test-generator-java
+test-generators: test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generator-go
 	@echo "All generator tests passed"
 
 # Start all test servers for web UI

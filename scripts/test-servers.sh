@@ -30,6 +30,7 @@ RUNTIMES=(
     "ts:ts-client-server:node:18-slim:9001:ts-node --project tsconfig.json test_server.ts"
     "csharp:csharp-client-server:mcr.microsoft.com/dotnet/sdk:8.0:9002:dotnet run --project TestServer.csproj"
     "java:java-client-server:maven:3.9-eclipse-temurin-17:9003:mvn exec:java -Dexec.mainClass=TestServer"
+    "go:go-client-server:golang:1.21-alpine:9004:go run test_server.go server.go client.go conform.go inc.go barrister2/*.go"
 )
 
 # Parse runtime config
@@ -150,6 +151,9 @@ EOF
         java)
             test_server_file="$output_dir/TestServer.java"
             ;;
+        go)
+            test_server_file="$output_dir/test_server.go"
+            ;;
     esac
     
     if [ ! -f "$test_server_file" ]; then
@@ -227,6 +231,10 @@ start_runtime() {
             else
                 container_cmd="cd /workspace && apt-get update >/dev/null 2>&1 && apt-get install -y maven >/dev/null 2>&1 && mvn -q package -DskipTests >/dev/null 2>&1 && $start_cmd"
             fi
+            ;;
+        go)
+            # Initialize Go module and run server
+            container_cmd="cd /workspace && go mod init test-server 2>/dev/null || true && $start_cmd"
             ;;
     esac
     

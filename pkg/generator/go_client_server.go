@@ -1,0 +1,1505 @@
+package generator
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/barrister2/pkg/runtime"
+)
+
+// GoClientServer is a plugin that generates Go HTTP server and client code from IDL
+type GoClientServer struct {
+}
+
+// NewGoClientServer creates a new GoClientServer plugin instance
+func NewGoClientServer() *GoClientServer {
+	return &GoClientServer{}
+}
+
+// Name returns the plugin identifier
+func (p *GoClientServer) Name() string {
+	return "go-client-server"
+}
+
+// RegisterFlags registers CLI flags for this plugin
+func (p *GoClientServer) RegisterFlags(fs *flag.FlagSet) {
+	// Only register base-dir if it hasn't been registered by another plugin
+	if fs.Lookup("base-dir") == nil {
+		fs.String("base-dir", "", "Base directory for namespace packages/modules (defaults to -dir if not specified)")
+	}
+}
+
+// Generate generates Go HTTP server and client code from the parsed IDL
+func (p *GoClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
+	// Access the -dir flag value
+	dirFlag := fs.Lookup("dir")
+	outputDir := ""
+	if dirFlag != nil && dirFlag.Value.String() != "" {
+		outputDir = dirFlag.Value.String()
+	}
+
+	// Get base-dir flag (defaults to outputDir if not specified)
+	baseDirFlag := fs.Lookup("base-dir")
+	baseDir := outputDir
+	if baseDirFlag != nil && baseDirFlag.Value.String() != "" {
+		baseDir = baseDirFlag.Value.String()
+	}
+
+	// Build type registries
+	structMap := make(map[string]*parser.Struct)
+	enumMap := make(map[string]*parser.Enum)
+	interfaceMap := make(map[string]*parser.Interface)
+
+	for _, s := range idl.Structs {
+		structMap[s.Name] = s
+	}
+	for _, e := range idl.Enums {
+		enumMap[e.Name] = e
+	}
+	for _, i := range idl.Interfaces {
+		interfaceMap[i.Name] = i
+	}
+
+	// Copy runtime library files
+	if err := p.copyRuntimeFiles(outputDir); err != nil {
+		return fmt.Errorf("failed to copy runtime files: %w", err)
+	}
+
+	// Group types by namespace
+	namespaceMap := GroupTypesByNamespace(idl)
+
+	// Generate one file per namespace
+	for namespace, types := range namespaceMap {
+		if namespace == "" {
+			continue // Skip types without namespace (shouldn't happen with required namespaces)
+		}
+		namespaceCode := generateNamespaceGo(namespace, types, structMap, enumMap)
+		namespacePath := filepath.Join(baseDir, namespace+".go")
+		if err := os.WriteFile(namespacePath, []byte(namespaceCode), 0644); err != nil {
+			return fmt.Errorf("failed to write %s.go: %w", namespace, err)
+		}
+	}
+
+	// Calculate relative path from outputDir to baseDir for imports
+	relPathToBase, err := filepath.Rel(outputDir, baseDir)
+	if err != nil {
+		relPathToBase = baseDir // Fallback to absolute path if relative calculation fails
+	}
+	// Normalize the path (use forward slashes for Go imports)
+	relPathToBase = filepath.ToSlash(relPathToBase)
+	if relPathToBase == "." {
+		relPathToBase = ""
+	} else if relPathToBase != "" {
+		relPathToBase = relPathToBase + "/"
+	}
+
+	// Generate server.go
+	serverCode := generateServerGo(idl, structMap, enumMap, namespaceMap)
+	serverPath := filepath.Join(outputDir, "server.go")
+	if err := os.WriteFile(serverPath, []byte(serverCode), 0644); err != nil {
+		return fmt.Errorf("failed to write server.go: %w", err)
+	}
+
+	// Generate client.go
+	clientCode := generateClientGo(idl, structMap, enumMap, namespaceMap)
+	clientPath := filepath.Join(outputDir, "client.go")
+	if err := os.WriteFile(clientPath, []byte(clientCode), 0644); err != nil {
+		return fmt.Errorf("failed to write client.go: %w", err)
+	}
+
+	// Write IDL JSON document for barrister-idl RPC method
+	jsonData, err := json.MarshalIndent(idl, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal IDL to JSON: %w", err)
+	}
+	jsonPath := filepath.Join(outputDir, "idl.json")
+	if err := os.WriteFile(jsonPath, jsonData, 0644); err != nil {
+		return fmt.Errorf("failed to write idl.json: %w", err)
+	}
+
+	// Generate go.mod file for the generated code
+	goModCode := "module generated\n\n"
+	goModPath := filepath.Join(outputDir, "go.mod")
+	if err := os.WriteFile(goModPath, []byte(goModCode), 0644); err != nil {
+		return fmt.Errorf("failed to write go.mod: %w", err)
+	}
+
+	// Check if test-server flag is set
+	testServerFlag := fs.Lookup("test-server")
+	generateTestServer := testServerFlag != nil && testServerFlag.Value.String() == "true"
+
+	// Generate test server and client if flag is set
+	if generateTestServer {
+		// Generate test_server.go
+		testServerCode := generateTestServerGo(idl, structMap, enumMap, relPathToBase)
+		testServerPath := filepath.Join(outputDir, "test_server.go")
+		if err := os.WriteFile(testServerPath, []byte(testServerCode), 0644); err != nil {
+			return fmt.Errorf("failed to write test_server.go: %w", err)
+		}
+
+		// Generate test_client.go
+		testClientCode := generateTestClientGo(idl, structMap, enumMap, relPathToBase)
+		testClientPath := filepath.Join(outputDir, "test_client.go")
+		if err := os.WriteFile(testClientPath, []byte(testClientCode), 0644); err != nil {
+			return fmt.Errorf("failed to write test_client.go: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// copyRuntimeFiles copies the Go runtime library files to the output directory
+// Uses embedded runtime files from the binary
+func (p *GoClientServer) copyRuntimeFiles(outputDir string) error {
+	return runtime.CopyRuntimeFiles("go", outputDir)
+}
+
+// snakeToCamelCase converts snake_case to CamelCase
+// Example: "to_repeat" -> "ToRepeat"
+func snakeToCamelCase(s string) string {
+	parts := strings.Split(s, "_")
+	result := ""
+	for _, part := range parts {
+		if len(part) > 0 {
+			result += strings.ToUpper(part[:1]) + part[1:]
+		}
+	}
+	return result
+}
+
+// mapTypeToGoType maps an IDL type to a Go type string
+func mapTypeToGoType(t *parser.Type, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, optional bool) string {
+	if t.IsBuiltIn() {
+		var goType string
+		switch t.BuiltIn {
+		case "string":
+			goType = "string"
+		case "int":
+			goType = "int"
+		case "float":
+			goType = "float64"
+		case "bool":
+			goType = "bool"
+		default:
+			goType = "interface{}"
+		}
+		if optional {
+			return "*" + goType
+		}
+		return goType
+	} else if t.IsArray() {
+		elementType := mapTypeToGoType(t.Array, structMap, enumMap, false)
+		return "[]" + elementType
+	} else if t.IsMap() {
+		valueType := mapTypeToGoType(t.MapValue, structMap, enumMap, false)
+		return "map[string]" + valueType
+	} else if t.IsUserDefined() {
+		typeName := getGoStructOrEnumTypeName(t.UserDefined, structMap, enumMap)
+		if optional {
+			return "*" + typeName
+		}
+		return typeName
+	}
+	return "interface{}"
+}
+
+// getGoStructOrEnumTypeName returns the Go type name for a user-defined type
+func getGoStructOrEnumTypeName(typeName string, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) string {
+	baseName := GetBaseName(typeName)
+
+	// Check if it's a struct
+	if _, ok := structMap[baseName]; ok {
+		return baseName
+	}
+	if _, ok := structMap[typeName]; ok {
+		return baseName
+	}
+
+	// Check if it's an enum
+	if _, ok := enumMap[baseName]; ok {
+		return baseName
+	}
+	if _, ok := enumMap[typeName]; ok {
+		return baseName
+	}
+
+	// Fallback: return base name
+	return baseName
+}
+
+// writeTypeDictGo writes a type definition as a Go map literal
+func writeTypeDictGo(sb *strings.Builder, t *parser.Type) {
+	sb.WriteString("map[string]interface{}{")
+	if t.IsBuiltIn() {
+		fmt.Fprintf(sb, "\"builtIn\": \"%s\"", t.BuiltIn)
+	} else if t.IsArray() {
+		sb.WriteString("\"array\": ")
+		writeTypeDictGo(sb, t.Array)
+	} else if t.IsMap() {
+		sb.WriteString("\"mapValue\": ")
+		writeTypeDictGo(sb, t.MapValue)
+	} else if t.IsUserDefined() {
+		fmt.Fprintf(sb, "\"userDefined\": \"%s\"", t.UserDefined)
+	}
+	sb.WriteString("}")
+}
+
+// generateNamespaceGo generates a Go file for a single namespace
+func generateNamespaceGo(namespace string, types *NamespaceTypes, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) string {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	sb.WriteString("package main\n\n")
+	sb.WriteString("import (\n")
+	sb.WriteString("	\"generated/barrister2\"\n")
+	sb.WriteString(")\n\n")
+
+	// Generate enum types first (they may be referenced by structs)
+	generateEnumTypesGo(&sb, types.Enums)
+	sb.WriteString("\n")
+
+	// Generate struct types
+	generateStructTypesGo(&sb, types.Structs, structMap, enumMap)
+	sb.WriteString("\n")
+
+	// Generate IDL-specific type definitions for this namespace
+	sb.WriteString(fmt.Sprintf("// IDL-specific type definitions for namespace: %s\n", namespace))
+	sb.WriteString(fmt.Sprintf("var %s_ALL_STRUCTS = barrister2.StructMap{\n", strings.ToUpper(namespace)))
+	for _, s := range types.Structs {
+		sb.WriteString(fmt.Sprintf("	\"%s\": barrister2.StructDef{\n", s.Name))
+		if s.Extends != "" {
+			sb.WriteString(fmt.Sprintf("		\"extends\": \"%s\",\n", s.Extends))
+		}
+		sb.WriteString("		\"fields\": []interface{}{\n")
+		for _, field := range s.Fields {
+			sb.WriteString("			map[string]interface{}{\n")
+			sb.WriteString(fmt.Sprintf("				\"name\": \"%s\",\n", field.Name))
+			sb.WriteString("				\"type\": ")
+			writeTypeDictGo(&sb, field.Type)
+			sb.WriteString(",\n")
+			if field.Optional {
+				sb.WriteString("				\"optional\": true,\n")
+			}
+			sb.WriteString("			},\n")
+		}
+		sb.WriteString("		},\n")
+		sb.WriteString("	},\n")
+	}
+	sb.WriteString("}\n\n")
+
+	sb.WriteString(fmt.Sprintf("var %s_ALL_ENUMS = barrister2.EnumMap{\n", strings.ToUpper(namespace)))
+	for _, e := range types.Enums {
+		sb.WriteString(fmt.Sprintf("	\"%s\": barrister2.EnumDef{\n", e.Name))
+		sb.WriteString("		\"values\": []interface{}{\n")
+		for _, val := range e.Values {
+			sb.WriteString("			map[string]interface{}{\n")
+			sb.WriteString(fmt.Sprintf("				\"name\": \"%s\",\n", val.Name))
+			sb.WriteString("			},\n")
+		}
+		sb.WriteString("		},\n")
+		sb.WriteString("	},\n")
+	}
+	sb.WriteString("}\n")
+
+	return sb.String()
+}
+
+// generateEnumTypesGo generates Go enum types for all enums in the namespace
+func generateEnumTypesGo(sb *strings.Builder, enums []*parser.Enum) {
+	for _, e := range enums {
+		if e.Comment != "" {
+			lines := strings.Split(strings.TrimSpace(e.Comment), "\n")
+			for _, line := range lines {
+				fmt.Fprintf(sb, "// %s\n", line)
+			}
+		}
+		enumName := GetBaseName(e.Name)
+		fmt.Fprintf(sb, "type %s string\n\n", enumName)
+		fmt.Fprintf(sb, "const (\n")
+		for i, val := range e.Values {
+			if i == 0 {
+				fmt.Fprintf(sb, "	%s%s %s = \"%s\"\n", enumName, snakeToCamelCase(val.Name), enumName, val.Name)
+			} else {
+				fmt.Fprintf(sb, "	%s%s %s = \"%s\"\n", enumName, snakeToCamelCase(val.Name), enumName, val.Name)
+			}
+		}
+		sb.WriteString(")\n\n")
+	}
+}
+
+// generateStructTypesGo generates Go struct types for all structs in the namespace
+func generateStructTypesGo(sb *strings.Builder, structs []*parser.Struct, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	for _, s := range structs {
+		if s.Comment != "" {
+			lines := strings.Split(strings.TrimSpace(s.Comment), "\n")
+			for _, line := range lines {
+				fmt.Fprintf(sb, "// %s\n", line)
+			}
+		}
+
+		structName := GetBaseName(s.Name)
+		fmt.Fprintf(sb, "type %s struct {\n", structName)
+
+		// Handle inheritance via embedding
+		if s.Extends != "" {
+			parentName := getGoStructOrEnumTypeName(s.Extends, structMap, enumMap)
+			fmt.Fprintf(sb, "	%s\n", parentName)
+		}
+
+		// Generate fields
+		for _, field := range s.Fields {
+			if field.Comment != "" {
+				lines := strings.Split(strings.TrimSpace(field.Comment), "\n")
+				for _, line := range lines {
+					fmt.Fprintf(sb, "	// %s\n", line)
+				}
+			}
+
+			// JSON tag (IDL uses snake_case, Go uses CamelCase)
+			fieldName := snakeToCamelCase(field.Name)
+			goType := mapTypeToGoType(field.Type, structMap, enumMap, field.Optional)
+			jsonTag := field.Name
+			if field.Optional {
+				jsonTag += ",omitempty"
+			}
+			fmt.Fprintf(sb, "	%s %s `json:\"%s\"`\n", fieldName, goType, jsonTag)
+		}
+
+		sb.WriteString("}\n\n")
+	}
+}
+
+// generateServerGo generates the server.go file with HTTP server and interface stubs
+func generateServerGo(idl *parser.IDL, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, namespaceMap map[string]*NamespaceTypes) string {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	sb.WriteString("package main\n\n")
+	sb.WriteString("import (\n")
+	sb.WriteString("	\"encoding/json\"\n")
+	sb.WriteString("	\"fmt\"\n")
+	sb.WriteString("	\"io\"\n")
+	sb.WriteString("	\"net/http\"\n")
+	sb.WriteString("	\"os\"\n")
+	sb.WriteString("	\"path/filepath\"\n")
+	sb.WriteString("	\"reflect\"\n")
+	sb.WriteString("	\"strings\"\n")
+	sb.WriteString("\n")
+	sb.WriteString("	\"generated/barrister2\"\n")
+	sb.WriteString(")\n\n")
+
+	// Import from namespace files
+	namespaces := make([]string, 0, len(namespaceMap))
+	for ns := range namespaceMap {
+		if ns != "" {
+			namespaces = append(namespaces, ns)
+		}
+	}
+	sort.Strings(namespaces)
+
+	// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces
+	sb.WriteString("// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
+	sb.WriteString("var ALL_STRUCTS = barrister2.StructMap{}\n")
+	sb.WriteString("var ALL_ENUMS = barrister2.EnumMap{}\n\n")
+	sb.WriteString("func init() {\n")
+	for _, ns := range namespaces {
+		sb.WriteString(fmt.Sprintf("	for k, v := range %s_ALL_STRUCTS {\n", strings.ToUpper(ns)))
+		sb.WriteString("		ALL_STRUCTS[k] = v\n")
+		sb.WriteString("	}\n")
+		sb.WriteString(fmt.Sprintf("	for k, v := range %s_ALL_ENUMS {\n", strings.ToUpper(ns)))
+		sb.WriteString("		ALL_ENUMS[k] = v\n")
+		sb.WriteString("	}\n")
+	}
+	sb.WriteString("}\n\n")
+
+	// Generate interface stubs
+	for _, iface := range idl.Interfaces {
+		writeInterfaceStubGo(&sb, iface, structMap, enumMap)
+	}
+
+	// Generate BarristerServer
+	writeBarristerServerGo(&sb, idl, structMap, enumMap)
+
+	return sb.String()
+}
+
+// writeInterfaceStubGo generates a Go interface for an IDL interface
+func writeInterfaceStubGo(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	if iface.Comment != "" {
+		lines := strings.Split(strings.TrimSpace(iface.Comment), "\n")
+		for _, line := range lines {
+			fmt.Fprintf(sb, "// %s\n", line)
+		}
+	}
+	fmt.Fprintf(sb, "type %s interface {\n", iface.Name)
+
+	for _, method := range iface.Methods {
+		methodName := snakeToCamelCase(method.Name)
+		fmt.Fprintf(sb, "	%s(", methodName)
+
+		// Parameters
+		for i, param := range method.Parameters {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			paramType := mapTypeToGoType(param.Type, structMap, enumMap, false)
+			fmt.Fprintf(sb, "%s %s", param.Name, paramType)
+		}
+		sb.WriteString(") ")
+
+		// Return type
+		if method.ReturnType != nil {
+			returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+			sb.WriteString(returnType)
+		} else {
+			sb.WriteString("error")
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("}\n\n")
+}
+
+// writeBarristerServerGo generates the BarristerServer struct and methods
+func writeBarristerServerGo(sb *strings.Builder, idl *parser.IDL, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	sb.WriteString("// BarristerServer is an HTTP server for JSON-RPC 2.0 requests\n")
+	sb.WriteString("type BarristerServer struct {\n")
+	sb.WriteString("	host     string\n")
+	sb.WriteString("	port     int\n")
+	sb.WriteString("	handlers map[string]interface{}\n")
+	sb.WriteString("	server   *http.Server\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("// NewBarristerServer creates a new BarristerServer\n")
+	sb.WriteString("func NewBarristerServer(host string, port int) *BarristerServer {\n")
+	sb.WriteString("	return &BarristerServer{\n")
+	sb.WriteString("		host:     host,\n")
+	sb.WriteString("		port:     port,\n")
+	sb.WriteString("		handlers: make(map[string]interface{}),\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("// Register registers an interface implementation\n")
+	sb.WriteString("func (s *BarristerServer) Register(interfaceName string, implementation interface{}) {\n")
+	sb.WriteString("	s.handlers[interfaceName] = implementation\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("// ServeForever starts the HTTP server and serves forever\n")
+	sb.WriteString("func (s *BarristerServer) ServeForever() error {\n")
+	sb.WriteString("	mux := http.NewServeMux()\n")
+	sb.WriteString("	mux.HandleFunc(\"/\", s.handleRequest)\n")
+	sb.WriteString("	addr := fmt.Sprintf(\"%s:%d\", s.host, s.port)\n")
+	sb.WriteString("	s.server = &http.Server{\n")
+	sb.WriteString("		Addr:    addr,\n")
+	sb.WriteString("		Handler: mux,\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	fmt.Printf(\"Barrister server listening on http://%s\\n\", addr)\n")
+	sb.WriteString("	return s.server.ListenAndServe()\n")
+	sb.WriteString("}\n\n")
+
+	// Generate handleRequest method
+	writeServerHandleRequestGo(sb, idl.Interfaces)
+
+	// Generate helper methods
+	writeServerHelperMethodsGo(sb, structMap, enumMap)
+}
+
+// writeServerHandleRequestGo generates the handleRequest method
+func writeServerHandleRequestGo(sb *strings.Builder, interfaces []*parser.Interface) {
+	sb.WriteString("func (s *BarristerServer) handleRequest(w http.ResponseWriter, r *http.Request) {\n")
+	sb.WriteString("	if r.Method != http.MethodPost {\n")
+	sb.WriteString("		http.Error(w, \"Method Not Allowed\", http.StatusMethodNotAllowed)\n")
+	sb.WriteString("		return\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	body, err := io.ReadAll(r.Body)\n")
+	sb.WriteString("	if err != nil {\n")
+	sb.WriteString("		s.sendErrorResponse(w, nil, -32700, \"Parse error\", fmt.Sprintf(\"Failed to read body: %v\", err))\n")
+	sb.WriteString("		return\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	var requestData interface{}\n")
+	sb.WriteString("	if err := json.Unmarshal(body, &requestData); err != nil {\n")
+	sb.WriteString("		s.sendErrorResponse(w, nil, -32700, \"Parse error\", fmt.Sprintf(\"Invalid JSON: %v\", err))\n")
+	sb.WriteString("		return\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	// Handle batch requests\n")
+	sb.WriteString("	if requests, ok := requestData.([]interface{}); ok {\n")
+	sb.WriteString("		if len(requests) == 0 {\n")
+	sb.WriteString("			s.sendErrorResponse(w, nil, -32600, \"Invalid Request\", \"Empty batch array\")\n")
+	sb.WriteString("			return\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		var responses []interface{}\n")
+	sb.WriteString("		for _, req := range requests {\n")
+	sb.WriteString("			if reqMap, ok := req.(map[string]interface{}); ok {\n")
+	sb.WriteString("				resp := s.handleSingleRequest(reqMap)\n")
+	sb.WriteString("				if resp != nil {\n")
+	sb.WriteString("					responses = append(responses, resp)\n")
+	sb.WriteString("				}\n")
+	sb.WriteString("			}\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		if len(responses) == 0 {\n")
+	sb.WriteString("			w.WriteHeader(http.StatusNoContent)\n")
+	sb.WriteString("			return\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		w.Header().Set(\"Content-Type\", \"application/json\")\n")
+	sb.WriteString("		json.NewEncoder(w).Encode(responses)\n")
+	sb.WriteString("		return\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	// Handle single request\n")
+	sb.WriteString("	if reqMap, ok := requestData.(map[string]interface{}); ok {\n")
+	sb.WriteString("		response := s.handleSingleRequest(reqMap)\n")
+	sb.WriteString("		if response == nil {\n")
+	sb.WriteString("			w.WriteHeader(http.StatusNoContent)\n")
+	sb.WriteString("			return\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		w.Header().Set(\"Content-Type\", \"application/json\")\n")
+	sb.WriteString("		json.NewEncoder(w).Encode(response)\n")
+	sb.WriteString("	} else {\n")
+	sb.WriteString("		s.sendErrorResponse(w, nil, -32600, \"Invalid Request\", \"Request must be an object or array\")\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("func (s *BarristerServer) handleSingleRequest(requestJson map[string]interface{}) map[string]interface{} {\n")
+	sb.WriteString("	// Validate JSON-RPC 2.0 structure\n")
+	sb.WriteString("	jsonrpc, _ := requestJson[\"jsonrpc\"].(string)\n")
+	sb.WriteString("	if jsonrpc != \"2.0\" {\n")
+	sb.WriteString("		return s.errorResponse(nil, -32600, \"Invalid Request\", \"jsonrpc must be '2.0'\")\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	method, ok := requestJson[\"method\"].(string)\n")
+	sb.WriteString("	if !ok {\n")
+	sb.WriteString("		return s.errorResponse(nil, -32600, \"Invalid Request\", \"method must be a string\")\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	params, _ := requestJson[\"params\"].([]interface{})\n")
+	sb.WriteString("	requestID := requestJson[\"id\"]\n")
+	sb.WriteString("	_, isNotification := requestJson[\"id\"]\n")
+	sb.WriteString("	isNotification = !isNotification\n\n")
+
+	// Handle barrister-idl
+	sb.WriteString("	// Special case: barrister-idl method\n")
+	sb.WriteString("	if method == \"barrister-idl\" {\n")
+	sb.WriteString("		serverDir, _ := os.Getwd()\n")
+	sb.WriteString("		idlJsonPath := filepath.Join(serverDir, \"idl.json\")\n")
+	sb.WriteString("		idlData, err := os.ReadFile(idlJsonPath)\n")
+	sb.WriteString("		if err != nil {\n")
+	sb.WriteString("			return s.errorResponse(requestID, -32603, \"Internal error\", fmt.Sprintf(\"Failed to load IDL JSON: %v\", err))\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		var idlDoc interface{}\n")
+	sb.WriteString("		if err := json.Unmarshal(idlData, &idlDoc); err != nil {\n")
+	sb.WriteString("			return s.errorResponse(requestID, -32603, \"Internal error\", fmt.Sprintf(\"Failed to parse IDL JSON: %v\", err))\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		if isNotification {\n")
+	sb.WriteString("			return nil\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		return map[string]interface{}{\n")
+	sb.WriteString("			\"jsonrpc\": \"2.0\",\n")
+	sb.WriteString("			\"result\": idlDoc,\n")
+	sb.WriteString("			\"id\":     requestID,\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n\n")
+
+	// Parse method name
+	sb.WriteString("	// Parse method name: interface.method\n")
+	sb.WriteString("	parts := strings.Split(method, \".\")\n")
+	sb.WriteString("	if len(parts) != 2 {\n")
+	sb.WriteString("		return s.errorResponse(requestID, -32601, \"Method not found\", fmt.Sprintf(\"Invalid method format: %s\", method))\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	interfaceName := parts[0]\n")
+	sb.WriteString("	methodName := parts[1]\n\n")
+
+	sb.WriteString("	// Find handler\n")
+	sb.WriteString("	handler, ok := s.handlers[interfaceName]\n")
+	sb.WriteString("	if !ok {\n")
+	sb.WriteString("		return s.errorResponse(requestID, -32601, \"Method not found\", fmt.Sprintf(\"Interface '%s' not registered\", interfaceName))\n")
+	sb.WriteString("	}\n\n")
+
+	// Generate method lookup
+	writeInterfaceMethodLookupGo(sb, interfaces)
+
+	sb.WriteString("	if methodDef == nil {\n")
+	sb.WriteString("		return s.errorResponse(requestID, -32601, \"Method not found\", fmt.Sprintf(\"Method '%s' not found in interface '%s'\", methodName, interfaceName))\n")
+	sb.WriteString("	}\n\n")
+
+	// Validate params
+	sb.WriteString("	// Validate params\n")
+	sb.WriteString("	if params == nil {\n")
+	sb.WriteString("		params = []interface{}{}\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	expectedParams, _ := methodDef[\"parameters\"].([]interface{})\n")
+	sb.WriteString("	if len(params) != len(expectedParams) {\n")
+	sb.WriteString("		return s.errorResponse(requestID, -32602, \"Invalid params\", fmt.Sprintf(\"Expected %d parameters, got %d\", len(expectedParams), len(params)))\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	// Validate each param\n")
+	sb.WriteString("	for i, paramValue := range params {\n")
+	sb.WriteString("		paramDef, _ := expectedParams[i].(map[string]interface{})\n")
+	sb.WriteString("		paramType, _ := paramDef[\"type\"].(map[string]interface{})\n")
+	sb.WriteString("		if err := barrister2.ValidateType(paramValue, paramType, ALL_STRUCTS, ALL_ENUMS, false); err != nil {\n")
+	sb.WriteString("			paramName, _ := paramDef[\"name\"].(string)\n")
+	sb.WriteString("			return s.errorResponse(requestID, -32602, \"Invalid params\", fmt.Sprintf(\"Parameter %d (%s) validation failed: %v\", i, paramName, err))\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n\n")
+
+	// Invoke handler - use reflection to call method
+	sb.WriteString("	// Invoke handler using reflection\n")
+	sb.WriteString("	result, err := s.invokeHandler(handler, interfaceName, methodName, params)\n")
+	sb.WriteString("	if err != nil {\n")
+	sb.WriteString("		if rpcErr, ok := err.(*barrister2.RPCError); ok {\n")
+	sb.WriteString("			return s.errorResponse(requestID, rpcErr.Code, rpcErr.Message, rpcErr.Data)\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		return s.errorResponse(requestID, -32603, \"Internal error\", fmt.Sprintf(\"%v\", err))\n")
+	sb.WriteString("	}\n\n")
+
+	// Validate response
+	sb.WriteString("	// Validate response\n")
+	sb.WriteString("	returnType, _ := methodDef[\"returnType\"].(map[string]interface{})\n")
+	sb.WriteString("	returnOptional, _ := methodDef[\"returnOptional\"].(bool)\n")
+	sb.WriteString("	if returnType != nil {\n")
+	sb.WriteString("		// Convert result to interface{} for validation\n")
+	sb.WriteString("		var resultInterface interface{}\n")
+	sb.WriteString("		if result != nil {\n")
+	sb.WriteString("			// Marshal and unmarshal to convert to map[string]interface{}\n")
+	sb.WriteString("			resultJSON, _ := json.Marshal(result)\n")
+	sb.WriteString("			json.Unmarshal(resultJSON, &resultInterface)\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		if err := barrister2.ValidateType(resultInterface, returnType, ALL_STRUCTS, ALL_ENUMS, returnOptional); err != nil {\n")
+	sb.WriteString("			return s.errorResponse(requestID, -32603, \"Internal error\", fmt.Sprintf(\"Response validation failed: %v\", err))\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	// Return success response\n")
+	sb.WriteString("	if isNotification {\n")
+	sb.WriteString("		return nil\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	return map[string]interface{}{\n")
+	sb.WriteString("		\"jsonrpc\": \"2.0\",\n")
+	sb.WriteString("		\"result\": result,\n")
+	sb.WriteString("		\"id\":     requestID,\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n\n")
+}
+
+// writeInterfaceMethodLookupGo generates code to find method definitions
+func writeInterfaceMethodLookupGo(sb *strings.Builder, interfaces []*parser.Interface) {
+	sb.WriteString("	// Find method definition\n")
+	sb.WriteString("	var methodDef map[string]interface{}\n\n")
+	for i, iface := range interfaces {
+		if i == 0 {
+			fmt.Fprintf(sb, "	if interfaceName == \"%s\" {\n", iface.Name)
+		} else {
+			fmt.Fprintf(sb, "	} else if interfaceName == \"%s\" {\n", iface.Name)
+		}
+		sb.WriteString("		interfaceMethods := map[string]map[string]interface{}{\n")
+		for _, method := range iface.Methods {
+			fmt.Fprintf(sb, "			\"%s\": {\n", method.Name)
+			sb.WriteString("				\"parameters\": []interface{}{\n")
+			for _, param := range method.Parameters {
+				sb.WriteString("					map[string]interface{}{\n")
+				fmt.Fprintf(sb, "						\"name\": \"%s\",\n", param.Name)
+				sb.WriteString("						\"type\": ")
+				writeTypeDictGo(sb, param.Type)
+				sb.WriteString(",\n")
+				sb.WriteString("					},\n")
+			}
+			sb.WriteString("				},\n")
+			sb.WriteString("				\"returnType\": ")
+			writeTypeDictGo(sb, method.ReturnType)
+			sb.WriteString(",\n")
+			if method.ReturnOptional {
+				sb.WriteString("				\"returnOptional\": true,\n")
+			} else {
+				sb.WriteString("				\"returnOptional\": false,\n")
+			}
+			sb.WriteString("			},\n")
+		}
+		sb.WriteString("		}\n")
+		sb.WriteString("		methodDef = interfaceMethods[methodName]\n")
+	}
+	sb.WriteString("	}\n\n")
+}
+
+// writeServerHelperMethodsGo generates helper methods for the server
+func writeServerHelperMethodsGo(sb *strings.Builder, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	sb.WriteString("func (s *BarristerServer) sendErrorResponse(w http.ResponseWriter, requestID interface{}, code int, message string, data interface{}) {\n")
+	sb.WriteString("	response := s.errorResponse(requestID, code, message, data)\n")
+	sb.WriteString("	w.Header().Set(\"Content-Type\", \"application/json\")\n")
+	sb.WriteString("	json.NewEncoder(w).Encode(response)\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("func (s *BarristerServer) errorResponse(requestID interface{}, code int, message string, data interface{}) map[string]interface{} {\n")
+	sb.WriteString("	error := map[string]interface{}{\n")
+	sb.WriteString("		\"code\":    code,\n")
+	sb.WriteString("		\"message\": message,\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	if data != nil {\n")
+	sb.WriteString("		error[\"data\"] = data\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	return map[string]interface{}{\n")
+	sb.WriteString("		\"jsonrpc\": \"2.0\",\n")
+	sb.WriteString("		\"error\":   error,\n")
+	sb.WriteString("		\"id\":      requestID,\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n\n")
+
+	// invokeHandler uses type assertions and reflection to call methods
+	writeInvokeHandlerGo(sb)
+}
+
+// writeInvokeHandlerGo generates the invokeHandler method with interface-specific calls
+func writeInvokeHandlerGo(sb *strings.Builder) {
+	sb.WriteString("func (s *BarristerServer) invokeHandler(handler interface{}, interfaceName, methodName string, params []interface{}) (interface{}, error) {\n")
+	sb.WriteString("	// Convert params from JSON (interface{}) to typed values\n")
+	sb.WriteString("	// This is a simplified approach - in practice, you'd unmarshal to the correct types\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Use reflection to call methods dynamically\n")
+	sb.WriteString("	handlerValue := reflect.ValueOf(handler)\n")
+	sb.WriteString("	handlerType := handlerValue.Type()\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Find method by name (Go methods are exported, so capitalize first letter)\n")
+	sb.WriteString("	methodNameCamel := \"\"\n")
+	sb.WriteString("	if len(methodName) > 0 {\n")
+	sb.WriteString("		methodNameCamel = strings.ToUpper(methodName[:1]) + methodName[1:]\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Try to find the method\n")
+	sb.WriteString("	var method reflect.Method\n")
+	sb.WriteString("	found := false\n")
+	sb.WriteString("	for i := 0; i < handlerType.NumMethod(); i++ {\n")
+	sb.WriteString("		m := handlerType.Method(i)\n")
+	sb.WriteString("		if m.Name == methodNameCamel {\n")
+	sb.WriteString("			method = m\n")
+	sb.WriteString("			found = true\n")
+	sb.WriteString("			break\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	if !found {\n")
+	sb.WriteString("		return nil, fmt.Errorf(\"method %s not found on interface %s\", methodName, interfaceName)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Convert params to the types expected by the method\n")
+	sb.WriteString("	// This is simplified - in practice, you'd need to unmarshal JSON to the correct types\n")
+	sb.WriteString("	methodType := method.Type\n")
+	sb.WriteString("	numIn := methodType.NumIn()\n")
+	sb.WriteString("	args := make([]reflect.Value, numIn-1) // -1 because first param is receiver\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	for i := 1; i < numIn; i++ {\n") // Start at 1 to skip receiver
+	sb.WriteString("		paramType := methodType.In(i)\n")
+	sb.WriteString("		paramValue := params[i-1]\n")
+	sb.WriteString("		\n")
+	sb.WriteString("		// Convert paramValue to paramType using JSON unmarshaling\n")
+	sb.WriteString("		paramJSON, _ := json.Marshal(paramValue)\n")
+	sb.WriteString("		paramPtr := reflect.New(paramType)\n")
+	sb.WriteString("		if err := json.Unmarshal(paramJSON, paramPtr.Interface()); err != nil {\n")
+	sb.WriteString("			return nil, fmt.Errorf(\"failed to convert parameter %d: %w\", i-1, err)\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		args[i-1] = paramPtr.Elem()\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Call the method\n")
+	sb.WriteString("	results := method.Func.Call(append([]reflect.Value{handlerValue}, args...))\n")
+	sb.WriteString("	\n")
+	sb.WriteString("	// Handle return values\n")
+	sb.WriteString("	if len(results) == 0 {\n")
+	sb.WriteString("		return nil, nil\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	if len(results) == 1 {\n")
+	sb.WriteString("		if err, ok := results[0].Interface().(error); ok && err != nil {\n")
+	sb.WriteString("			return nil, err\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		return results[0].Interface(), nil\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	// Multiple return values: result and error\n")
+	sb.WriteString("	result := results[0].Interface()\n")
+	sb.WriteString("	if err, ok := results[1].Interface().(error); ok && err != nil {\n")
+	sb.WriteString("		return nil, err\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	return result, nil\n")
+	sb.WriteString("}\n\n")
+}
+
+// generateClientGo generates the client.go file with transport abstraction and client classes
+func generateClientGo(idl *parser.IDL, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, namespaceMap map[string]*NamespaceTypes) string {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	sb.WriteString("package main\n\n")
+	sb.WriteString("import (\n")
+	sb.WriteString("	\"bytes\"\n")
+	sb.WriteString("	\"encoding/json\"\n")
+	sb.WriteString("	\"fmt\"\n")
+	sb.WriteString("	\"net/http\"\n")
+	sb.WriteString("	\"strings\"\n")
+	sb.WriteString("\n")
+	sb.WriteString("	\"generated/barrister2\"\n")
+	sb.WriteString(")\n\n")
+
+	// Merge ALL_STRUCTS and ALL_ENUMS (same as server)
+	sb.WriteString("// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
+	sb.WriteString("var ALL_STRUCTS = barrister2.StructMap{}\n")
+	sb.WriteString("var ALL_ENUMS = barrister2.EnumMap{}\n\n")
+	sb.WriteString("func init() {\n")
+	namespaces := make([]string, 0, len(namespaceMap))
+	for ns := range namespaceMap {
+		if ns != "" {
+			namespaces = append(namespaces, ns)
+		}
+	}
+	sort.Strings(namespaces)
+	for _, ns := range namespaces {
+		sb.WriteString(fmt.Sprintf("	for k, v := range %s_ALL_STRUCTS {\n", strings.ToUpper(ns)))
+		sb.WriteString("		ALL_STRUCTS[k] = v\n")
+		sb.WriteString("	}\n")
+		sb.WriteString(fmt.Sprintf("	for k, v := range %s_ALL_ENUMS {\n", strings.ToUpper(ns)))
+		sb.WriteString("		ALL_ENUMS[k] = v\n")
+		sb.WriteString("	}\n")
+	}
+	sb.WriteString("}\n\n")
+
+	// Generate Transport interface
+	writeTransportInterfaceGo(&sb)
+
+	// Generate HTTPTransport
+	writeHTTPTransportGo(&sb)
+
+	// Generate client classes for each interface
+	for _, iface := range idl.Interfaces {
+		writeInterfaceClientGo(&sb, iface, structMap, enumMap)
+	}
+
+	return sb.String()
+}
+
+// writeTransportInterfaceGo generates the Transport interface
+func writeTransportInterfaceGo(sb *strings.Builder) {
+	sb.WriteString("// Transport is an interface for making JSON-RPC 2.0 calls\n")
+	sb.WriteString("type Transport interface {\n")
+	sb.WriteString("	Call(method string, params []interface{}) (map[string]interface{}, error)\n")
+	sb.WriteString("}\n\n")
+}
+
+// writeHTTPTransportGo generates the HTTPTransport struct
+func writeHTTPTransportGo(sb *strings.Builder) {
+	sb.WriteString("// HTTPTransport implements Transport using HTTP\n")
+	sb.WriteString("type HTTPTransport struct {\n")
+	sb.WriteString("	baseURL string\n")
+	sb.WriteString("	headers map[string]string\n")
+	sb.WriteString("	client  *http.Client\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("// NewHTTPTransport creates a new HTTPTransport\n")
+	sb.WriteString("func NewHTTPTransport(baseURL string, headers map[string]string) *HTTPTransport {\n")
+	sb.WriteString("	if headers == nil {\n")
+	sb.WriteString("		headers = make(map[string]string)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	return &HTTPTransport{\n")
+	sb.WriteString("		baseURL: strings.TrimSuffix(baseURL, \"/\"),\n")
+	sb.WriteString("		headers: headers,\n")
+	sb.WriteString("		client:  &http.Client{},\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("// Call performs a JSON-RPC 2.0 call over HTTP\n")
+	sb.WriteString("func (t *HTTPTransport) Call(method string, params []interface{}) (map[string]interface{}, error) {\n")
+	sb.WriteString("	requestID := fmt.Sprintf(\"%d\", len(method)+len(params))\n")
+	sb.WriteString("	request := map[string]interface{}{\n")
+	sb.WriteString("		\"jsonrpc\": \"2.0\",\n")
+	sb.WriteString("		\"method\":  method,\n")
+	sb.WriteString("		\"params\":  params,\n")
+	sb.WriteString("		\"id\":      requestID,\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	jsonData, err := json.Marshal(request)\n")
+	sb.WriteString("	if err != nil {\n")
+	sb.WriteString("		return nil, fmt.Errorf(\"failed to marshal request: %w\", err)\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	req, err := http.NewRequest(\"POST\", t.baseURL, bytes.NewBuffer(jsonData))\n")
+	sb.WriteString("	if err != nil {\n")
+	sb.WriteString("		return nil, fmt.Errorf(\"failed to create request: %w\", err)\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	req.Header.Set(\"Content-Type\", \"application/json\")\n")
+	sb.WriteString("	for k, v := range t.headers {\n")
+	sb.WriteString("		req.Header.Set(k, v)\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	resp, err := t.client.Do(req)\n")
+	sb.WriteString("	if err != nil {\n")
+	sb.WriteString("		return nil, fmt.Errorf(\"HTTP request failed: %w\", err)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	defer resp.Body.Close()\n\n")
+
+	sb.WriteString("	var response map[string]interface{}\n")
+	sb.WriteString("	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {\n")
+	sb.WriteString("		return nil, fmt.Errorf(\"failed to decode response: %w\", err)\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	if errObj, ok := response[\"error\"].(map[string]interface{}); ok {\n")
+	sb.WriteString("		code, _ := errObj[\"code\"].(float64)\n")
+	sb.WriteString("		message, _ := errObj[\"message\"].(string)\n")
+	sb.WriteString("		data := errObj[\"data\"]\n")
+	sb.WriteString("		return nil, &barrister2.RPCError{\n")
+	sb.WriteString("			Code:    int(code),\n")
+	sb.WriteString("			Message: message,\n")
+	sb.WriteString("			Data:    data,\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	return response, nil\n")
+	sb.WriteString("}\n\n")
+}
+
+// writeInterfaceClientGo generates a client struct for an interface
+func writeInterfaceClientGo(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	if iface.Comment != "" {
+		lines := strings.Split(strings.TrimSpace(iface.Comment), "\n")
+		for _, line := range lines {
+			fmt.Fprintf(sb, "// %s\n", line)
+		}
+	}
+
+	clientName := iface.Name + "Client"
+	fmt.Fprintf(sb, "// %s is a client for the %s interface\n", clientName, iface.Name)
+	fmt.Fprintf(sb, "type %s struct {\n", clientName)
+	sb.WriteString("	transport Transport\n")
+	sb.WriteString("}\n\n")
+
+	fmt.Fprintf(sb, "// New%s creates a new %s\n", clientName, clientName)
+	fmt.Fprintf(sb, "func New%s(transport Transport) *%s {\n", clientName, clientName)
+	fmt.Fprintf(sb, "	return &%s{transport: transport}\n", clientName)
+	sb.WriteString("}\n\n")
+
+	// Generate methods
+	for _, method := range iface.Methods {
+		writeClientMethodGo(sb, iface, method, structMap, enumMap)
+	}
+}
+
+// writeClientMethodGo generates a method implementation for a client struct
+func writeClientMethodGo(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	methodName := snakeToCamelCase(method.Name)
+	fmt.Fprintf(sb, "// %s calls %s.%s\n", methodName, iface.Name, method.Name)
+	fmt.Fprintf(sb, "func (c *%sClient) %s(", iface.Name, methodName)
+
+	// Parameters
+	for i, param := range method.Parameters {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		paramType := mapTypeToGoType(param.Type, structMap, enumMap, false)
+		fmt.Fprintf(sb, "%s %s", param.Name, paramType)
+	}
+	sb.WriteString(") ")
+
+	// Return type
+	if method.ReturnType != nil {
+		returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		fmt.Fprintf(sb, "(%s, error)", returnType)
+	} else {
+		sb.WriteString("error")
+	}
+	sb.WriteString(" {\n")
+
+	// Build params array
+	sb.WriteString("	params := []interface{}{\n")
+	for _, param := range method.Parameters {
+		fmt.Fprintf(sb, "		%s,\n", param.Name)
+	}
+	sb.WriteString("	}\n\n")
+
+	// Validate parameters
+	sb.WriteString("	// Validate parameters\n")
+	sb.WriteString("	methodDef := map[string]interface{}{\n")
+	sb.WriteString("		\"parameters\": []interface{}{\n")
+	for _, param := range method.Parameters {
+		sb.WriteString("			map[string]interface{}{\n")
+		fmt.Fprintf(sb, "				\"name\": \"%s\",\n", param.Name)
+		sb.WriteString("				\"type\": ")
+		writeTypeDictGo(sb, param.Type)
+		sb.WriteString(",\n")
+		sb.WriteString("			},\n")
+	}
+	sb.WriteString("		},\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	expectedParams, _ := methodDef[\"parameters\"].([]interface{})\n")
+	sb.WriteString("	for i, paramValue := range params {\n")
+	sb.WriteString("		paramDef, _ := expectedParams[i].(map[string]interface{})\n")
+	sb.WriteString("		paramType, _ := paramDef[\"type\"].(map[string]interface{})\n")
+	sb.WriteString("		// Convert param to interface{} for validation\n")
+	sb.WriteString("		var paramInterface interface{}\n")
+	sb.WriteString("		paramJSON, _ := json.Marshal(paramValue)\n")
+	sb.WriteString("		json.Unmarshal(paramJSON, &paramInterface)\n")
+	sb.WriteString("		if err := barrister2.ValidateType(paramInterface, paramType, ALL_STRUCTS, ALL_ENUMS, false); err != nil {\n")
+	sb.WriteString("			paramName, _ := paramDef[\"name\"].(string)\n")
+	sb.WriteString("			var zero ")
+	if method.ReturnType != nil {
+		returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		sb.WriteString(returnType)
+	} else {
+		sb.WriteString("interface{}")
+	}
+	sb.WriteString("\n")
+	sb.WriteString("			return zero, fmt.Errorf(\"parameter %d (%s) validation failed: %w\", i, paramName, err)\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("	}\n\n")
+
+	// Call transport
+	fmt.Fprintf(sb, "	methodName := \"%s.%s\"\n", iface.Name, method.Name)
+	sb.WriteString("	response, err := c.transport.Call(methodName, params)\n")
+	sb.WriteString("	if err != nil {\n")
+	if method.ReturnType != nil {
+		sb.WriteString("		var zero ")
+		returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		sb.WriteString(returnType)
+		sb.WriteString("\n")
+		sb.WriteString("		return zero, err\n")
+	} else {
+		sb.WriteString("		return err\n")
+	}
+	sb.WriteString("	}\n\n")
+
+	// Extract and validate result
+	if method.ReturnType != nil {
+		sb.WriteString("	result, ok := response[\"result\"]\n")
+		sb.WriteString("	if !ok {\n")
+		if method.ReturnOptional {
+			sb.WriteString("		var zero ")
+			returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+			sb.WriteString(returnType)
+			sb.WriteString("\n")
+			sb.WriteString("		return zero, nil\n")
+		} else {
+			sb.WriteString("		var zero ")
+			returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+			sb.WriteString(returnType)
+			sb.WriteString("\n")
+			sb.WriteString("		return zero, fmt.Errorf(\"missing result in response\")\n")
+		}
+		sb.WriteString("	}\n\n")
+
+		sb.WriteString("	// Validate result\n")
+		sb.WriteString("	returnType := ")
+		writeTypeDictGo(sb, method.ReturnType)
+		sb.WriteString("\n")
+		sb.WriteString("	returnOptional := ")
+		if method.ReturnOptional {
+			sb.WriteString("true\n")
+		} else {
+			sb.WriteString("false\n")
+		}
+		sb.WriteString("	var resultInterface interface{}\n")
+		sb.WriteString("	resultJSON, _ := json.Marshal(result)\n")
+		sb.WriteString("	json.Unmarshal(resultJSON, &resultInterface)\n")
+		sb.WriteString("	if err := barrister2.ValidateType(resultInterface, returnType, ALL_STRUCTS, ALL_ENUMS, returnOptional); err != nil {\n")
+		sb.WriteString("		var zero ")
+		goReturnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		sb.WriteString(goReturnType)
+		sb.WriteString("\n")
+		sb.WriteString("		return zero, fmt.Errorf(\"response validation failed: %w\", err)\n")
+		sb.WriteString("	}\n\n")
+
+		// Deserialize result to typed value
+		goReturnType2 := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		sb.WriteString("	var typedResult ")
+		sb.WriteString(goReturnType2)
+		sb.WriteString("\n")
+		sb.WriteString("	if err := json.Unmarshal(resultJSON, &typedResult); err != nil {\n")
+		sb.WriteString("		var zero ")
+		sb.WriteString(goReturnType2)
+		sb.WriteString("\n")
+		sb.WriteString("		return zero, fmt.Errorf(\"failed to unmarshal result: %w\", err)\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	return typedResult, nil\n")
+	} else {
+		sb.WriteString("	return nil\n")
+	}
+	sb.WriteString("}\n\n")
+}
+
+// generateTestServerGo generates test_server.go with concrete implementations
+func generateTestServerGo(idl *parser.IDL, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, relPathToBase string) string {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by barrister - do not edit\n")
+	sb.WriteString("// Test server implementation for integration testing\n\n")
+	sb.WriteString("package main\n\n")
+	sb.WriteString("import (\n")
+	sb.WriteString("	\"math\"\n")
+	sb.WriteString("	\"strings\"\n")
+	sb.WriteString(")\n\n")
+
+	// Generate implementation structs for each interface
+	for _, iface := range idl.Interfaces {
+		writeTestInterfaceImplGo(&sb, iface, structMap, enumMap)
+	}
+
+	// Generate main function
+	sb.WriteString("func main() {\n")
+	sb.WriteString("	server := NewBarristerServer(\"0.0.0.0\", 8080)\n")
+	for _, iface := range idl.Interfaces {
+		implName := iface.Name + "Impl"
+		fmt.Fprintf(&sb, "	server.Register(\"%s\", &%s{})\n", iface.Name, implName)
+	}
+	sb.WriteString("	if err := server.ServeForever(); err != nil {\n")
+	sb.WriteString("		panic(err)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n")
+
+	return sb.String()
+}
+
+// writeTestInterfaceImplGo generates a test implementation struct for an interface
+func writeTestInterfaceImplGo(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	implName := iface.Name + "Impl"
+	fmt.Fprintf(sb, "type %s struct{}\n\n", implName)
+
+	// Generate method implementations
+	for _, method := range iface.Methods {
+		writeTestMethodImplGo(sb, iface, method, structMap, enumMap)
+	}
+}
+
+// writeTestMethodImplGo generates a test method implementation
+func writeTestMethodImplGo(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	methodName := snakeToCamelCase(method.Name)
+	fmt.Fprintf(sb, "func (i *%sImpl) %s(", iface.Name, methodName)
+
+	// Parameters
+	for i, param := range method.Parameters {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		paramType := mapTypeToGoType(param.Type, structMap, enumMap, false)
+		fmt.Fprintf(sb, "%s %s", param.Name, paramType)
+	}
+	sb.WriteString(") ")
+
+	// Return type
+	if method.ReturnType != nil {
+		returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		fmt.Fprintf(sb, "(%s, error)", returnType)
+	} else {
+		sb.WriteString("error")
+	}
+	sb.WriteString(" {\n")
+
+	// Special handling for known test cases
+	if iface.Name == "B" && method.Name == "echo" {
+		sb.WriteString("	if s == \"return-null\" {\n")
+		sb.WriteString("		return nil, nil\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	return s, nil\n")
+		sb.WriteString("}\n\n")
+		return
+	}
+
+	// Generate based on method name patterns
+	methodNameLower := strings.ToLower(method.Name)
+	switch methodNameLower {
+	case "add":
+		sb.WriteString("	return a + b, nil\n")
+	case "sqrt":
+		sb.WriteString("	return math.Sqrt(a), nil\n")
+	case "calc":
+		sb.WriteString("	if len(nums) == 0 {\n")
+		sb.WriteString("		return 0.0, nil\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	if operation == \"add\" {\n")
+		sb.WriteString("		sum := 0.0\n")
+		sb.WriteString("		for _, num := range nums {\n")
+		sb.WriteString("			sum += num\n")
+		sb.WriteString("		}\n")
+		sb.WriteString("		return sum, nil\n")
+		sb.WriteString("	} else if operation == \"multiply\" {\n")
+		sb.WriteString("		product := 1.0\n")
+		sb.WriteString("		for _, num := range nums {\n")
+		sb.WriteString("			product *= num\n")
+		sb.WriteString("		}\n")
+		sb.WriteString("		return product, nil\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	return 0.0, nil\n")
+	case "repeat":
+	sb.WriteString("	text := req1.ToRepeat\n")
+	sb.WriteString("	count := req1.Count\n")
+	sb.WriteString("	if req1.ForceUppercase {\n")
+	sb.WriteString("		text = strings.ToUpper(text)\n")
+	sb.WriteString("	}\n")
+		sb.WriteString("	items := make([]string, count)\n")
+		sb.WriteString("	for i := 0; i < count; i++ {\n")
+		sb.WriteString("		items[i] = text\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	return RepeatResponse{\n")
+		sb.WriteString("		Count:  count,\n")
+		sb.WriteString("		Items:  items,\n")
+		sb.WriteString("		Status: \"ok\",\n")
+		sb.WriteString("	}, nil\n")
+	case "say_hi":
+		sb.WriteString("	return HiResponse{Hi: \"hi\"}, nil\n")
+	case "repeat_num":
+		sb.WriteString("	result := make([]int, count)\n")
+		sb.WriteString("	for i := 0; i < count; i++ {\n")
+		sb.WriteString("		result[i] = num\n")
+		sb.WriteString("	}\n")
+		sb.WriteString("	return result, nil\n")
+	case "putperson":
+		sb.WriteString("	return p.PersonId, nil\n")
+	default:
+		// Default implementation
+		if method.ReturnType != nil {
+			returnType := mapTypeToGoType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+			sb.WriteString("	var zero ")
+			sb.WriteString(returnType)
+			sb.WriteString("\n")
+			sb.WriteString("	return zero, nil\n")
+		} else {
+			sb.WriteString("	return nil\n")
+		}
+	}
+	sb.WriteString("}\n\n")
+}
+
+// generateTestClientGo generates test_client.go test program
+func generateTestClientGo(idl *parser.IDL, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, relPathToBase string) string {
+	var sb strings.Builder
+
+	sb.WriteString("// Generated by barrister - do not edit\n")
+	sb.WriteString("// Test client for integration testing\n\n")
+	sb.WriteString("package main\n\n")
+	sb.WriteString("import (\n")
+	sb.WriteString("	\"bytes\"\n")
+	sb.WriteString("	\"fmt\"\n")
+	sb.WriteString("	\"net/http\"\n")
+	sb.WriteString("	\"os\"\n")
+	sb.WriteString("	\"time\"\n")
+	sb.WriteString(")\n\n")
+
+	sb.WriteString("func waitForServer(url string, timeout time.Duration) bool {\n")
+	sb.WriteString("	start := time.Now()\n")
+	sb.WriteString("	for time.Since(start) < timeout {\n")
+	sb.WriteString("		resp, err := http.Post(url, \"application/json\", bytes.NewReader([]byte(\"{\\\"jsonrpc\\\":\\\"2.0\\\",\\\"method\\\":\\\"barrister-idl\\\",\\\"id\\\":1}\")))\n")
+	sb.WriteString("		if err == nil && resp.StatusCode == 200 {\n")
+	sb.WriteString("			resp.Body.Close()\n")
+	sb.WriteString("			return true\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		if resp != nil {\n")
+	sb.WriteString("			resp.Body.Close()\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		time.Sleep(500 * time.Millisecond)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("	return false\n")
+	sb.WriteString("}\n\n")
+
+	sb.WriteString("func main() {\n")
+	sb.WriteString("	serverURL := \"http://localhost:8080\"\n")
+	sb.WriteString("	if len(os.Args) > 1 {\n")
+	sb.WriteString("		serverURL = os.Args[1]\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	fmt.Println(\"Waiting for server to be ready...\")\n")
+	sb.WriteString("	if !waitForServer(serverURL, 10*time.Second) {\n")
+	sb.WriteString("		fmt.Fprintf(os.Stderr, \"ERROR: Server did not become ready in time\\n\")\n")
+	sb.WriteString("		os.Exit(1)\n")
+	sb.WriteString("	}\n\n")
+
+	sb.WriteString("	fmt.Println(\"Server is ready. Running tests...\")\n")
+	sb.WriteString("	fmt.Println()\n\n")
+
+	sb.WriteString("	transport := NewHTTPTransport(serverURL, nil)\n")
+	for _, iface := range idl.Interfaces {
+		clientName := iface.Name + "Client"
+		clientVar := strings.ToLower(iface.Name) + "Client"
+		fmt.Fprintf(&sb, "	%s := New%s(transport)\n", clientVar, clientName)
+	}
+	sb.WriteString("\n")
+
+	sb.WriteString("	errors := []string{}\n\n")
+
+	// Generate test cases for each method
+	for _, iface := range idl.Interfaces {
+		clientVar := strings.ToLower(iface.Name) + "Client"
+		for _, method := range iface.Methods {
+			writeTestClientCallGo(&sb, iface, method, clientVar, structMap, enumMap)
+		}
+	}
+
+	sb.WriteString("	fmt.Println()\n")
+	sb.WriteString("	if len(errors) > 0 {\n")
+	sb.WriteString("		fmt.Fprintf(os.Stderr, \"FAILED: %d test(s) failed:\\n\", len(errors))\n")
+	sb.WriteString("		for _, err := range errors {\n")
+	sb.WriteString("			fmt.Fprintf(os.Stderr, \"  - %s\\n\", err)\n")
+	sb.WriteString("		}\n")
+	sb.WriteString("		os.Exit(1)\n")
+	sb.WriteString("	} else {\n")
+	sb.WriteString("		fmt.Println(\"SUCCESS: All tests passed!\")\n")
+	sb.WriteString("		os.Exit(0)\n")
+	sb.WriteString("	}\n")
+	sb.WriteString("}\n")
+
+	return sb.String()
+}
+
+// writeTestClientCallGo generates a test call for a method
+func writeTestClientCallGo(sb *strings.Builder, iface *parser.Interface, method *parser.Method, clientVar string, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	testName := fmt.Sprintf("%s.%s", iface.Name, method.Name)
+	fmt.Fprintf(sb, "	// Test %s\n", testName)
+	sb.WriteString("	func() {\n")
+	sb.WriteString("		defer func() {\n")
+	sb.WriteString("			if r := recover(); r != nil {\n")
+	fmt.Fprintf(sb, "				errors = append(errors, fmt.Sprintf(\"%s failed: %%v\", r))\n", testName)
+	sb.WriteString("			}\n")
+	sb.WriteString("		}()\n")
+
+	// Generate test parameters
+	params := make([]string, 0)
+	for _, param := range method.Parameters {
+		paramValue := generateTestParamValueGo(param.Type, param.Name, structMap, enumMap)
+		params = append(params, paramValue)
+	}
+
+	// Generate method call
+	methodName := snakeToCamelCase(method.Name)
+	if len(params) > 0 {
+		fmt.Fprintf(sb, "		result, err := %s.%s(%s)\n", clientVar, methodName, strings.Join(params, ", "))
+	} else {
+		fmt.Fprintf(sb, "		result, err := %s.%s()\n", clientVar, methodName)
+	}
+	sb.WriteString("		if err != nil {\n")
+	fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s failed: %%v\", err))\n", testName)
+	sb.WriteString("			return\n")
+	sb.WriteString("		}\n")
+
+	// Generate assertions
+	methodNameLower := strings.ToLower(method.Name)
+	if iface.Name == "B" && method.Name == "echo" {
+		sb.WriteString("		if result != \"test\" {\n")
+		fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s: expected 'test', got %%v\", result))\n", testName)
+		sb.WriteString("			return\n")
+		sb.WriteString("		}\n")
+		sb.WriteString("		// Test null return\n")
+		fmt.Fprintf(sb, "		resultNull, _ := %s.Echo(\"return-null\")\n", clientVar)
+		sb.WriteString("		if resultNull != nil {\n")
+		fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s (null): expected nil, got %%v\", resultNull))\n", testName)
+		sb.WriteString("			return\n")
+		sb.WriteString("		}\n")
+	} else if methodNameLower == "add" {
+		sb.WriteString("		if result != 5 {\n")
+		fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s: expected 5, got %%v\", result))\n", testName)
+		sb.WriteString("			return\n")
+		sb.WriteString("		}\n")
+	} else if methodNameLower == "sqrt" {
+		sb.WriteString("		if result < 1.99 || result > 2.01 {\n")
+		fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s: expected ~2.0, got %%v\", result))\n", testName)
+		sb.WriteString("			return\n")
+		sb.WriteString("		}\n")
+	} else {
+		sb.WriteString("		_ = result // Use result to avoid unused variable\n")
+	}
+
+	fmt.Fprintf(sb, "		fmt.Printf(\"✓ %s passed\\n\")\n", testName)
+	sb.WriteString("	}()\n\n")
+}
+
+// generateTestParamValueGo generates a test parameter value
+func generateTestParamValueGo(t *parser.Type, paramName string, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) string {
+	if t.IsBuiltIn() {
+		switch t.BuiltIn {
+		case "string":
+			if paramName == "s" {
+				return "\"test\""
+			}
+			return "\"test\""
+		case "int":
+			switch paramName {
+			case "a", "num":
+				return "2"
+			case "b":
+				return "3"
+			case "count":
+				return "2"
+			default:
+				return "1"
+			}
+		case "float":
+			if paramName == "a" {
+				return "4.0"
+			}
+			return "1.0"
+		case "bool":
+			return "true"
+		default:
+			return "nil"
+		}
+	} else if t.IsArray() {
+		if t.Array.IsBuiltIn() && t.Array.BuiltIn == "float" {
+			return "[]float64{1.0, 2.0, 3.0}"
+		}
+		return "[]interface{}{}"
+	} else if t.IsMap() {
+		return "map[string]interface{}{}"
+	} else if t.IsUserDefined() {
+		// Check if it's a struct
+		if structMap[t.UserDefined] != nil {
+			s := structMap[t.UserDefined]
+			// Build struct literal
+			fields := []string{}
+			for _, field := range s.Fields {
+				if field.Optional && field.Name == "email" {
+					// Special case: set email to nil for putPerson test
+					fields = append(fields, fmt.Sprintf("%s: nil", snakeToCamelCase(field.Name)))
+				} else if !field.Optional {
+					fieldValue := generateTestParamValueGo(field.Type, field.Name, structMap, enumMap)
+					fields = append(fields, fmt.Sprintf("%s: %s", snakeToCamelCase(field.Name), fieldValue))
+				}
+			}
+			// Handle inheritance
+			if s.Extends != "" {
+				baseName := GetBaseName(s.Extends)
+				if baseStruct := structMap[baseName]; baseStruct != nil {
+					for _, field := range baseStruct.Fields {
+						if !field.Optional {
+							fieldValue := generateTestParamValueGo(field.Type, field.Name, structMap, enumMap)
+							fields = append(fields, fmt.Sprintf("%s: %s", snakeToCamelCase(field.Name), fieldValue))
+						}
+					}
+				}
+			}
+			// Special handling for RepeatRequest
+			if t.UserDefined == "RepeatRequest" || GetBaseName(t.UserDefined) == "RepeatRequest" {
+				return "RepeatRequest{ToRepeat: \"hello\", Count: 3, ForceUppercase: false}"
+			}
+			// Special handling for Person
+			if t.UserDefined == "Person" || GetBaseName(t.UserDefined) == "Person" {
+				return "Person{PersonId: \"person123\", FirstName: \"John\", LastName: \"Doe\", Email: nil}"
+			}
+			structName := GetBaseName(t.UserDefined)
+			return structName + "{" + strings.Join(fields, ", ") + "}"
+		} else if enumMap[t.UserDefined] != nil {
+			e := enumMap[t.UserDefined]
+			if len(e.Values) > 0 {
+				// Special case for MathOp
+				if strings.Contains(t.UserDefined, "MathOp") {
+					return "\"add\""
+				}
+				enumName := GetBaseName(t.UserDefined)
+				valName := e.Values[0].Name
+				return fmt.Sprintf("%s%s", enumName, snakeToCamelCase(valName))
+			}
+			return "nil"
+		}
+		return "nil"
+	}
+	return "nil"
+}
+
