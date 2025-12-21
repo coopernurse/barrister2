@@ -117,8 +117,7 @@ echo ""
 echo -e "${YELLOW}Running test client...${NC}"
 if python3 test_client.py; then
     echo ""
-    echo -e "${GREEN}=== All tests passed! ===${NC}"
-    exit 0
+    echo -e "${GREEN}Test client passed${NC}"
 else
     CLIENT_EXIT_CODE=$?
     echo ""
@@ -126,5 +125,25 @@ else
     echo "Server log:"
     cat server.log
     exit $CLIENT_EXIT_CODE
+fi
+
+# Step 7: Run HTTP API tests
+echo ""
+echo -e "${YELLOW}Running HTTP API tests...${NC}"
+HTTP_TEST_SCRIPT="$SCRIPT_DIR/test_http_api.sh"
+if [ ! -f "$HTTP_TEST_SCRIPT" ]; then
+    echo -e "${RED}ERROR: HTTP test script not found at $HTTP_TEST_SCRIPT${NC}"
+    exit 1
+fi
+
+if bash "$HTTP_TEST_SCRIPT" "$SERVER_URL"; then
+    echo ""
+    echo -e "${GREEN}=== All tests passed! ===${NC}"
+    exit 0
+else
+    HTTP_TEST_EXIT_CODE=$?
+    echo ""
+    echo -e "${RED}=== HTTP API tests failed with exit code $HTTP_TEST_EXIT_CODE ===${NC}"
+    exit $HTTP_TEST_EXIT_CODE
 fi
 
