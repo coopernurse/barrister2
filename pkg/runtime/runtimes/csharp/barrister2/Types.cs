@@ -22,7 +22,19 @@ namespace Barrister2
         /// </summary>
         public static Dictionary<string, object>? FindEnum(string enumName, Dictionary<string, Dictionary<string, object>> allEnums)
         {
-            return allEnums.TryGetValue(enumName, out var enumDef) ? enumDef : null;
+            // Try qualified name first
+            if (allEnums.TryGetValue(enumName, out var enumDef))
+                return enumDef;
+            
+            // Try unqualified name (extract base name from qualified name)
+            if (enumName.Contains("."))
+            {
+                var baseName = enumName.Substring(enumName.LastIndexOf('.') + 1);
+                if (allEnums.TryGetValue(baseName, out enumDef))
+                    return enumDef;
+            }
+            
+            return null;
         }
 
         /// <summary>

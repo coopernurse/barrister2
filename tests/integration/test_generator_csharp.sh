@@ -176,6 +176,29 @@ else
     echo -e "${RED}=== Tests failed with exit code $CLIENT_EXIT_CODE ===${NC}"
     echo "Server log:"
     cat server.log
+    echo ""
+    echo -e "${YELLOW}=== Generated Source Code (for debugging) ===${NC}"
+    echo ""
+    if [ -f "$OUTPUT_DIR/Client.cs" ]; then
+        echo -e "${GREEN}--- Client.cs ---${NC}"
+        cat -n "$OUTPUT_DIR/Client.cs"
+        echo ""
+    fi
+    if [ -f "$OUTPUT_DIR/Server.cs" ]; then
+        echo -e "${GREEN}--- Server.cs ---${NC}"
+        cat -n "$OUTPUT_DIR/Server.cs"
+        echo ""
+    fi
+    if [ -f "$OUTPUT_DIR/TestServer.cs" ]; then
+        echo -e "${GREEN}--- TestServer.cs ---${NC}"
+        cat -n "$OUTPUT_DIR/TestServer.cs"
+        echo ""
+    fi
+    if [ -f "$OUTPUT_DIR/TestClient.cs" ]; then
+        echo -e "${GREEN}--- TestClient.cs ---${NC}"
+        cat -n "$OUTPUT_DIR/TestClient.cs"
+        echo ""
+    fi
     exit $CLIENT_EXIT_CODE
 fi
 

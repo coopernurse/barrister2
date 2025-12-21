@@ -267,7 +267,7 @@ namespace Barrister2
                     var enumDef = Types.FindEnum(userType, allEnums);
                     if (enumDef != null)
                     {
-                        if (enumDef.TryGetValue("values", out var valuesObj) && valuesObj is List<object> enumValues)
+                        if (enumDef.TryGetValue("values", out var valuesObj) && valuesObj is System.Collections.IList enumValues)
                         {
                             var allowedValues = enumValues
                                 .OfType<Dictionary<string, object>>()
