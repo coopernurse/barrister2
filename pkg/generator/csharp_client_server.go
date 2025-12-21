@@ -142,6 +142,13 @@ func (p *CSharpClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 		if err := os.WriteFile(testClientPath, []byte(testClientCode), 0644); err != nil {
 			return fmt.Errorf("failed to write TestClient.cs: %w", err)
 		}
+
+		// Generate TestServer.csproj
+		testServerProjCode := generateTestServerCsproj(idl, namespaceMap)
+		testServerProjPath := filepath.Join(outputDir, "TestServer.csproj")
+		if err := os.WriteFile(testServerProjPath, []byte(testServerProjCode), 0644); err != nil {
+			return fmt.Errorf("failed to write TestServer.csproj: %w", err)
+		}
 	}
 
 	return nil
@@ -551,9 +558,9 @@ func writeBarristerServerCs(sb *strings.Builder, idl *parser.IDL, structMap map[
 	sb.WriteString("    {\n")
 	sb.WriteString("        var builder = WebApplication.CreateBuilder(new WebApplicationOptions\n")
 	sb.WriteString("        {\n")
-	sb.WriteString("            WebRootPath = null\n")
+	sb.WriteString("            WebRootPath = null,\n")
+	sb.WriteString("            Args = new[] { $\"--urls=http://{host}:{port}\" }\n")
 	sb.WriteString("        });\n")
-	sb.WriteString("        builder.WebHost.UseUrls($\"http://{host}:{port}\");\n")
 	sb.WriteString("        _app = builder.Build();\n")
 	sb.WriteString("        // Get logger from app services if not already set\n")
 	sb.WriteString("        if (_logger == null)\n")
@@ -1400,6 +1407,35 @@ func generateTestClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, 
 	sb.WriteString("        }\n")
 	sb.WriteString("    }\n")
 	sb.WriteString("}\n")
+
+	return sb.String()
+}
+
+// generateTestServerCsproj generates TestServer.csproj project file
+// Note: .NET SDK automatically includes all .cs files in the project directory,
+// so we exclude Client.cs and TestClient.cs to avoid duplicate class definitions.
+func generateTestServerCsproj(idl *parser.IDL, namespaceMap map[string]*NamespaceTypes) string {
+	var sb strings.Builder
+
+	sb.WriteString("<Project Sdk=\"Microsoft.NET.Sdk\">\n\n")
+	sb.WriteString("  <PropertyGroup>\n")
+	sb.WriteString("    <TargetFramework>net8.0</TargetFramework>\n")
+	sb.WriteString("    <ImplicitUsings>enable</ImplicitUsings>\n")
+	sb.WriteString("    <Nullable>enable</Nullable>\n")
+	sb.WriteString("    <LangVersion>latest</LangVersion>\n")
+	sb.WriteString("    <OutputType>Exe</OutputType>\n")
+	sb.WriteString("  </PropertyGroup>\n\n")
+
+	sb.WriteString("  <ItemGroup>\n")
+	sb.WriteString("    <FrameworkReference Include=\"Microsoft.AspNetCore.App\" />\n")
+	sb.WriteString("  </ItemGroup>\n\n")
+
+	sb.WriteString("  <ItemGroup>\n")
+	sb.WriteString("    <Compile Remove=\"Client.cs\" />\n")
+	sb.WriteString("    <Compile Remove=\"TestClient.cs\" />\n")
+	sb.WriteString("  </ItemGroup>\n\n")
+
+	sb.WriteString("</Project>\n")
 
 	return sb.String()
 }
