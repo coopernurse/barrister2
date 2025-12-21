@@ -452,6 +452,7 @@ func generateServerCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	sb.WriteString("using System.Linq;\n")
 	sb.WriteString("using System.Net;\n")
 	sb.WriteString("using System.Text.Json;\n")
+	sb.WriteString("using System.Text.Json.Serialization;\n")
 	sb.WriteString("using System.Threading.Tasks;\n")
 	sb.WriteString("using Microsoft.AspNetCore.Builder;\n")
 	sb.WriteString("using Microsoft.AspNetCore.Http;\n")
@@ -995,7 +996,11 @@ func writeMethodLookupAndInvokeCs(sb *strings.Builder, idl *parser.IDL, structMa
 	sb.WriteString("            // Deserialize parameters to expected types using method parameter types\n")
 	sb.WriteString("            var paramInfos = methodInfo.GetParameters();\n")
 	sb.WriteString("            var deserializedParams = new object[paramsList.Count];\n")
-	sb.WriteString("            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };\n")
+	sb.WriteString("            var jsonOptions = new JsonSerializerOptions\n")
+	sb.WriteString("            {\n")
+	sb.WriteString("                PropertyNameCaseInsensitive = true\n")
+	sb.WriteString("            };\n")
+	sb.WriteString("            jsonOptions.Converters.Add(new JsonStringEnumConverter());\n")
 	sb.WriteString("            for (int i = 0; i < paramsList.Count; i++)\n")
 	sb.WriteString("            {\n")
 	sb.WriteString("                var paramValue = paramsList[i];\n")
@@ -1126,6 +1131,7 @@ func generateClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	sb.WriteString("using System.Linq;\n")
 	sb.WriteString("using System.Net.Http;\n")
 	sb.WriteString("using System.Text.Json;\n")
+	sb.WriteString("using System.Text.Json.Serialization;\n")
 	sb.WriteString("using System.Threading.Tasks;\n")
 	sb.WriteString("using Barrister2;\n\n")
 
@@ -1316,7 +1322,14 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 
 		// Deserialize directly to the typed return type
 		returnTypeStr := mapTypeToCsType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
-		fmt.Fprintf(sb, "        return JsonSerializer.Deserialize<%s>(resultJsonStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });\n", returnTypeStr)
+		sb.WriteString("        var clientJsonOptions = new JsonSerializerOptions\n")
+		sb.WriteString("        {\n")
+		sb.WriteString("            PropertyNameCaseInsensitive = true\n")
+		sb.WriteString("        };\n")
+		sb.WriteString("        clientJsonOptions.Converters.Add(new JsonStringEnumConverter());\n")
+		sb.WriteString("        return JsonSerializer.Deserialize<")
+		fmt.Fprintf(sb, "%s", returnTypeStr)
+		sb.WriteString(">(resultJsonStr, clientJsonOptions);\n")
 	} else {
 		sb.WriteString("        return result;\n")
 	}
