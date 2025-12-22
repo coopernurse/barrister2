@@ -1,0 +1,302 @@
+#!/bin/bash
+# Test harness for Java generator integration tests
+# This script generates code, starts a test server in Docker, runs client tests, and reports results
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
+OUTPUT_DIR="/tmp/barrister_test_java_$$"
+NATIVE_BINARY="$PROJECT_ROOT/target/barrister"
+LINUX_BINARY="$PROJECT_ROOT/target/barrister-amd64"
+SERVER_PORT=8080
+SERVER_URL="http://localhost:$SERVER_PORT"
+TIMEOUT=30
+DOCKER_IMAGE="maven:3.9-eclipse-temurin-17"
+CONTAINER_NAME="barrister-test-java-$$"
+M2_CACHE_DIR="$PROJECT_ROOT/.m2-cache"
+
+# Check if Docker is available
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        echo -e "${RED}ERROR: Docker is required but not installed${NC}"
+        exit 1
+    fi
+}
+
+# Cleanup function
+cleanup() {
+    echo -e "${YELLOW}Cleaning up...${NC}"
+    docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+    #rm -rf "$OUTPUT_DIR"
+}
+
+trap cleanup EXIT
+
+echo -e "${GREEN}=== Barrister Java Generator Integration Test ===${NC}"
+echo ""
+
+check_docker
+
+# Create Maven cache directory if it doesn't exist
+mkdir -p "$M2_CACHE_DIR"
+
+# Step 1: Determine which binary to use
+# Prefer native binary for local testing, fall back to Linux binary for containers
+BINARY_PATH=""
+if [ -f "$NATIVE_BINARY" ] && [ -x "$NATIVE_BINARY" ]; then
+    BINARY_PATH="$NATIVE_BINARY"
+    echo -e "${GREEN}Using native barrister binary at $BINARY_PATH${NC}"
+elif [ -f "$LINUX_BINARY" ] && [ -x "$LINUX_BINARY" ]; then
+    BINARY_PATH="$LINUX_BINARY"
+    echo -e "${GREEN}Using Linux barrister binary at $BINARY_PATH${NC}"
+elif command -v go >/dev/null 2>&1; then
+    # Build the native binary
+    echo -e "${YELLOW}Building barrister binary...${NC}"
+    cd "$PROJECT_ROOT"
+    go build -o "$NATIVE_BINARY" cmd/barrister/barrister.go
+    if [ -f "$NATIVE_BINARY" ] && [ -x "$NATIVE_BINARY" ]; then
+        BINARY_PATH="$NATIVE_BINARY"
+        echo -e "${GREEN}Built native barrister binary at $BINARY_PATH${NC}"
+    else
+        echo -e "${RED}ERROR: Failed to build barrister binary${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}ERROR: Neither barrister binary nor Go compiler found${NC}"
+    echo -e "${RED}Please build the binary first with 'make build' or ensure Go is installed${NC}"
+    exit 1
+fi
+
+if [ -z "$BINARY_PATH" ] || [ ! -f "$BINARY_PATH" ]; then
+    echo -e "${RED}ERROR: Barrister binary not found${NC}"
+    exit 1
+fi
+
+# Step 2: Create output directory
+echo -e "${YELLOW}Creating output directory: $OUTPUT_DIR${NC}"
+mkdir -p "$OUTPUT_DIR"
+
+# Step 3: Generate Java code with Jackson (default)
+echo -e "${YELLOW}Generating Java code with Jackson...${NC}"
+cd "$PROJECT_ROOT"
+"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -test-server -dir "$OUTPUT_DIR" "$TEST_IDL"
+
+# Verify generated files
+echo -e "${YELLOW}Verifying generated files...${NC}"
+REQUIRED_FILES=(
+    "Server.java"
+    "TestServer.java"
+    "TestClient.java"
+    "idl.json"
+    "pom.xml"
+    "barrister2/RPCError.java"
+    "barrister2/Validation.java"
+    "barrister2/Types.java"
+    "barrister2/JsonParser.java"
+    "barrister2/JacksonJsonParser.java"
+    "barrister2/Transport.java"
+    "barrister2/Request.java"
+    "barrister2/Response.java"
+    "barrister2/HTTPTransport.java"
+)
+
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$OUTPUT_DIR/$file" ]; then
+        echo -e "${RED}ERROR: Required file $file not found in output directory${NC}"
+        ls -la "$OUTPUT_DIR"
+        exit 1
+    fi
+done
+
+# Verify GSON parser is NOT included (only Jackson should be)
+if [ -f "$OUTPUT_DIR/barrister2/GsonJsonParser.java" ]; then
+    echo -e "${RED}ERROR: GsonJsonParser.java should not be generated when using Jackson${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✓ Generated files verified${NC}"
+
+# Debug: Log file structure and pom.xml content
+DEBUG_LOG="$PROJECT_ROOT/.cursor/debug.log"
+echo "=== HYPOTHESIS A: Files exist in output directory ===" > "$DEBUG_LOG"
+find "$OUTPUT_DIR" -name "*.java" -type f >> "$DEBUG_LOG" 2>&1 || echo "find failed" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== HYPOTHESIS B: pom.xml sourceDirectory configuration ===" >> "$DEBUG_LOG"
+grep -A 2 "sourceDirectory" "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "grep failed" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== HYPOTHESIS C: TestServer.java package declaration ===" >> "$DEBUG_LOG"
+head -5 "$OUTPUT_DIR/TestServer.java" >> "$DEBUG_LOG" 2>&1 || echo "head failed" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== NEW ISSUE: inc.java content (checking for syntax errors) ===" >> "$DEBUG_LOG"
+if [ -f "$OUTPUT_DIR/inc.java" ]; then
+    cat "$OUTPUT_DIR/inc.java" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read inc.java" >> "$DEBUG_LOG"
+else
+    echo "inc.java not found" >> "$DEBUG_LOG"
+fi
+echo "" >> "$DEBUG_LOG"
+echo "=== POST-FIX: TestServer.java content (checking method registration) ===" >> "$DEBUG_LOG"
+if [ -f "$OUTPUT_DIR/TestServer.java" ]; then
+    cat "$OUTPUT_DIR/TestServer.java" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read TestServer.java" >> "$DEBUG_LOG"
+else
+    echo "TestServer.java not found" >> "$DEBUG_LOG"
+fi
+echo "" >> "$DEBUG_LOG"
+echo "=== HYPOTHESIS D: barrister2 directory structure ===" >> "$DEBUG_LOG"
+ls -la "$OUTPUT_DIR/barrister2/" >> "$DEBUG_LOG" 2>&1 || echo "ls failed" >> "$DEBUG_LOG"
+
+# Step 4: Build the Java project using Docker
+echo -e "${YELLOW}Building Java project with Maven in Docker...${NC}"
+cd "$OUTPUT_DIR"
+echo "=== POST-FIX: Full pom.xml content ===" >> "$DEBUG_LOG"
+cat "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read pom.xml" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== POST-FIX: Checking pom.xml for build-helper plugin ===" >> "$DEBUG_LOG"
+grep -A 10 "build-helper" "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "build-helper not found in pom.xml" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== POST-FIX: Maven compile verbose output (should show Compiling) ===" >> "$DEBUG_LOG"
+docker run --rm \
+    -v "$OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    bash -c "mvn clean compile 2>&1" >> "$DEBUG_LOG" 2>&1 || true
+
+echo "=== POST-FIX: Checking if sources were added after generate-sources ===" >> "$DEBUG_LOG"
+docker run --rm \
+    -v "$OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    bash -c "mvn generate-sources -q && mvn help:evaluate -Dexpression=project.build.sourceDirectories -q -DforceStdout 2>&1" >> "$DEBUG_LOG" 2>&1 || echo "Failed to get source directories" >> "$DEBUG_LOG"
+echo "" >> "$DEBUG_LOG"
+echo "=== POST-FIX: Full compile output (looking for Compiling messages) ===" >> "$DEBUG_LOG"
+
+docker run --rm \
+    -v "$OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    mvn clean compile
+
+echo -e "${GREEN}✓ Java project built successfully${NC}"
+
+# Step 5: Start test server in Docker
+echo -e "${YELLOW}Starting test server in Docker on port $SERVER_PORT...${NC}"
+docker run -d \
+    --name "$CONTAINER_NAME" \
+    -p "$SERVER_PORT:8080" \
+    -v "$OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    mvn exec:java -Dexec.mainClass="TestServer"
+
+# Give container a moment to start, then check if it's still running
+sleep 2
+echo "=== Initial container logs (after 2 seconds) ===" >> "$DEBUG_LOG"
+docker logs "$CONTAINER_NAME" >> "$DEBUG_LOG" 2>&1 || true
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+    echo -e "${RED}ERROR: Container exited immediately${NC}"
+    echo "Container logs:"
+    docker logs "$CONTAINER_NAME" 2>&1 | tee -a "$DEBUG_LOG"
+    exit 1
+fi
+
+# Wait for server to start
+echo -e "${YELLOW}Waiting for server to start...${NC}"
+WAIT_COUNT=0
+while [ $WAIT_COUNT -lt $TIMEOUT ]; do
+    if curl -s -X POST "$SERVER_URL" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' > /dev/null 2>&1; then
+        echo -e "${GREEN}Server is ready${NC}"
+        break
+    fi
+    sleep 1
+    WAIT_COUNT=$((WAIT_COUNT + 1))
+done
+
+if [ $WAIT_COUNT -ge $TIMEOUT ]; then
+    echo -e "${RED}ERROR: Server did not become ready within $TIMEOUT seconds${NC}"
+    echo "Server log:"
+    cat server.log
+    exit 1
+fi
+
+echo ""
+
+# Step 6: Test HTTP API
+echo -e "${YELLOW}Running HTTP API tests...${NC}"
+cd "$SCRIPT_DIR"
+if ! bash test_http_api.sh "$SERVER_URL"; then
+    echo -e "${RED}ERROR: HTTP API tests failed${NC}"
+    echo "=== Container logs (for debugging) ===" >> "$DEBUG_LOG"
+    docker logs "$CONTAINER_NAME" >> "$DEBUG_LOG" 2>&1
+    echo "Container logs:"
+    docker logs "$CONTAINER_NAME"
+    exit 1
+fi
+echo -e "${GREEN}✓ HTTP API tests passed${NC}"
+
+# Step 7: Test client execution in Docker
+echo -e "${YELLOW}Running test client in Docker...${NC}"
+# Use host.docker.internal to connect to the host's exposed port
+# This works on Docker Desktop (Mac/Windows) and newer Linux Docker versions
+CLIENT_SERVER_URL="http://host.docker.internal:$SERVER_PORT"
+# Pass the server URL as an argument to TestClient
+docker run --rm \
+    --add-host=host.docker.internal:host-gateway \
+    -v "$OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    mvn exec:java -Dexec.mainClass="TestClient" -Dexec.args="$CLIENT_SERVER_URL"
+echo -e "${GREEN}✓ Test client executed successfully${NC}"
+
+# Step 8: Test with GSON instead of Jackson
+echo -e "${YELLOW}Testing GSON code generation...${NC}"
+cd "$PROJECT_ROOT"
+GSON_OUTPUT_DIR="/tmp/barrister_test_java_gson_$$"
+mkdir -p "$GSON_OUTPUT_DIR"
+"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -test-server -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
+
+# Verify GSON files
+if [ ! -f "$GSON_OUTPUT_DIR/barrister2/GsonJsonParser.java" ]; then
+    echo -e "${RED}ERROR: GsonJsonParser.java not found when using GSON${NC}"
+    exit 1
+fi
+
+if [ -f "$GSON_OUTPUT_DIR/barrister2/JacksonJsonParser.java" ]; then
+    echo -e "${RED}ERROR: JacksonJsonParser.java should not be generated when using GSON${NC}"
+    exit 1
+fi
+
+# Build GSON version in Docker
+echo -e "${YELLOW}Building GSON version in Docker...${NC}"
+cd "$GSON_OUTPUT_DIR"
+docker run --rm \
+    -v "$GSON_OUTPUT_DIR:/workspace" \
+    -v "$M2_CACHE_DIR:/root/.m2" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    mvn clean compile
+echo -e "${GREEN}✓ GSON version built successfully${NC}"
+
+# Cleanup GSON test
+rm -rf "$GSON_OUTPUT_DIR"
+
+echo ""
+echo -e "${GREEN}=== Java Generator Integration Test PASSED ===${NC}"
+echo -e "${GREEN}✓ Code generation with Jackson${NC}"
+echo -e "${GREEN}✓ Code generation with GSON${NC}"
+echo -e "${GREEN}✓ Maven build${NC}"
+echo -e "${GREEN}✓ Server startup${NC}"
+echo -e "${GREEN}✓ HTTP API compliance${NC}"
+echo -e "${GREEN}✓ Client execution${NC}"

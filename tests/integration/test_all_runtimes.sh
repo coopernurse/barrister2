@@ -22,6 +22,7 @@ declare -A RUNTIME_PORTS=(
     ["python"]="9000"
     ["ts"]="9001"
     ["csharp"]="9002"
+    ["java"]="9003"
 )
 
 # Cleanup function

@@ -373,6 +373,7 @@ func registerPlugins() {
 	generator.Register(generator.NewPythonClientServer())
 	generator.Register(generator.NewTSClientServer())
 	generator.Register(generator.NewCSharpClientServer())
+	generator.Register(generator.NewJavaClientServer())
 	// Add more plugins here as they are implemented
 }
 

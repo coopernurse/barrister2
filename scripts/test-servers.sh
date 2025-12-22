@@ -29,6 +29,7 @@ RUNTIMES=(
     "python:python-client-server:python:3.11-slim:9000:python3 test_server.py"
     "ts:ts-client-server:node:18-slim:9001:ts-node --project tsconfig.json test_server.ts"
     "csharp:csharp-client-server:mcr.microsoft.com/dotnet/sdk:8.0:9002:dotnet run --project TestServer.csproj"
+    "java:java-client-server:maven:3.9-eclipse-temurin-17:9003:mvn exec:java -Dexec.mainClass=TestServer"
 )
 
 # Parse runtime config
@@ -94,9 +95,18 @@ generate_code() {
     IFS='|' read -r name plugin image port start_cmd <<< "$(parse_runtime "$runtime_config")"
     
     echo -e "${YELLOW}Generating $name code...${NC}"
-    if ! "$BINARY_PATH" -plugin "$plugin" -test-server -dir "$output_dir" "$TEST_IDL"; then
-        echo -e "${RED}ERROR: Code generation failed for $name${NC}"
-        return 1
+    # For Java code generation, the generator requires a base-package flag.
+    if [ "$plugin" = "java-client-server" ]; then
+        JAVA_BASE_PACKAGE="com.barrister.test"
+        if ! "$BINARY_PATH" -plugin "$plugin" -base-package "$JAVA_BASE_PACKAGE" -test-server -dir "$output_dir" "$TEST_IDL"; then
+            echo -e "${RED}ERROR: Code generation failed for $name${NC}"
+            return 1
+        fi
+    else
+        if ! "$BINARY_PATH" -plugin "$plugin" -test-server -dir "$output_dir" "$TEST_IDL"; then
+            echo -e "${RED}ERROR: Code generation failed for $name${NC}"
+            return 1
+        fi
     fi
     
     # Verify test_server file exists
@@ -136,6 +146,9 @@ EOF
             ;;
         csharp)
             test_server_file="$output_dir/TestServer.cs"
+            ;;
+        java)
+            test_server_file="$output_dir/TestServer.java"
             ;;
     esac
     
@@ -207,23 +220,33 @@ start_runtime() {
             # Build and run C# server
             container_cmd="cd /workspace && dotnet build TestServer.csproj >/dev/null 2>&1 && $start_cmd"
             ;;
+        java)
+            # If the image already contains Maven (e.g., maven:...), just run mvn; otherwise install it
+            if echo "$image" | grep -q "maven"; then
+                container_cmd="cd /workspace && mvn -q package -DskipTests >/dev/null 2>&1 && $start_cmd"
+            else
+                container_cmd="cd /workspace && apt-get update >/dev/null 2>&1 && apt-get install -y maven >/dev/null 2>&1 && mvn -q package -DskipTests >/dev/null 2>&1 && $start_cmd"
+            fi
+            ;;
     esac
     
     # Start container
     echo -e "${YELLOW}Starting $name server container on port $port...${NC}"
-    docker run -d \
+    # Run container and capture docker output so failures are visible (don't discard stderr)
+    container_run_output=$(docker run -d \
         --name "$container_name" \
         -p "$port:8080" \
         -v "$output_dir:/workspace" \
         -w /workspace \
         "$image" \
-        /bin/bash -c "$container_cmd" >/dev/null 2>&1
-    
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}ERROR: Failed to start $name container${NC}"
+        /bin/bash -c "$container_cmd" 2>&1) || {
+        echo -e "${RED}ERROR: Failed to start $name container: ${container_run_output}${NC}"
         rm -rf "$output_dir"
         return 1
-    fi
+    }
+
+    # container_run_output should contain the container id on success
+    container_id="$container_run_output"
     
     # Wait for server to be ready
     local url="http://localhost:$port"

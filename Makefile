@@ -1,4 +1,4 @@
-.PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
+.PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
 
 # Variables
 BINARY_NAME=barrister
@@ -106,8 +106,13 @@ test-runtime-csharp:
 	@echo "Testing C# runtime..."
 	@cd pkg/runtime/runtimes/csharp && $(MAKE) test
 
+# Test Java runtime
+test-runtime-java:
+	@echo "Testing Java runtime..."
+	@cd pkg/runtime/runtimes/java && $(MAKE) test
+
 # Test all runtimes
-test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp
+test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java
 	@echo "All runtime tests passed"
 
 # Test Python generator integration
@@ -125,8 +130,13 @@ test-generator-csharp:
 	@echo "Testing C# generator integration..."
 	@cd pkg/runtime/runtimes/csharp && $(MAKE) test-integration
 
+# Test Java generator integration
+test-generator-java:
+	@echo "Testing Java generator integration..."
+	@bash tests/integration/test_generator_java.sh
+
 # Test all generators
-test-generators: test-generator-python test-generator-ts test-generator-csharp
+test-generators: test-generator-python test-generator-ts test-generator-csharp test-generator-java
 	@echo "All generator tests passed"
 
 # Start all test servers for web UI
