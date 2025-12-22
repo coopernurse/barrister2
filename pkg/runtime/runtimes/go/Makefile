@@ -11,7 +11,7 @@ ifeq ($(DOCKER_AVAILABLE),yes)
 	@$(MAKE) test-docker
 else
 	@echo "Using local Go for testing..."
-	@go test ./tests/... -v
+	@cd tests && go test -v
 endif
 
 # Test using Docker
@@ -19,7 +19,7 @@ test-docker:
 	@echo "Testing Go runtime in Docker..."
 	@docker run --rm -v $(PWD):/workspace -w /workspace \
 		$(GO_IMAGE) \
-		sh -c "go mod init barrister2-go-runtime 2>/dev/null || true && go test ./tests/... -v"
+		sh -c "echo 'module barrister2-go-runtime' > go.mod && echo 'go 1.21.13' >> go.mod && echo 'replace barrister2-go-runtime/barrister2 => ./barrister2' >> go.mod && cd tests && go test -v; TEST_RESULT=\$$?; cd .. && rm -f go.mod; exit \$$TEST_RESULT"
 
 # Test generator integration (requires Docker)
 test-integration:

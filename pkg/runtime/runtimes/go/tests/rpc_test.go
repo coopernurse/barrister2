@@ -1,9 +1,9 @@
-package tests
+package main
 
 import (
 	"testing"
 
-	"github.com/coopernurse/barrister2/pkg/runtime/runtimes/go/barrister2"
+	"barrister2-go-runtime/barrister2"
 )
 
 func TestRPCError(t *testing.T) {
@@ -36,4 +36,3 @@ func TestRPCError(t *testing.T) {
 		t.Errorf("Expected Data 'test data', got '%v'", errWithData.Data)
 	}
 }
-

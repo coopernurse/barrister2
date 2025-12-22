@@ -1,9 +1,9 @@
-package tests
+package main
 
 import (
 	"testing"
 
-	"github.com/coopernurse/barrister2/pkg/runtime/runtimes/go/barrister2"
+	"barrister2-go-runtime/barrister2"
 )
 
 func TestValidateString(t *testing.T) {
@@ -242,4 +242,3 @@ func TestValidateType(t *testing.T) {
 		t.Errorf("Expected nil error for enum, got %v", err)
 	}
 }
-

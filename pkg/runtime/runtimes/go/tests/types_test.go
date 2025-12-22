@@ -1,9 +1,9 @@
-package tests
+package main
 
 import (
 	"testing"
 
-	"github.com/coopernurse/barrister2/pkg/runtime/runtimes/go/barrister2"
+	"barrister2-go-runtime/barrister2"
 )
 
 func TestFindStruct(t *testing.T) {
@@ -92,4 +92,3 @@ func TestGetStructFields(t *testing.T) {
 		t.Error("Expected to find childField in fields")
 	}
 }
-

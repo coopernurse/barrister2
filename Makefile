@@ -40,13 +40,13 @@ build-linux:
 # Run tests
 test:
 	@echo "Running tests..."
-	go test -v ./...
+	go test -v ./cmd/... ./pkg/generator/... ./pkg/parser/...
 
 # Run tests with coverage
 cover:
 	@echo "Running tests with coverage..."
 	@mkdir -p $(TARGET_DIR)
-	go test -v -coverprofile=$(COVERAGE_FILE) ./...
+	go test -v -coverprofile=$(COVERAGE_FILE) ./cmd/... ./pkg/generator/... ./pkg/parser/...
 	go tool cover -html=$(COVERAGE_FILE) -o $(COVERAGE_HTML)
 	@echo "Coverage report generated at $(COVERAGE_HTML)"
 	@go tool cover -func=$(COVERAGE_FILE) | tail -1
@@ -56,9 +56,9 @@ lint: install-tools
 	@echo "Running linter..."
 	@GOPATH=$$(go env GOPATH); \
 	if command -v golangci-lint > /dev/null 2>&1; then \
-		golangci-lint run --enable=unparam ./...; \
+		golangci-lint run --enable=unparam ./cmd/... ./pkg/generator/... ./pkg/parser/... ./pkg/webui/...; \
 	elif [ -f "$$GOPATH/bin/golangci-lint" ]; then \
-		$$GOPATH/bin/golangci-lint run --enable=unparam ./...; \
+		$$GOPATH/bin/golangci-lint run --enable=unparam ./cmd/... ./pkg/generator/... ./pkg/parser/... ./pkg/webui/...; \
 	else \
 		echo "Error: golangci-lint not found. Run 'make install-tools' first."; \
 		exit 1; \
@@ -106,23 +106,18 @@ test-runtime-csharp:
 	@echo "Testing C# runtime..."
 	@cd pkg/runtime/runtimes/csharp && $(MAKE) test
 
-<<<<<<< HEAD
 # Test Java runtime
 test-runtime-java:
 	@echo "Testing Java runtime..."
 	@cd pkg/runtime/runtimes/java && $(MAKE) test
 
-# Test all runtimes
-test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java
-=======
 # Test Go runtime
 test-runtime-go:
 	@echo "Testing Go runtime..."
 	@cd pkg/runtime/runtimes/go && $(MAKE) test
 
 # Test all runtimes
-test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-go
->>>>>>> e1cbe8d (go: initial go runtime commit)
+test-runtimes: test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java test-runtime-go
 	@echo "All runtime tests passed"
 
 # Test Python generator integration
