@@ -30,7 +30,7 @@ RUNTIMES=(
     "ts:ts-client-server:node:18-slim:9001:ts-node --project tsconfig.json test_server.ts"
     "csharp:csharp-client-server:mcr.microsoft.com/dotnet/sdk:8.0:9002:dotnet run --project TestServer.csproj"
     "java:java-client-server:maven:3.9-eclipse-temurin-17:9003:mvn exec:java -Dexec.mainClass=TestServer"
-    "go:go-client-server:golang:1.21-alpine:9004:go run test_server.go server.go client.go conform.go inc.go barrister2/*.go"
+    "go:go-client-server:golang:1.21-alpine:9004:rm -f client.go test_client.go && go build -o test-server-bin ./... && ./test-server-bin"
 )
 
 # Parse runtime config
@@ -241,13 +241,18 @@ start_runtime() {
     # Start container
     echo -e "${YELLOW}Starting $name server container on port $port...${NC}"
     # Run container and capture docker output so failures are visible (don't discard stderr)
+    # Use /bin/sh for Alpine images, /bin/bash for others
+    local shell="/bin/bash"
+    if [[ "$image" == *"alpine"* ]]; then
+        shell="/bin/sh"
+    fi
     container_run_output=$(docker run -d \
         --name "$container_name" \
         -p "$port:8080" \
         -v "$output_dir:/workspace" \
         -w /workspace \
         "$image" \
-        /bin/bash -c "$container_cmd" 2>&1) || {
+        $shell -c "$container_cmd" 2>&1) || {
         echo -e "${RED}ERROR: Failed to start $name container: ${container_run_output}${NC}"
         rm -rf "$output_dir"
         return 1

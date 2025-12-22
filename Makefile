@@ -146,7 +146,7 @@ test-generator-go:
 	@cd pkg/runtime/runtimes/go && $(MAKE) test-integration
 
 # Test all generators
-test-generators: test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generator-go
+test-generators: build test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generator-go
 	@echo "All generator tests passed"
 
 # Start all test servers for web UI
