@@ -753,10 +753,17 @@ func writeInvokeHandlerGo(sb *strings.Builder) {
 	sb.WriteString("	handlerValue := reflect.ValueOf(handler)\n")
 	sb.WriteString("	handlerType := handlerValue.Type()\n")
 	sb.WriteString("	\n")
-	sb.WriteString("	// Find method by name (Go methods are exported, so capitalize first letter)\n")
+	sb.WriteString("	// Find method by name (Go methods are exported, convert snake_case to camelCase)\n")
 	sb.WriteString("	methodNameCamel := \"\"\n")
 	sb.WriteString("	if len(methodName) > 0 {\n")
-	sb.WriteString("		methodNameCamel = strings.ToUpper(methodName[:1]) + methodName[1:]\n")
+	sb.WriteString("		parts := strings.Split(methodName, \"_\")\n")
+	sb.WriteString("		for i, part := range parts {\n")
+	sb.WriteString("			if i == 0 {\n")
+	sb.WriteString("				methodNameCamel += strings.ToUpper(part[:1]) + part[1:]\n")
+	sb.WriteString("			} else {\n")
+	sb.WriteString("				methodNameCamel += strings.ToUpper(part[:1]) + part[1:]\n")
+	sb.WriteString("			}\n")
+	sb.WriteString("		}\n")
 	sb.WriteString("	}\n")
 	sb.WriteString("	\n")
 	sb.WriteString("	// Try to find the method\n")
@@ -1187,7 +1194,7 @@ func writeTestMethodImplGo(sb *strings.Builder, iface *parser.Interface, method 
 		sb.WriteString("	if s == \"return-null\" {\n")
 		sb.WriteString("		return nil, nil\n")
 		sb.WriteString("	}\n")
-		sb.WriteString("	return s, nil\n")
+		sb.WriteString("	return &s, nil\n")
 		sb.WriteString("}\n\n")
 		return
 	}
@@ -1228,9 +1235,9 @@ func writeTestMethodImplGo(sb *strings.Builder, iface *parser.Interface, method 
 		sb.WriteString("		items[i] = text\n")
 		sb.WriteString("	}\n")
 		sb.WriteString("	return RepeatResponse{\n")
+		sb.WriteString("		Response: Response{Status: StatusOk},\n")
 		sb.WriteString("		Count:  count,\n")
 		sb.WriteString("		Items:  items,\n")
-		sb.WriteString("		Status: \"ok\",\n")
 		sb.WriteString("	}, nil\n")
 	case "say_hi":
 		sb.WriteString("	return HiResponse{Hi: \"hi\"}, nil\n")
@@ -1370,7 +1377,7 @@ func writeTestClientCallGo(sb *strings.Builder, iface *parser.Interface, method 
 	// Generate assertions
 	methodNameLower := strings.ToLower(method.Name)
 	if iface.Name == "B" && method.Name == "echo" {
-		sb.WriteString("		if result != \"test\" {\n")
+		sb.WriteString("		if result == nil || *result != \"test\" {\n")
 		fmt.Fprintf(sb, "			errors = append(errors, fmt.Sprintf(\"%s: expected 'test', got %%v\", result))\n", testName)
 		sb.WriteString("			return\n")
 		sb.WriteString("		}\n")

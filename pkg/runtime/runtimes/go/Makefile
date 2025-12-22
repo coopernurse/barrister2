@@ -34,7 +34,7 @@ test-integration:
 		-w /workspace \
 		-e GOTOOLCHAIN=auto \
 		$(GO_IMAGE) \
-		sh -c "bash tests/integration/test_generator_go.sh"
+		sh -c "apk add --no-cache bash curl && bash tests/integration/test_generator_go.sh"
 
 # Clean build artifacts
 clean:

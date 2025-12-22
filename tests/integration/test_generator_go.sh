@@ -93,9 +93,14 @@ fi
 
 # Step 5: Start test server in background
 echo -e "${YELLOW}Starting test server on port $SERVER_PORT...${NC}"
-# Find all .go files to run (namespace files, server, client, test_server, and runtime)
-go run *.go barrister2/*.go > server.log 2>&1 &
+# Create a server subdirectory to isolate the server code
+mkdir -p server
+cp server.go test_server.go conform.go inc.go go.mod server/
+cp -r barrister2 server/
+cd server
+go run . > ../server.log 2>&1 &
 SERVER_PID=$!
+cd ..
 
 # Step 6: Wait for server to be ready
 echo -e "${YELLOW}Waiting for server to be ready...${NC}"
@@ -120,9 +125,14 @@ echo ""
 
 # Step 7: Run test client
 echo -e "${YELLOW}Running test client...${NC}"
-# Run test_client with all necessary files
-if go run test_client.go client.go *.go barrister2/*.go "$SERVER_URL" 2>/dev/null || \
-   go run test_client.go client.go conform.go inc.go barrister2/*.go "$SERVER_URL"; then
+# Create a client subdirectory to isolate the client code
+mkdir -p client
+cp client.go test_client.go conform.go inc.go go.mod client/
+cp -r barrister2 client/
+cd client
+# Run test_client with all necessary supporting files
+if go run . "$SERVER_URL" 2>/dev/null || \
+   go run . "$SERVER_URL"; then
     echo ""
     echo -e "${GREEN}Test client passed${NC}"
 else
@@ -130,7 +140,7 @@ else
     echo ""
     echo -e "${RED}=== Tests failed with exit code $CLIENT_EXIT_CODE ===${NC}"
     echo "Server log:"
-    cat server.log
+    cat ../server.log
     exit $CLIENT_EXIT_CODE
 fi
 
