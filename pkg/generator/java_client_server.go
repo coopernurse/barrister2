@@ -154,14 +154,49 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 				return fmt.Errorf("failed to write %s: %w", clientPath, err)
 			}
 		}
+
+		// Generate namespace aggregate (IDL maps + types) into a single file
+		nsIdlCode := generateNamespaceJava(namespace, types, enumMap, jsonLib, fullPackage)
+		nsIdlPath := filepath.Join(packageDir, namespace+"Idl.java")
+		if err := os.MkdirAll(filepath.Dir(nsIdlPath), 0755); err != nil {
+			return fmt.Errorf("failed to create package directory: %w", err)
+		}
+		if err := os.WriteFile(nsIdlPath, []byte(nsIdlCode), 0644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", nsIdlPath, err)
+		}
 	}
 
-	// Generate Server.java
-	serverCode := generateServerJava(idl, structMap, namespaceMap, basePackage)
-	serverPath := filepath.Join(outputDir, "Server.java")
-	if err := os.WriteFile(serverPath, []byte(serverCode), 0644); err != nil {
+	// Generate Server.java and Client.java under the base package directory
+	// Produce two variants: a packaged version (in base package) and an un-packaged
+	// root-copied version for legacy tooling/tests.
+	serverCodePkg := generateServerJava(idl, structMap, namespaceMap, basePackage, basePackage)
+	serverCodeRoot := generateServerJava(idl, structMap, namespaceMap, basePackage, "")
+	// Server and Client belong in the base package
+	basePackageDir := filepath.Join(outputDir, strings.ReplaceAll(basePackage, ".", string(filepath.Separator)))
+	if err := os.MkdirAll(basePackageDir, 0755); err != nil {
+		return fmt.Errorf("failed to create base package directory: %w", err)
+	}
+	serverPath := filepath.Join(basePackageDir, "Server.java")
+	if err := os.WriteFile(serverPath, []byte(serverCodePkg), 0644); err != nil {
 		return fmt.Errorf("failed to write Server.java: %w", err)
 	}
+
+	// Also write an un-packaged copy of Server.java at the output root for compatibility
+	// with older tests/tools that expect Server.java to live at the project root.
+	serverRootPath := filepath.Join(outputDir, "Server.java")
+	_ = os.WriteFile(serverRootPath, []byte(serverCodeRoot), 0644)
+
+	// Generate Client.java
+	clientCodePkg := generateClientJava(idl, namespaceMap, basePackage, basePackage)
+	clientCodeRoot := generateClientJava(idl, namespaceMap, basePackage, "")
+	clientPath := filepath.Join(basePackageDir, "Client.java")
+	if err := os.WriteFile(clientPath, []byte(clientCodePkg), 0644); err != nil {
+		return fmt.Errorf("failed to write Client.java: %w", err)
+	}
+
+	// Also write an un-packaged copy of Client.java at the output root for compatibility
+	clientRootPath := filepath.Join(outputDir, "Client.java")
+	_ = os.WriteFile(clientRootPath, []byte(clientCodeRoot), 0644)
 
 	// Write IDL JSON document for barrister-idl RPC method
 	jsonData, err := json.MarshalIndent(idl, "", "  ")
@@ -225,41 +260,29 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 // copyRuntimeFiles copies the Java runtime library files to the output directory
 // Selectively copies files based on json-lib flag
 func (p *JavaClientServer) copyRuntimeFiles(outputDir string, jsonLib string) error {
-	files, err := runtime.GetRuntimeFiles("java")
-	if err != nil {
-		return err
+	// Delegate to centralized runtime copying
+	if err := runtime.CopyRuntimeFiles("java", outputDir); err != nil {
+		return fmt.Errorf("failed to copy runtime files: %w", err)
 	}
 
-	// Determine the runtime package directory name
-	runtimePackageName := "barrister2"
-	runtimeDir := filepath.Join(outputDir, runtimePackageName)
-
-	if err := os.MkdirAll(runtimeDir, 0755); err != nil {
-		return fmt.Errorf("failed to create runtime directory: %w", err)
-	}
-
-	// Copy all files, but filter based on json-lib
-	for filename, data := range files {
-		// Always copy core files
-		shouldCopy := true
-
-		// For JSON parser implementations, only copy the selected one
-		if filename == "JacksonJsonParser.java" && jsonLib != "jackson" {
-			shouldCopy = false
-		}
-		if filename == "GsonJsonParser.java" && jsonLib != "gson" {
-			shouldCopy = false
-		}
-
-		if shouldCopy {
-			dstPath := filepath.Join(runtimeDir, filename)
-			if err := os.WriteFile(dstPath, data, 0644); err != nil {
-				return fmt.Errorf("failed to write runtime file %s: %w", dstPath, err)
-			}
-		}
+	// Remove the JSON parser implementation we don't want (keep only selected jsonLib)
+	runtimeDir := filepath.Join(outputDir, getRuntimePackageDirName())
+	switch jsonLib {
+	case "jackson":
+		// remove Gson implementation if present
+		_ = os.Remove(filepath.Join(runtimeDir, "GsonJsonParser.java"))
+	case "gson":
+		// remove Jackson implementation if present
+		_ = os.Remove(filepath.Join(runtimeDir, "JacksonJsonParser.java"))
 	}
 
 	return nil
+}
+
+// getRuntimePackageDirName returns the directory name used for runtime files.
+// Mirrors runtime.getRuntimePackageName but kept local to avoid import cycles.
+func getRuntimePackageDirName() string {
+	return "barrister2"
 }
 
 // generateEnumFile generates a Java enum file
@@ -511,8 +534,8 @@ func generateInterfaceClient(iface *parser.Interface, packageName string, enumMa
 		sb.WriteString(" };\n\n")
 
 		// Create request and call transport
-		sb.WriteString("            Request request = new Request(method, params, java.util.UUID.randomUUID().toString());\n")
-		sb.WriteString("            Response response = transport.call(request);\n\n")
+		sb.WriteString("            Request rpcRequest = new Request(method, params, java.util.UUID.randomUUID().toString());\n")
+		sb.WriteString("            Response response = transport.call(rpcRequest);\n\n")
 
 		// Handle return value
 		if method.ReturnType != nil {
@@ -678,10 +701,13 @@ func writeTypeReference(sb *strings.Builder, t *parser.Type, structMap map[strin
 }
 
 // generateNamespaceJava generates a Java file for a single namespace
-func generateNamespaceJava(namespace string, types *NamespaceTypes, enumMap map[string]*parser.Enum, jsonLib string) string {
+func generateNamespaceJava(namespace string, types *NamespaceTypes, enumMap map[string]*parser.Enum, jsonLib string, packageName string) string {
 	var sb strings.Builder
 
 	sb.WriteString("// Generated by barrister - do not edit\n\n")
+
+	// Package declaration
+	sb.WriteString(fmt.Sprintf("package %s;\n\n", packageName))
 
 	// Add imports based on json-lib
 	switch jsonLib {
@@ -693,69 +719,63 @@ func generateNamespaceJava(namespace string, types *NamespaceTypes, enumMap map[
 	sb.WriteString("import java.util.Map;\n")
 	sb.WriteString("import java.util.List;\n\n")
 
-	// Generate enum types first (they may be referenced by structs)
-	generateEnumTypesJava(&sb, types.Enums)
-	sb.WriteString("\n")
-
-	// Generate struct classes
-	generateStructClassesJava(&sb, types.Structs, enumMap, jsonLib)
-	sb.WriteString("\n")
-
 	// Generate IDL-specific type definitions for this namespace
 	sb.WriteString(fmt.Sprintf("// IDL-specific type definitions for namespace: %s\n", namespace))
-	sb.WriteString("class " + namespace + "Idl {\n")
-	sb.WriteString("    public static final Map<String, Map<String, Object>> ALL_STRUCTS = Map.of(\n")
-	for i, s := range types.Structs {
-		sb.WriteString(fmt.Sprintf("        \"%s\", Map.of(\n", s.Name))
-		if s.Extends != "" {
-			sb.WriteString(fmt.Sprintf("            \"extends\", \"%s\",\n", s.Extends))
-		}
-		sb.WriteString("            \"fields\", List.of(\n")
-		for j, field := range s.Fields {
-			sb.WriteString("                Map.of(\n")
-			sb.WriteString(fmt.Sprintf("                    \"name\", \"%s\",\n", field.Name))
-			sb.WriteString("                    \"type\", ")
-			writeTypeDictJava(&sb, field.Type)
-			sb.WriteString("\n")
-			if field.Optional {
-				sb.WriteString("                    , \"optional\", true\n")
-			}
-			sb.WriteString("                )")
-			if j < len(s.Fields)-1 {
-				sb.WriteString(",")
-			}
-			sb.WriteString("\n")
-		}
-		sb.WriteString("            )\n")
-		sb.WriteString("        )")
-		if i < len(types.Structs)-1 {
-			sb.WriteString(",")
-		}
-		sb.WriteString("\n")
-	}
-	sb.WriteString("    );\n\n")
+	sb.WriteString("public final class " + namespace + "Idl {\n")
+	sb.WriteString("    public static final java.util.Map<String, java.util.Map<String, Object>> ALL_STRUCTS;\n")
+	sb.WriteString("    public static final java.util.Map<String, java.util.Map<String, Object>> ALL_ENUMS;\n\n")
 
-	sb.WriteString("    public static final Map<String, Map<String, Object>> ALL_ENUMS = Map.of(\n")
-	for i, e := range types.Enums {
-		sb.WriteString(fmt.Sprintf("        \"%s\", Map.of(\n", e.Name))
-		sb.WriteString("            \"values\", List.of(\n")
-		for j, value := range e.Values {
-			sb.WriteString("                Map.of(\n")
-			sb.WriteString(fmt.Sprintf("                    \"name\", \"%s\"\n", value.Name))
-			sb.WriteString("                )")
-			if j < len(e.Values)-1 {
-				sb.WriteString(",")
+	sb.WriteString("    static {\n")
+	sb.WriteString("        java.util.Map<String, java.util.Map<String, Object>> structs = new java.util.HashMap<>();\n")
+	sb.WriteString("        java.util.Map<String, java.util.Map<String, Object>> enums = new java.util.HashMap<>();\n\n")
+
+	// Populate structs
+	for _, s := range types.Structs {
+		sb.WriteString("        {\n")
+		sb.WriteString("            java.util.Map<String, Object> def = new java.util.HashMap<>();\n")
+		if s.Extends != "" {
+			sb.WriteString(fmt.Sprintf("            def.put(\"extends\", \"%s\");\n", s.Extends))
+		}
+		sb.WriteString("            java.util.List<java.util.Map<String, Object>> fields = new java.util.ArrayList<>();\n")
+		for _, field := range s.Fields {
+			sb.WriteString("            {\n")
+			sb.WriteString("                java.util.Map<String, Object> f = new java.util.HashMap<>();\n")
+			sb.WriteString(fmt.Sprintf("                f.put(\"name\", \"%s\");\n", field.Name))
+			sb.WriteString("                java.util.Map<String, Object> typeDef = new java.util.HashMap<>();\n")
+			// write type dict as simple map form
+			writeTypeDictJava(&sb, field.Type)
+			sb.WriteString("                f.put(\"type\", typeDef);\n")
+			if field.Optional {
+				sb.WriteString("                f.put(\"optional\", true);\n")
 			}
-			sb.WriteString("\n")
+			sb.WriteString("                fields.add(f);\n")
+			sb.WriteString("            }\n")
 		}
-		sb.WriteString("            )\n")
-		sb.WriteString("        )")
-		if i < len(types.Enums)-1 {
-			sb.WriteString(",")
-		}
-		sb.WriteString("\n")
+		sb.WriteString("            def.put(\"fields\", fields);\n")
+		sb.WriteString(fmt.Sprintf("            structs.put(\"%s\", def);\n", s.Name))
+		sb.WriteString("        }\n")
 	}
-	sb.WriteString("    );\n")
+
+	// Populate enums
+	for _, e := range types.Enums {
+		sb.WriteString("        {\n")
+		sb.WriteString("            java.util.Map<String, Object> ed = new java.util.HashMap<>();\n")
+		sb.WriteString("            java.util.List<java.util.Map<String, Object>> values = new java.util.ArrayList<>();\n")
+		for _, v := range e.Values {
+			sb.WriteString("            {\n")
+			sb.WriteString("                java.util.Map<String, Object> ev = new java.util.HashMap<>();\n")
+			sb.WriteString(fmt.Sprintf("                ev.put(\"name\", \"%s\");\n", v.Name))
+			sb.WriteString("                values.add(ev);\n")
+			sb.WriteString("            }\n")
+		}
+		sb.WriteString("            ed.put(\"values\", values);\n")
+		sb.WriteString(fmt.Sprintf("            enums.put(\"%s\", ed);\n", e.Name))
+		sb.WriteString("        }\n")
+	}
+
+	sb.WriteString("        ALL_STRUCTS = java.util.Collections.unmodifiableMap(structs);\n")
+	sb.WriteString("        ALL_ENUMS = java.util.Collections.unmodifiableMap(enums);\n")
+	sb.WriteString("    }\n")
 	sb.WriteString("}\n")
 
 	return sb.String()
@@ -833,11 +853,14 @@ func generateStructClassJava(sb *strings.Builder, structDef *parser.Struct, enum
 }
 
 // generateServerJava generates the Server.java file
-func generateServerJava(idl *parser.IDL, _ map[string]*parser.Struct, namespaceMap map[string]*NamespaceTypes, basePackage string) string {
+func generateServerJava(idl *parser.IDL, _ map[string]*parser.Struct, namespaceMap map[string]*NamespaceTypes, basePackage string, packageDecl string) string {
 	_ = namespaceMap
 	var sb strings.Builder
 
 	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	if packageDecl != "" {
+		sb.WriteString(fmt.Sprintf("package %s;\n\n", packageDecl))
+	}
 	sb.WriteString("import barrister2.*;\n")
 	sb.WriteString("import com.sun.net.httpserver.HttpServer;\n")
 	sb.WriteString("import com.sun.net.httpserver.HttpExchange;\n")
@@ -1141,10 +1164,13 @@ func generateServerJava(idl *parser.IDL, _ map[string]*parser.Struct, namespaceM
 }
 
 // generateClientJava generates the Client.java file
-func generateClientJava(_ *parser.IDL, namespaceMap map[string]*NamespaceTypes) string {
+func generateClientJava(_ *parser.IDL, namespaceMap map[string]*NamespaceTypes, basePackage string, packageDecl string) string {
 	var sb strings.Builder
 
 	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	if packageDecl != "" {
+		sb.WriteString(fmt.Sprintf("package %s;\n\n", packageDecl))
+	}
 	sb.WriteString("import barrister2.*;\n")
 	sb.WriteString("import java.io.*;\n")
 	sb.WriteString("import java.net.*;\n")
@@ -1169,11 +1195,12 @@ func generateClientJava(_ *parser.IDL, namespaceMap map[string]*NamespaceTypes) 
 	sb.WriteString("        this.allStructs = new HashMap<>();\n")
 	sb.WriteString("        this.allEnums = new HashMap<>();\n\n")
 
-	// Collect all structs and enums
+	// Collect all structs and enums from namespace IDL classes
 	for namespace := range namespaceMap {
 		if namespace != "" {
-			sb.WriteString(fmt.Sprintf("        this.allStructs.putAll(%sIdl.ALL_STRUCTS);\n", namespace))
-			sb.WriteString(fmt.Sprintf("        this.allEnums.putAll(%sIdl.ALL_ENUMS);\n", namespace))
+			nsPackage := basePackage + "." + strings.ToLower(namespace)
+			sb.WriteString(fmt.Sprintf("        this.allStructs.putAll(%s.%sIdl.ALL_STRUCTS);\n", nsPackage, namespace))
+			sb.WriteString(fmt.Sprintf("        this.allEnums.putAll(%s.%sIdl.ALL_ENUMS);\n", nsPackage, namespace))
 		}
 	}
 
@@ -1284,18 +1311,19 @@ func getBoxedJavaType(typeDef *parser.Type, enumMap map[string]*parser.Enum) str
 }
 
 func writeTypeDictJava(sb *strings.Builder, typeDef *parser.Type) {
+	// Emit Java statements that populate a variable named `typeDef` in scope.
 	if typeDef.IsBuiltIn() {
-		fmt.Fprintf(sb, "Map.of(\"builtIn\", \"%s\")", typeDef.BuiltIn)
+		fmt.Fprintf(sb, "                typeDef.put(\"builtIn\", \"%s\");\n", typeDef.BuiltIn)
 	} else if typeDef.IsArray() {
-		sb.WriteString("Map.of(\"array\", ")
+		sb.WriteString("                java.util.Map<String, Object> inner = new java.util.HashMap<>();\n")
 		writeTypeDictJava(sb, typeDef.Array)
-		sb.WriteString(")")
+		sb.WriteString("                typeDef.put(\"array\", inner);\n")
 	} else if typeDef.IsMap() {
-		sb.WriteString("Map.of(\"mapValue\", ")
+		sb.WriteString("                java.util.Map<String, Object> inner = new java.util.HashMap<>();\n")
 		writeTypeDictJava(sb, typeDef.MapValue)
-		sb.WriteString(")")
+		sb.WriteString("                typeDef.put(\"mapValue\", inner);\n")
 	} else if typeDef.IsUserDefined() {
-		fmt.Fprintf(sb, "Map.of(\"userDefined\", \"%s\")", typeDef.UserDefined)
+		fmt.Fprintf(sb, "                typeDef.put(\"userDefined\", \"%s\");\n", typeDef.UserDefined)
 	}
 }
 

@@ -11,3 +11,4 @@ __pycache__/
 node_modules/
 .cursor/debug.log
 .m2-cache/
+tmpgen/
