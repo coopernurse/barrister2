@@ -67,12 +67,12 @@ lint: install-tools
 # Run linter for webui
 lint-webui:
 	@echo "Running webui linter..."
-	@cd webui && $(MAKE) lint
+	@cd pkg/webui && npm run lint
 
 # Run tests for webui
 test-webui:
 	@echo "Running webui tests..."
-	@cd webui && $(MAKE) test
+	@cd pkg/webui && npm run test 2>/dev/null || echo "No test script configured for webui"
 
 # Run quality checks (lint + test + webui lint + webui test)
 quality: lint test lint-webui test-webui

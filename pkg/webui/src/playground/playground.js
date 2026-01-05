@@ -27,7 +27,7 @@ const runtimes = [
 ]
 
 const Playground = {
-  oninit: (vnode) => {
+  oninit: (_vnode) => {
     // Load IDL from localStorage if available
     const savedIDL = localStorage.getItem('barrister-idl')
     if (savedIDL) {
