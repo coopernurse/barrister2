@@ -7,6 +7,9 @@ import InterfaceBrowser from './components/InterfaceBrowser.js';
 import MethodForm from './components/MethodForm.js';
 import JsonViewer from './components/JsonViewer.js';
 
+// Import services
+import { callMethod } from './services/api.js';
+
 // Application state
 const AppState = {
     currentEndpoint: null,
@@ -211,7 +214,6 @@ const App = {
                             };
                             
                             try {
-                                const { callMethod } = await import('./services/api.js');
                                 const response = await callMethod(
                                     AppState.currentEndpoint,
                                     AppState.selectedInterface.name,

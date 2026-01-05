@@ -3,6 +3,7 @@
 import m from 'mithril'
 import { getEndpoints, saveEndpoint, removeEndpoint } from '../utils/storage.js';
 import { discoverIDL } from '../services/api.js';
+import { buildTypeRegistry } from '../utils/types.js';
 
 export default {
     newEndpointUrl: '',
@@ -109,7 +110,6 @@ export default {
             const idl = await discoverIDL(url);
             
             // Build type registry
-            const { buildTypeRegistry } = await import('../utils/types.js');
             const typeRegistry = buildTypeRegistry(idl);
             
             // Update app state

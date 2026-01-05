@@ -1,6 +1,11 @@
 // JsonViewer component - displays request/response JSON with syntax highlighting
 
 import m from 'mithril'
+import hljs from 'highlight.js/lib/core';
+import jsonLanguage from 'highlight.js/lib/languages/json';
+
+// Register JSON language
+hljs.registerLanguage('json', jsonLanguage);
 
 export default {
     activeTab: 'response', // 'request' or 'response'
@@ -108,11 +113,21 @@ export default {
     renderFallback(vnode, data) {
         try {
             const jsonStr = JSON.stringify(data, null, 2);
-            vnode.dom.innerHTML = '<pre class="mb-0"><code>' + 
-                this.escapeHtml(jsonStr) + 
-                '</code></pre>';
+            const pre = document.createElement('pre');
+            pre.className = 'mb-0 hljs-json-wrapper';
+
+            const code = document.createElement('code');
+            code.className = 'language-json';
+            code.textContent = jsonStr;
+
+            pre.appendChild(code);
+            vnode.dom.innerHTML = '';
+            vnode.dom.appendChild(pre);
+
+            // Apply highlight.js syntax highlighting
+            hljs.highlightElement(code);
         } catch (e) {
-            vnode.dom.innerHTML = '<p class="text-danger">Failed to format JSON: ' + 
+            vnode.dom.innerHTML = '<p class="text-danger">Failed to format JSON: ' +
                 this.escapeHtml(e.message) + '</p>';
         }
     },

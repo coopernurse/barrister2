@@ -562,6 +562,67 @@ body {
   color: #fff;
 }
 
+/* Fix endpoint card layout */
+.list-group-item .d-flex {
+  min-width: 0; /* Critical for flex text truncation */
+}
+
+.list-group-item .flex-grow-1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.list-group-item .fw-bold {
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-group-item small {
+  display: block;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+  word-break: break-word;
+}
+
+.list-group-item .btn-sm {
+  flex: 0 0 auto;
+  margin-left: 0.5rem;
+}
+
+/* Button outline variants */
+.btn-outline-danger {
+  background-color: transparent;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
+.list-group-item.active .btn-outline-danger {
+  border-color: rgba(255, 255, 255, 0.75);
+  color: #fff;
+}
+
+.list-group-item.active .btn-outline-danger:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: #fff;
+}
+
+.list-group-item.active .text-muted {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.fw-bold {
+  font-weight: 600;
+}
+
 /* Method item styling */
 .method-item {
   padding: 0.75rem;
@@ -595,6 +656,101 @@ body {
   padding: 1rem;
   height: calc(100vh - 2rem);
   overflow-y: auto;
+}
+
+/* Input group styling */
+.input-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-group > .form-control {
+  flex: 1 1 auto;
+  width: 1%;
+}
+
+.input-group > .btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Flexbox utilities */
+.d-flex {
+  display: flex !important;
+}
+
+.flex-direction-column {
+  flex-direction: column;
+}
+
+.flex-direction-row {
+  flex-direction: row;
+}
+
+.justify-content-start {
+  justify-content: flex-start;
+}
+
+.justify-content-end {
+  justify-content: flex-end;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.justify-content-between {
+  justify-content: space-between;
+}
+
+.justify-content-around {
+  justify-content: space-around;
+}
+
+.align-items-start {
+  align-items: flex-start;
+}
+
+.align-items-end {
+  align-items: flex-end;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.align-items-baseline {
+  align-items: baseline;
+}
+
+.align-items-stretch {
+  align-items: stretch;
+}
+
+.flex-grow-0 {
+  flex-grow: 0;
+}
+
+.flex-grow-1 {
+  flex-grow: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.flex-shrink-1 {
+  flex-shrink: 1;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
 }
 
 .sidebar-container {
@@ -672,6 +828,20 @@ body {
   padding: 1rem;
   max-height: 600px;
   overflow-y: auto;
+}
+
+.json-viewer-container pre {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f6f8fa;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+.json-viewer-container code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .nav-tabs {
