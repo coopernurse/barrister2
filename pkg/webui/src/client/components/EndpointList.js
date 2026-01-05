@@ -1,6 +1,6 @@
 // EndpointList component - sidebar with endpoint management
 
-const m = window.m;
+import m from 'mithril'
 import { getEndpoints, saveEndpoint, removeEndpoint } from '../utils/storage.js';
 import { discoverIDL } from '../services/api.js';
 

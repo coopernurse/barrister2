@@ -4,5 +4,4 @@ import './styles/main.css'
 import 'highlight.js/styles/github.css'
 
 // Initialize the application
-const root = document.body
-m.render(root, App)
+m.mount(document.body, App)

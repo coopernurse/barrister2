@@ -1,6 +1,6 @@
 // MethodForm component - generates dynamic forms from method parameters
 
-const m = window.m;
+import m from 'mithril'
 import TypeInput from './TypeInput.js';
 
 export default {

@@ -1,6 +1,6 @@
 // JsonViewer component - displays request/response JSON with syntax highlighting
 
-const m = window.m;
+import m from 'mithril'
 
 export default {
     activeTab: 'response', // 'request' or 'response'

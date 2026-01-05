@@ -1,6 +1,6 @@
 // InterfaceBrowser component - displays interfaces and methods
 
-const m = window.m;
+import m from 'mithril'
 
 export default {
     expandedInterfaces: new Set(),

@@ -1,6 +1,6 @@
 // TypeInput component - recursive component for rendering inputs based on type
 
-const m = window.m;
+import m from 'mithril'
 import { resolveType, findStruct, findEnum, getStructFields } from '../utils/types.js';
 
 const TypeInput = {
