@@ -4,7 +4,12 @@
       "Skill(superpowers:brainstorming)",
       "Skill(superpowers:brainstorming:*)",
       "Skill(superpowers:using-git-worktrees)",
-      "Skill(superpowers:using-git-worktrees:*)"
+      "Skill(superpowers:using-git-worktrees:*)",
+      "Skill(superpowers:executing-plans)",
+      "Skill(superpowers:executing-plans:*)",
+      "Bash(git worktree:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)"
     ]
   }
 }
