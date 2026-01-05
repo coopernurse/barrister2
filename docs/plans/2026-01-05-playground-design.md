@@ -248,6 +248,8 @@ docker run barrister-e2e
 - `vite` (^5.0) - Build tool (dev dependency)
 - `@playwright/test` - E2E testing (dev dependency)
 
+IMPORTANT: Use context7 to load up to date docs on dependencies.
+
 ## Success Criteria
 
 - Users can generate code for all 5 runtimes (Go, Java, Python, TypeScript, C#)

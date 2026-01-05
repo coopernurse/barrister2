@@ -110,6 +110,18 @@ func (m *Manager) Generate(idl string, runtime string) (*Session, error) {
 	// Call the plugin's RegisterFlags
 	plugin.RegisterFlags(fs)
 
+	// Set default values for Java-specific flags if they exist and are empty
+	if pkgFlag := fs.Lookup("base-package"); pkgFlag != nil {
+		if pkgFlag.Value.String() == "" {
+			pkgFlag.Value.Set("com.example.generated")
+		}
+	}
+	if jsonFlag := fs.Lookup("json-lib"); jsonFlag != nil {
+		if jsonFlag.Value.String() == "" {
+			jsonFlag.Value.Set("jackson")
+		}
+	}
+
 	// Parse the FlagSet (this is needed to set the flag values)
 	if err := fs.Parse([]string{}); err != nil {
 		return nil, fmt.Errorf("failed to parse flags: %w", err)

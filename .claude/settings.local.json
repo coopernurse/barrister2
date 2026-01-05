@@ -9,7 +9,8 @@
       "Skill(superpowers:executing-plans:*)",
       "Bash(git worktree:*)",
       "Bash(go build:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(make:*)"
     ]
   }
 }

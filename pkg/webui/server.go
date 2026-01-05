@@ -6,19 +6,40 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/coopernurse/barrister2/pkg/generator"
+	"github.com/coopernurse/barrister2/pkg/playground"
 )
 
 // Server represents the web UI HTTP server
 type Server struct {
-	port int
+	port          int
+	playgroundMgr *playground.Manager
 }
 
 // NewServer creates a new web UI server
 func NewServer(port int) *Server {
+	// Create playground manager with temp directory
+	tempDir := filepath.Join(os.TempDir(), "barrister-playground")
+	plugins := []generator.Plugin{
+		generator.NewGoClientServer(),
+		generator.NewJavaClientServer(),
+		generator.NewPythonClientServer(),
+		generator.NewTSClientServer(),
+		generator.NewCSharpClientServer(),
+	}
+
+	mgr, err := playground.NewManager(tempDir, plugins)
+	if err != nil {
+		log.Fatalf("Failed to create playground manager: %v", err)
+	}
+
 	return &Server{
-		port: port,
+		port:          port,
+		playgroundMgr: mgr,
 	}
 }
 
@@ -33,6 +54,11 @@ func (s *Server) Start() error {
 
 	// API endpoints
 	mux.HandleFunc("/api/proxy", s.handleProxy)
+
+	// Playground API endpoints
+	mux.HandleFunc("/api/playground/generate", s.handlePlaygroundGenerate)
+	mux.HandleFunc("/api/playground/files/", s.handlePlaygroundFiles)
+	mux.HandleFunc("/api/playground/zip/", s.handlePlaygroundZip)
 
 	addr := fmt.Sprintf(":%d", s.port)
 	log.Printf("Barrister Web UI server starting on http://localhost%s", addr)
@@ -177,5 +203,208 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	if _, err := w.Write(respBody); err != nil {
 		log.Printf("Failed to write response: %v", err)
+	}
+}
+
+// GenerateRequest represents the request body for /api/playground/generate
+type GenerateRequest struct {
+	IDL     string `json:"idl"`
+	Runtime string `json:"runtime"`
+}
+
+// GenerateResponse represents the response from /api/playground/generate
+type GenerateResponse struct {
+	ID    string   `json:"id"`
+	Files []string `json:"files"`
+}
+
+// handlePlaygroundGenerate handles code generation requests
+func (s *Server) handlePlaygroundGenerate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read request body: %v", err), http.StatusBadRequest)
+		return
+	}
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("Failed to close request body: %v", err)
+		}
+	}()
+
+	// Parse request
+	var req GenerateRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if req.IDL == "" {
+		http.Error(w, "IDL is required", http.StatusBadRequest)
+		return
+	}
+	if req.Runtime == "" {
+		http.Error(w, "Runtime is required", http.StatusBadRequest)
+		return
+	}
+
+	// Generate code
+	session, err := s.playgroundMgr.Generate(req.IDL, req.Runtime)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Generation failed: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Send response
+	resp := GenerateResponse{
+		ID:    session.ID,
+		Files: session.Files,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+	}
+}
+
+// handlePlaygroundFiles handles file retrieval requests
+func (s *Server) handlePlaygroundFiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract session ID and file path from URL
+	// URL format: /api/playground/files/<session-id>/<file-path>
+	prefix := "/api/playground/files/"
+	path := strings.TrimPrefix(r.URL.Path, prefix)
+
+	if path == "" {
+		http.Error(w, "Session ID and file path are required", http.StatusBadRequest)
+		return
+	}
+
+	// Split into session ID and file path
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) < 2 {
+		http.Error(w, "File path is required", http.StatusBadRequest)
+		return
+	}
+
+	sessionID := parts[0]
+	filePath := parts[1]
+
+	// Check if session exists
+	_, ok := s.playgroundMgr.GetSession(sessionID)
+	if !ok {
+		http.Error(w, fmt.Sprintf("Session not found: %s. It may have expired (sessions are deleted after 2 hours)", sessionID), http.StatusNotFound)
+		return
+	}
+
+	// Check if session is expired
+	if s.playgroundMgr.IsExpired(sessionID) {
+		http.Error(w, "Session has expired (sessions are deleted after 2 hours)", http.StatusNotFound)
+		return
+	}
+
+	// Get file contents
+	data, err := s.playgroundMgr.GetFile(sessionID, filePath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read file: %v", err), http.StatusNotFound)
+		return
+	}
+
+	// Detect content type based on file extension
+	contentType := detectContentType(filePath)
+
+	w.Header().Set("Content-Type", contentType)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
+}
+
+// handlePlaygroundZip handles ZIP archive download requests
+func (s *Server) handlePlaygroundZip(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract session ID from URL
+	// URL format: /api/playground/zip/<session-id>
+	prefix := "/api/playground/zip/"
+	sessionID := strings.TrimPrefix(r.URL.Path, prefix)
+
+	if sessionID == "" || sessionID == r.URL.Path {
+		http.Error(w, "Session ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if session exists
+	session, ok := s.playgroundMgr.GetSession(sessionID)
+	if !ok {
+		http.Error(w, fmt.Sprintf("Session not found: %s. It may have expired (sessions are deleted after 2 hours)", sessionID), http.StatusNotFound)
+		return
+	}
+
+	// Check if session is expired
+	if s.playgroundMgr.IsExpired(sessionID) {
+		http.Error(w, "Session has expired (sessions are deleted after 2 hours)", http.StatusNotFound)
+		return
+	}
+
+	// Create ZIP archive
+	zipData, err := s.playgroundMgr.CreateZip(sessionID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to create ZIP: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Send ZIP file
+	filename := session.GetZipFilename()
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	if _, err := w.Write(zipData); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
+}
+
+// detectContentType returns the appropriate content type for a file based on its extension
+func detectContentType(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	switch ext {
+	case ".go":
+		return "text/plain; charset=utf-8"
+	case ".java":
+		return "text/plain; charset=utf-8"
+	case ".py":
+		return "text/plain; charset=utf-8"
+	case ".ts", ".tsx":
+		return "text/plain; charset=utf-8"
+	case ".js":
+		return "text/javascript; charset=utf-8"
+	case ".cs":
+		return "text/plain; charset=utf-8"
+	case ".json":
+		return "application/json"
+	case ".md":
+		return "text/markdown; charset=utf-8"
+	case ".html":
+		return "text/html; charset=utf-8"
+	case ".css":
+		return "text/css; charset=utf-8"
+	case ".xml":
+		return "text/xml; charset=utf-8"
+	case ".txt":
+		return "text/plain; charset=utf-8"
+	default:
+		return "application/octet-stream"
 	}
 }
