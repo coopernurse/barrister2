@@ -10,7 +10,10 @@
       "Bash(git worktree:*)",
       "Bash(go build:*)",
       "Bash(go test:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
