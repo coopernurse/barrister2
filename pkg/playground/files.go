@@ -143,7 +143,7 @@ func (m *Manager) IsExpired(sessionID string) bool {
 		return true
 	}
 
-	return time.Now().Sub(session.Created) > m.maxAge
+	return time.Since(session.Created) > m.maxAge
 }
 
 // SetMaxAge sets the maximum age for sessions before cleanup
