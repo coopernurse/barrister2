@@ -14,7 +14,7 @@ COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 # Build the web UI
 build-webui:
 	@echo "Building web UI..."
-	@cd webui && $(MAKE) build
+	@cd pkg/webui && npm install && npm run build
 
 # Build the binary
 build: build-webui
@@ -166,5 +166,6 @@ clean:
 	@echo "Cleaning..."
 	rm -rf $(TARGET_DIR)
 	go clean ./...
-	@cd webui && $(MAKE) clean || true
+	rm -rf pkg/webui/dist
+	rm -rf pkg/webui/node_modules
 
