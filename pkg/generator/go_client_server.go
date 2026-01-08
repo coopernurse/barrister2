@@ -124,9 +124,9 @@ func (p *GoClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 		return fmt.Errorf("failed to write barrister2/go.mod: %w", err)
 	}
 
-	// Check if test-server flag is set
-	testServerFlag := fs.Lookup("test-server")
-	generateTestServer := testServerFlag != nil && testServerFlag.Value.String() == "true"
+	// Check if generate-test-files flag is set
+	generateTestFilesFlag := fs.Lookup("generate-test-files")
+	generateTestServer := generateTestFilesFlag != nil && generateTestFilesFlag.Value.String() == "true"
 
 	// Generate test server and client if flag is set
 	if generateTestServer {

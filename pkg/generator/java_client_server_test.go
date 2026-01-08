@@ -72,3 +72,112 @@ func TestJavaGeneratorBasicFiles(t *testing.T) {
 		t.Fatalf("expected Client.java at %s, missing: %v", clientPath, err)
 	}
 }
+
+func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "barrister-java-gen-")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Build a minimal IDL with an interface
+	idl := &parser.IDL{
+		Interfaces: []*parser.Interface{
+			{
+				Name:      "A",
+				Namespace: "",
+				Methods: []*parser.Method{
+					{
+						Name:         "add",
+						Parameters:   []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
+						ReturnType:   &parser.Type{BuiltIn: "int"},
+					},
+				},
+			},
+		},
+	}
+
+	p := NewJavaClientServer()
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.String("dir", "", "output dir")
+	fs.Bool("generate-test-files", true, "generate test files")
+	p.RegisterFlags(fs)
+	if err := fs.Set("dir", tmpDir); err != nil {
+		t.Fatalf("failed to set dir flag: %v", err)
+	}
+	if err := fs.Set("base-package", "com.example"); err != nil {
+		t.Fatalf("failed to set base-package flag: %v", err)
+	}
+	if err := fs.Set("generate-test-files", "true"); err != nil {
+		t.Fatalf("failed to set generate-test-files flag: %v", err)
+	}
+
+	if err := p.Generate(idl, fs); err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	// Check that test files are generated when flag is true
+	testServerPath := filepath.Join(tmpDir, "TestServer.java")
+	if _, err := os.Stat(testServerPath); err != nil {
+		t.Fatalf("expected TestServer.java at %s, missing: %v", testServerPath, err)
+	}
+	testClientPath := filepath.Join(tmpDir, "TestClient.java")
+	if _, err := os.Stat(testClientPath); err != nil {
+		t.Fatalf("expected TestClient.java at %s, missing: %v", testClientPath, err)
+	}
+}
+
+func TestJavaGeneratorTestFilesDisabled(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "barrister-java-gen-")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	// Build a minimal IDL with an interface
+	idl := &parser.IDL{
+		Interfaces: []*parser.Interface{
+			{
+				Name:      "A",
+				Namespace: "",
+				Methods: []*parser.Method{
+					{
+						Name:         "add",
+						Parameters:   []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
+						ReturnType:   &parser.Type{BuiltIn: "int"},
+					},
+				},
+			},
+		},
+	}
+
+	p := NewJavaClientServer()
+	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+	fs.String("dir", "", "output dir")
+	fs.Bool("generate-test-files", true, "generate test files")
+	p.RegisterFlags(fs)
+	if err := fs.Set("dir", tmpDir); err != nil {
+		t.Fatalf("failed to set dir flag: %v", err)
+	}
+	if err := fs.Set("base-package", "com.example"); err != nil {
+		t.Fatalf("failed to set base-package flag: %v", err)
+	}
+	// Explicitly disable test file generation
+	if err := fs.Set("generate-test-files", "false"); err != nil {
+		t.Fatalf("failed to set generate-test-files flag: %v", err)
+	}
+
+	if err := p.Generate(idl, fs); err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+
+	// Check that test files are NOT generated when generate-test-files is false
+	testServerPath := filepath.Join(tmpDir, "TestServer.java")
+	if _, err := os.Stat(testServerPath); err == nil {
+		t.Fatalf("TestServer.java should NOT be generated when -generate-test-files=false")
+	}
+	testClientPath := filepath.Join(tmpDir, "TestClient.java")
+	if _, err := os.Stat(testClientPath); err == nil {
+		t.Fatalf("TestClient.java should NOT be generated when -generate-test-files=false")
+	}
+}
