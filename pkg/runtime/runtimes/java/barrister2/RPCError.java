@@ -1,4 +1,4 @@
-package barrister2;
+package com.bitmechanic.barrister2;
 
 /**
  * Exception class for JSON-RPC 2.0 errors

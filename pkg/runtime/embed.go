@@ -139,8 +139,11 @@ func CopyRuntimeFiles(lang string, outputDir string) error {
 
 // getRuntimePackageName returns the package/module name for the runtime library
 // This is the directory name where runtime files are placed in the output
-func getRuntimePackageName(_lang string) string {
-	// Currently all languages use "barrister2" as the package name
-	// The lang parameter is kept for future extensibility
-	return "barrister2"
+func getRuntimePackageName(lang string) string {
+	switch lang {
+	case "java":
+		return "com/bitmechanic/barrister2"
+	default:
+		return "barrister2"
+	}
 }

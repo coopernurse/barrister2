@@ -1,4 +1,4 @@
-package barrister2;
+package com.bitmechanic.barrister2;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

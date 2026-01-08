@@ -1,4 +1,4 @@
-package barrister2;
+package com.bitmechanic.barrister2;
 
 import java.io.IOException;
 import java.net.URI;

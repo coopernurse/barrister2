@@ -1,4 +1,4 @@
-package barrister2;
+package com.bitmechanic.barrister2;
 
 import java.util.List;
 import java.util.Map;

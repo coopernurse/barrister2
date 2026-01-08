@@ -1,4 +1,4 @@
-package barrister2;
+package com.bitmechanic.barrister2;
 
 /**
  * Transport abstraction for making RPC calls
