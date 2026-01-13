@@ -286,10 +286,25 @@ test_csharp() {
     dotnet run --project TestServer.csproj > /tmp/csharp-server.log 2>&1 &
     SERVER_PID=$!
 
+    # Give server a moment to start
+    sleep 2
+
+    # Check if process is still running
+    if ! kill -0 $SERVER_PID 2>/dev/null; then
+        print_error "C# server process died immediately"
+        cat /tmp/csharp-server.log
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        FAILED_LANGUAGES+=("C#")
+        cd "$DIR"
+        return 1
+    fi
+
     # Wait for server
     if ! wait_for_server "http://localhost:8080"; then
         print_error "C# server failed to start"
+        echo "=== Server log ==="
         cat /tmp/csharp-server.log
+        echo "=== End of log ==="
         FAILED_TESTS=$((FAILED_TESTS + 1))
         FAILED_LANGUAGES+=("C#")
         kill $SERVER_PID 2>/dev/null || true
