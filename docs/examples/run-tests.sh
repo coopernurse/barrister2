@@ -103,9 +103,9 @@ test_go() {
 
     cd "$DIR/docs/examples/checkout-go"
 
-    # Build server using cmd/testserver
+    # Build server using build tags to exclude client code
     print_info "Building Go server..."
-    go build -o /tmp/test-server ./cmd/testserver/main.go ./checkout.go ./server.go > /tmp/go-build.log 2>&1
+    go build -tags test_server -o /tmp/test-server . > /tmp/go-build.log 2>&1
     if [ $? -ne 0 ]; then
         print_error "Go server build failed"
         cat /tmp/go-build.log
@@ -131,9 +131,9 @@ test_go() {
         return 1
     fi
 
-    # Build and run client using cmd/testclient
+    # Build client using build tags to exclude server code
     print_info "Building Go client..."
-    go build -o /tmp/test-client ./cmd/testclient/main.go ./checkout.go ./client.go > /tmp/go-client-build.log 2>&1
+    go build -tags test_client -o /tmp/test-client . > /tmp/go-client-build.log 2>&1
     if /tmp/test-client > /tmp/go-client.log 2>&1; then
         print_success "Go tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
