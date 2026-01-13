@@ -104,7 +104,7 @@ npm run lint                  # ESLint
 
 ## Integration Test Flow
 
-1. Generate code with `-test-server` flag (creates `test_server.*` and `test_client.*`)
+1. Generate code with `-generate-test-files` flag (creates `test_server.*` and `test_client.*`)
 2. Start server in Docker container
 3. Run client tests validating all interface methods
 4. Uses [examples/conform.idl](examples/conform.idl) which exercises all IDL features
