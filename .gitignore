@@ -15,3 +15,6 @@ tmpgen/
 .worktrees/
 docs/examples/checkout-typescript/dist/
 docs/examples/checkout-typescript/package-lock.json
+docs/examples/checkout-csharp/bin/
+docs/examples/checkout-csharp/obj/
+docs/examples/checkout-java/target/

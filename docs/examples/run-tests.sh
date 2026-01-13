@@ -169,6 +169,17 @@ test_java() {
         return 0
     fi
 
+    # Compile the project first
+    print_info "Compiling Java project..."
+    if ! mvn compile -q > /tmp/java-compile.log 2>&1; then
+        print_error "Java compile failed"
+        cat /tmp/java-compile.log
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        FAILED_LANGUAGES+=("Java")
+        cd "$DIR"
+        return 1
+    fi
+
     # Start server in background
     print_info "Starting Java server..."
     mvn exec:java -Dexec.mainClass="TestServer" > /tmp/java-server.log 2>&1 &
@@ -289,6 +300,8 @@ test_csharp() {
             cd "$DIR"
             return 1
         fi
+    else
+        print_info "Skipping C# server build (using cached bin/)"
     fi
 
     # Build client
@@ -304,9 +317,9 @@ test_csharp() {
         return 1
     fi
 
-    # Start server in background
+    # Start server in background using the compiled DLL
     print_info "Starting C# server..."
-    dotnet run --project TestServer.csproj > /tmp/csharp-server.log 2>&1 &
+    dotnet bin/Debug/net8.0/TestServer.dll > /tmp/csharp-server.log 2>&1 &
     SERVER_PID=$!
 
     # Give server a moment to start
@@ -315,7 +328,9 @@ test_csharp() {
     # Check if process is still running
     if ! kill -0 $SERVER_PID 2>/dev/null; then
         print_error "C# server process died immediately"
+        echo "=== Server log ==="
         cat /tmp/csharp-server.log
+        echo "=== End of log ==="
         FAILED_TESTS=$((FAILED_TESTS + 1))
         FAILED_LANGUAGES+=("C#")
         cd "$DIR"
@@ -335,8 +350,8 @@ test_csharp() {
         return 1
     fi
 
-    # Run tests
-    if dotnet run --project TestClient.csproj > /tmp/csharp-client.log 2>&1; then
+    # Run tests using compiled DLL
+    if dotnet bin/Debug/net8.0/TestClient.dll > /tmp/csharp-client.log 2>&1; then
         print_success "C# tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else
@@ -347,7 +362,7 @@ test_csharp() {
     fi
 
     # Cleanup
-    kill $SERVER_PID 2>/dev/null || true
+    pkill -f TestServer.dll 2>/dev/null || true
     sleep 1
     cd "$DIR"
 }
