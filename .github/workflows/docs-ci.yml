@@ -65,7 +65,7 @@ jobs:
 
       - name: Test ${{ matrix.language }} example
         run: |
-          docs/examples/run-tests.sh --${{ matrix.language }}
+          DEBUG=1 docs/examples/run-tests.sh --${{ matrix.language }}
         env:
           DIR: ${{ github.workspace }}
 

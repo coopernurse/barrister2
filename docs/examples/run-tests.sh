@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Integration test runner for Barrister2 documentation examples
 # Tests all language examples to ensure code stays working
-
-set -e
+#
+# Debug mode: Set DEBUG=1 to show all commands as they run
+if [ "$DEBUG" = "1" ]; then
+    set -x
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -274,12 +277,30 @@ test_csharp() {
     # Build server if needed
     if [ ! -d "bin" ]; then
         print_info "Building C# server..."
-        dotnet build TestServer.csproj > /tmp/csharp-build.log 2>&1
+        if ! dotnet build TestServer.csproj > /tmp/csharp-build.log 2>&1; then
+            print_error "C# server build failed"
+            echo "=== Build log ==="
+            cat /tmp/csharp-build.log
+            echo "=== End of log ==="
+            FAILED_TESTS=$((FAILED_TESTS + 1))
+            FAILED_LANGUAGES+=("C#")
+            cd "$DIR"
+            return 1
+        fi
     fi
 
     # Build client
     print_info "Building C# client..."
-    dotnet build TestClient.csproj > /tmp/csharp-client-build.log 2>&1
+    if ! dotnet build TestClient.csproj > /tmp/csharp-client-build.log 2>&1; then
+        print_error "C# client build failed"
+        echo "=== Client build log ==="
+        cat /tmp/csharp-client-build.log
+        echo "=== End of log ==="
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        FAILED_LANGUAGES+=("C#")
+        cd "$DIR"
+        return 1
+    fi
 
     # Start server in background
     print_info "Starting C# server..."
