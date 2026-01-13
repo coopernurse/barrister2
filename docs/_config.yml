@@ -1,0 +1,21 @@
+title: Barrister2 RPC
+description: IDL-based JSON-RPC code generation
+lang: en
+baseurl: /barrister2
+
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle
+
+collections:
+  pages:
+    output: true
+    permalink: /:path/
