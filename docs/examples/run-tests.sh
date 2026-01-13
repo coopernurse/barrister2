@@ -180,9 +180,13 @@ test_java() {
         return 1
     fi
 
-    # Start server in background
+    # Build classpath for runtime dependencies
+    print_info "Building classpath..."
+    JAVA_CP="target/classes:$(mvn dependency:build-classpath -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout 2>/dev/null)"
+
+    # Start server in background using compiled classes
     print_info "Starting Java server..."
-    mvn exec:java -Dexec.mainClass="TestServer" > /tmp/java-server.log 2>&1 &
+    java -cp "$JAVA_CP" TestServer > /tmp/java-server.log 2>&1 &
     SERVER_PID=$!
 
     # Wait for server
@@ -199,7 +203,7 @@ test_java() {
     fi
 
     # Run tests
-    if mvn exec:java -Dexec.mainClass="TestClient" > /tmp/java-client.log 2>&1; then
+    if java -cp "$JAVA_CP" TestClient > /tmp/java-client.log 2>&1; then
         print_success "Java tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else
@@ -210,7 +214,7 @@ test_java() {
     fi
 
     # Cleanup
-    kill $SERVER_PID 2>/dev/null || true
+    pkill -f TestServer 2>/dev/null || true
     sleep 1
     cd "$DIR"
 }
