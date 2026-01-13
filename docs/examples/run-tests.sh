@@ -171,13 +171,15 @@ test_java() {
 
     # Start server in background
     print_info "Starting Java server..."
-    mvn -q exec:java -Dexec.mainClass="TestServer" > /tmp/java-server.log 2>&1 &
+    mvn exec:java -Dexec.mainClass="TestServer" > /tmp/java-server.log 2>&1 &
     SERVER_PID=$!
 
     # Wait for server
     if ! wait_for_server "http://localhost:8080"; then
         print_error "Java server failed to start"
+        echo "=== Java server log ==="
         cat /tmp/java-server.log
+        echo "=== End of log ==="
         FAILED_TESTS=$((FAILED_TESTS + 1))
         FAILED_LANGUAGES+=("Java")
         kill $SERVER_PID 2>/dev/null || true
@@ -186,7 +188,7 @@ test_java() {
     fi
 
     # Run tests
-    if mvn -q exec:java -Dexec.mainClass="TestClient" > /tmp/java-client.log 2>&1; then
+    if mvn exec:java -Dexec.mainClass="TestClient" > /tmp/java-client.log 2>&1; then
         print_success "Java tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else

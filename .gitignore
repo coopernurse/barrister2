@@ -13,3 +13,5 @@ node_modules/
 .m2-cache/
 tmpgen/
 .worktrees/
+docs/examples/checkout-typescript/dist/
+docs/examples/checkout-typescript/package-lock.json

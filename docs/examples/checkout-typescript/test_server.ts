@@ -40,8 +40,9 @@ class CartServiceImpl extends CartService {
       items: [{
         productId: request.productId,
         quantity: request.quantity,
+        price: 9.99,
       }],
-      subtotal: 0.0,
+      subtotal: 9.99,
     };
   }
 

@@ -8,10 +8,12 @@ public class CartServiceImpl implements CartService {
         // Return a valid cart with items to pass validation
         Cart cart = new Cart();
         cart.cartId = "cart-1";
+        cart.subtotal = 9.99;
         cart.items = new java.util.ArrayList<CartItem>();
         CartItem item = new CartItem();
         item.productId = request.productId;
         item.quantity = request.quantity;
+        item.price = 9.99;
         cart.items.add(item);
         return cart;
     }
@@ -21,6 +23,7 @@ public class CartServiceImpl implements CartService {
         // Return a valid cart to pass validation
         Cart cart = new Cart();
         cart.cartId = cartId;
+        cart.subtotal = 0.0;
         cart.items = new java.util.ArrayList<CartItem>();
         return cart;
     }
