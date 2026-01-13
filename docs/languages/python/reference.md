@@ -1,8 +1,184 @@
 ---
-title: Reference
+title: Python Reference
 layout: default
 ---
 
-# Reference
+# Python Reference
 
-Coming soon...
+## Type Mappings
+
+| IDL Type | Python Type | Example |
+|----------|-------------|---------|
+| `string` | `str` | `"hello"` |
+| `int` | `int` | `42` |
+| `float` | `float` | `3.14` |
+| `bool` | `bool` | `True`, `False` |
+| `[]Type` | `list` | `[1, 2, 3]` |
+| `map[string]Type` | `dict` | `{"key": "value"}` |
+| `Enum` | `str` | `"pending"` |
+| `Struct` | `dict` or dataclass | `{"field": "value"}` |
+| `T [optional]` | `None` or type | `None` or value |
+
+## Generated Classes
+
+Each struct in your IDL becomes a Python class:
+
+```python
+from checkout import Product, Cart, CartItem
+
+# Create instances
+product = Product(
+    productId="prod001",
+    name="Wireless Mouse",
+    description="Ergonomic mouse",
+    price=29.99,
+    stock=50,
+    imageUrl="https://example.com/mouse.jpg"  # optional field
+)
+
+cart = Cart(
+    cartId="cart_1234",
+    items=[],
+    subtotal=0.0
+)
+```
+
+## Optional Fields
+
+Optional fields can be `None`:
+
+```python
+# Define with optional field
+product = Product(
+    productId="prod001",
+    name="Wireless Mouse",
+    description="Ergonomic mouse",
+    price=29.99,
+    stock=50,
+    imageUrl=None  # optional field can be None
+)
+
+# Check for optional field
+if product.imageUrl:
+    print(product.imageUrl)
+```
+
+## Error Handling
+
+Throw `RPCError` with custom codes:
+
+```python
+from barrister2 import RPCError
+
+# Standard JSON-RPC errors
+throw RPCError(-32602, "Invalid params")
+
+# Custom application errors (use codes >= 1000)
+throw RPCError(1001, "CartNotFound: Cart does not exist")
+throw RPCError(1002, "CartEmpty: Cannot create order from empty cart")
+```
+
+Common error codes:
+- `-32700`: Parse error
+- `-32600`: Invalid request
+- `-32601`: Method not found
+- `-32602`: Invalid params
+- `-32603`: Internal error
+- `1000+`: Custom application errors
+
+## Server Implementation
+
+Extend generated service classes:
+
+```python
+from server import BarristerServer, CatalogService
+
+class CatalogServiceImpl(CatalogService):
+    def listProducts(self):
+        # Return list of Product instances
+        return [
+            Product(productId="p1", name="Item 1", price=10.0, stock=5),
+            Product(productId="p2", name="Item 2", price=20.0, stock=3)
+        ]
+
+    def getProduct(self, productId):
+        # Return None for optional return type
+        for p in products:
+            if p.productId == productId:
+                return p
+        return None
+
+# Start server
+server = BarristerServer(host="0.0.0.0", port=8080)
+server.register("CatalogService", CatalogServiceImpl())
+server.serve_forever()
+```
+
+## Client Usage
+
+```python
+from client import HTTPTransport, CatalogServiceClient
+
+transport = HTTPTransport("http://localhost:8080")
+catalog = CatalogServiceClient(transport)
+
+# Method calls return Python dicts or None
+products = catalog.listProducts()
+for p_dict in products:
+    product = Product(**p_dict)  # Convert to class instance
+    print(f"{product.name}: ${product.price}")
+
+# Optional methods return None if not found
+product_dict = catalog.getProduct("prod001")
+if product_dict:
+    product = Product(**product_dict)
+    print(product.name)
+```
+
+## Validation
+
+Barrister automatically validates:
+- Required fields are present
+- Types match IDL definition
+- Enum values are valid
+
+```python
+# This will raise RPCError (-32602) if validation fails
+cart = cart.addToCart({
+    'productId': 'prod001',
+    'quantity': 2
+})
+```
+
+## Best Practices
+
+1. **Use dataclasses for type safety**: Convert returned dicts to generated classes
+2. **Handle None for optionals**: Always check if optional return values are None
+3. **Use descriptive error codes**: Custom errors should have codes >= 1000
+4. **Validate early**: Let Barrister validate input, validate business logic in handlers
+5. **Keep state in handlers**: Store in-memory state in service implementation classes
+
+## Working with Nested Structs
+
+```python
+# Nested structs work naturally
+order = Order(
+    orderId="order_123",
+    cart=Cart(
+        cartId="cart_123",
+        items=[CartItem(...)],
+        subtotal=59.98
+    ),
+    shippingAddress=Address(
+        street="123 Main St",
+        city="San Francisco",
+        state="CA",
+        zipCode="94105",
+        country="USA"
+    ),
+    paymentMethod=PaymentMethod.credit_card,
+    status=OrderStatus.pending,
+    total=59.98,
+    createdAt=1642000000
+)
+```

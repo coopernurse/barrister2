@@ -82,3 +82,27 @@ The playground also exposes REST API endpoints for programmatic access:
 
 - `GET /api/playground/files/:session-id/:file-path`: Retrieve a generated file
 - `GET /api/playground/zip/:session-id`: Download all files as ZIP archive
+
+## Documentation
+
+Comprehensive documentation is available at **[https://bitmechanic.github.io/barrister2/](https://bitmechanic.github.io/barrister2/)** (or build locally with `make docs-build`).
+
+The documentation includes:
+
+- **Installation Guide**: Multiple installation methods (Go install, binary, Docker, source)
+- **IDL Guide**: Complete reference for the Interface Definition Language
+- **Language Quickstarts**: Step-by-step tutorials for Go, Java, Python, TypeScript, and C#
+- **Language Reference**: Type mappings, patterns, and best practices for each language
+- **Examples**: Working e-commerce checkout API in all supported languages
+
+### Building Documentation Locally
+
+```bash
+# Build the documentation site
+make docs-build
+
+# Serve locally at http://localhost:4000
+make docs-serve
+```
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for deployment instructions.

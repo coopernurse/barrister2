@@ -64,8 +64,18 @@ class OrderServiceImpl(OrderService):
     def getOrder(self, orderId):
         return {
             'orderId': "",
-            'cart': {},
-            'shippingAddress': {},
+            'cart': {
+                'cartId': "",
+                'items': [],
+                'subtotal': 0.0,
+            },
+            'shippingAddress': {
+                'street': "",
+                'city': "",
+                'state': "",
+                'zipCode': "",
+                'country': "",
+            },
             'paymentMethod': "credit_card",
             'status': "pending",
             'total': 0.0,

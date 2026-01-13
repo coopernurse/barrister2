@@ -5,6 +5,7 @@ baseurl: /barrister2
 
 markdown: kramdown
 highlighter: rouge
+plugins_dir: _plugins
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap

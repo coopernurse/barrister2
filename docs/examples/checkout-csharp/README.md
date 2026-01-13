@@ -15,7 +15,8 @@ A complete working example of a Barrister2 RPC service in C#.
   - `Client.cs` - RPC client framework
   - `TestServer.cs` - Example implementation
   - `TestClient.cs` - Example client
-  - `TestServer.csproj` - Project file
+  - `TestServer.csproj` - Server project file
+  - `TestClient.csproj` - Client project file (manually added)
   - `barrister2/` - Runtime library
 
 ## Running
@@ -40,13 +41,6 @@ Server runs on http://localhost:8080
 
 ```bash
 dotnet run --project TestClient.csproj
-```
-
-Or if TestClient.csproj doesn't exist:
-
-```bash
-csc /reference:Server.cs /reference:checkout.cs TestClient.cs
-TestClient.exe
 ```
 
 ## Implementation Pattern

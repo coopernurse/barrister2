@@ -1,4 +1,4 @@
-.PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers
+.PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers docs-build docs-serve docs-clean
 
 # Variables
 BINARY_NAME=barrister
@@ -168,4 +168,26 @@ clean:
 	go clean ./...
 	rm -rf pkg/webui/dist
 	rm -rf pkg/webui/node_modules
+	rm -rf docs/_site
+	@echo "Cleaned build artifacts and documentation"
+
+# Build documentation site (Jekyll)
+docs-build:
+	@echo "Building Jekyll documentation..."
+	@cd docs && bundle install > /dev/null 2>&1 || bundle install
+	@cd docs && bundle exec jekyll build
+	@echo "Documentation built at docs/_site/"
+	@echo "Preview with: make docs-serve"
+
+# Serve documentation site locally (Jekyll)
+docs-serve:
+	@echo "Starting Jekyll dev server on http://localhost:4000"
+	@echo "Press Ctrl+C to stop"
+	@cd docs && bundle exec jekyll serve --host 0.0.0.0 --port 4000
+
+# Clean documentation build artifacts
+docs-clean:
+	@echo "Cleaning documentation build..."
+	rm -rf docs/_site
+	@echo "Documentation cleaned"
 
