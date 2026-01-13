@@ -2,42 +2,15 @@
 
 package checkout.checkout;
 
-import java.util.ArrayList;
-
 public class OrderServiceImpl implements OrderService {
     @Override
     public CheckoutResponse createOrder(CreateOrderRequest request) {
-        // Return a valid checkout response to pass validation
-        CheckoutResponse response = new CheckoutResponse();
-        response.setOrderId("order-1");
-        return response;
+        return null;
     }
 
     @Override
     public Order getOrder(String orderId) {
-        // Return a valid order to pass validation
-        Order order = new Order();
-        order.setOrderId(orderId);
-
-        Cart cart = new Cart();
-        cart.setCartId("cart-1");
-        cart.setSubtotal(0.0);
-        cart.setItems(new ArrayList<CartItem>());
-        order.setCart(cart);
-
-        Address shippingAddress = new Address();
-        shippingAddress.setStreet("123 Test St");
-        shippingAddress.setCity("Test City");
-        shippingAddress.setState("TS");
-        shippingAddress.setZipCode("12345");
-        shippingAddress.setCountry("USA");
-        order.setShippingAddress(shippingAddress);
-
-        order.setPaymentMethod(PaymentMethod.credit_card);
-        order.setStatus(OrderStatus.pending);
-        order.setTotal(0.0);
-        order.setCreatedAt(0);
-        return order;
+        return null;
     }
 
 }

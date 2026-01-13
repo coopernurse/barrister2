@@ -69,10 +69,22 @@ public class HttpTransport : ITransport
 
         if (responseDict != null && responseDict.TryGetValue("error", out var errorObj) && errorObj != null)
         {
-            var error = errorObj as Dictionary<string, object?>;
-            var code = error != null && error.TryGetValue("code", out var codeObj) ? Convert.ToInt32(codeObj) : -32603;
-            var message = error != null && error.TryGetValue("message", out var msgObj) ? msgObj?.ToString() ?? "" : "Unknown error";
-            object? data = error != null && error.TryGetValue("data", out var dataObj) ? dataObj : null;
+            // errorObj might be JsonElement or Dictionary<string, object?>
+            var code = -32603;
+            var message = "Unknown error";
+            object? data = null;
+            if (errorObj is System.Text.Json.JsonElement errorElem)
+            {
+                if (errorElem.TryGetProperty("code", out var codeProp)) code = codeProp.GetInt32();
+                if (errorElem.TryGetProperty("message", out var msgProp)) message = msgProp.GetString() ?? "Unknown error";
+                if (errorElem.TryGetProperty("data", out var dataProp)) data = dataProp;
+            }
+            else if (errorObj is Dictionary<string, object?> errorDict)
+            {
+                if (errorDict.TryGetValue("code", out var codeObj)) code = Convert.ToInt32(codeObj);
+                if (errorDict.TryGetValue("message", out var msgObj)) message = msgObj?.ToString() ?? "Unknown error";
+                if (errorDict.TryGetValue("data", out var dataObj)) data = dataObj;
+            }
             throw new RPCError(code, message, data);
         }
 

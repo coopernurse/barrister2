@@ -11,31 +11,12 @@ public class CatalogServiceImpl : CatalogService
 {
     public override List<Product> listProducts()
     {
-        // Return a valid list with a sample product to pass validation
-        return new List<Product>
-        {
-            new Product
-            {
-                ProductId = "prod-1",
-                Name = "Test Product",
-                Description = "A test product",
-                Price = 9.99,
-                Stock = 100
-            }
-        };
+        return new List<Product>();
     }
 
     public override Product? getProduct(string productId)
     {
-        // Return a valid product to pass validation
-        return new Product
-        {
-            ProductId = productId,
-            Name = "Test Product",
-            Description = "A test product",
-            Price = 9.99,
-            Stock = 100
-        };
+        return null;
     }
 
 }
@@ -44,32 +25,12 @@ public class CartServiceImpl : CartService
 {
     public override Cart addToCart(AddToCartRequest request)
     {
-        // Return a valid cart with items to pass validation
-        return new Cart
-        {
-            CartId = "cart-1",
-            Items = new List<CartItem>
-            {
-                new CartItem
-                {
-                    ProductId = request.ProductId,
-                    Quantity = request.Quantity,
-                    Price = 9.99
-                }
-            },
-            Subtotal = 9.99
-        };
+        return null;
     }
 
     public override Cart? getCart(string cartId)
     {
-        // Return a valid cart to pass validation
-        return new Cart
-        {
-            CartId = cartId,
-            Items = new List<CartItem>(),
-            Subtotal = 0.0
-        };
+        return null;
     }
 
     public override bool clearCart(string cartId)
@@ -83,38 +44,12 @@ public class OrderServiceImpl : OrderService
 {
     public override CheckoutResponse createOrder(CreateOrderRequest request)
     {
-        // Return a valid checkout response to pass validation
-        return new CheckoutResponse
-        {
-            OrderId = "order-1"
-        };
+        return null;
     }
 
     public override Order? getOrder(string orderId)
     {
-        // Return a valid order to pass validation
-        return new Order
-        {
-            OrderId = orderId,
-            Cart = new Cart
-            {
-                CartId = "cart-1",
-                Items = new List<CartItem>(),
-                Subtotal = 0.0
-            },
-            ShippingAddress = new Address
-            {
-                Street = "123 Test St",
-                City = "Test City",
-                State = "TS",
-                ZipCode = "12345",
-                Country = "USA"
-            },
-            PaymentMethod = PaymentMethod.credit_card,
-            Status = OrderStatus.pending,
-            Total = 0.0,
-            CreatedAt = 0
-        };
+        return null;
     }
 
 }
@@ -126,7 +61,7 @@ public class Program
         // Configure logging
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
-            builder.AddConsole().SetMinimumLevel(LogLevel.Information);
+            builder.AddConsole().SetMinimumLevel(LogLevel.Debug);
         });
         var logger = loggerFactory.CreateLogger<BarristerServer>();
 

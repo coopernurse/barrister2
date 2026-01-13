@@ -20,6 +20,11 @@ public class TestServer extends Server {
             server.register("OrderService", new checkout.checkout.OrderServiceImpl());
             server.start();
             System.out.println("Test server started on port 8080");
+            // Keep server running indefinitely
+            Object lock = new Object();
+            synchronized (lock) {
+                lock.wait();
+            }
         } catch (Exception e) {
             System.err.println("Fatal error: " + e.getMessage());
             e.printStackTrace();

@@ -2,34 +2,15 @@
 
 package checkout.checkout;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class CatalogServiceImpl implements CatalogService {
     @Override
-    public List<Product> listProducts() {
-        // Return a valid list with a sample product to pass validation
-        List<Product> products = new ArrayList<Product>();
-        Product p = new Product();
-        p.setProductId("prod-1");
-        p.setName("Test Product");
-        p.setDescription("A test product");
-        p.setPrice(9.99);
-        p.setStock(100);
-        products.add(p);
-        return products;
+    public java.util.List<Product> listProducts() {
+        return new java.util.ArrayList<Product>();
     }
 
     @Override
     public Product getProduct(String productId) {
-        // Return a valid product to pass validation
-        Product p = new Product();
-        p.setProductId(productId);
-        p.setName("Test Product");
-        p.setDescription("A test product");
-        p.setPrice(9.99);
-        p.setStock(100);
-        return p;
+        return null;
     }
 
 }

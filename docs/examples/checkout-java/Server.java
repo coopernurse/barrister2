@@ -8,9 +8,9 @@ import java.net.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-import checkout.checkout.CatalogService;
 import checkout.checkout.CartService;
 import checkout.checkout.OrderService;
+import checkout.checkout.CatalogService;
 
 public class Server {
     private final HttpServer server;

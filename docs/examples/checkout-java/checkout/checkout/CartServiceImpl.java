@@ -2,33 +2,15 @@
 
 package checkout.checkout;
 
-import java.util.ArrayList;
-
 public class CartServiceImpl implements CartService {
     @Override
     public Cart addToCart(AddToCartRequest request) {
-        // Return a valid cart with items to pass validation
-        Cart cart = new Cart();
-        cart.setCartId("cart-1");
-        cart.setSubtotal(9.99);
-        ArrayList<CartItem> items = new ArrayList<CartItem>();
-        CartItem item = new CartItem();
-        item.setProductId(request.getProductId());
-        item.setQuantity(request.getQuantity());
-        item.setPrice(9.99);
-        items.add(item);
-        cart.setItems(items);
-        return cart;
+        return null;
     }
 
     @Override
     public Cart getCart(String cartId) {
-        // Return a valid cart to pass validation
-        Cart cart = new Cart();
-        cart.setCartId(cartId);
-        cart.setSubtotal(0.0);
-        cart.setItems(new ArrayList<CartItem>());
-        return cart;
+        return null;
     }
 
     @Override

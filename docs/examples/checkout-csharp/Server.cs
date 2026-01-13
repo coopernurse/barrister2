@@ -605,81 +605,35 @@ public class BarristerServer
             try
             {
                 var returnOptional = methodDef.TryGetValue("returnOptional", out var opt) && opt is bool optBool && optBool;
-
-                // If result is null and return is optional, skip validation
-                if (result == null)
+                // Convert struct objects to dictionaries and enum objects to strings for validation
+                object? valueToValidate = result;
+                if (returnType.TryGetValue("userDefined", out var returnUserTypeObj) && returnUserTypeObj is string returnUserType)
                 {
-                    if (returnOptional)
+                    var structDef = Types.FindStruct(returnUserType, IdlData.ALL_STRUCTS);
+                    if (structDef != null && result != null && !(result is Dictionary<string, object?>))
                     {
-                        _logger?.LogDebug("Response is null and optional, skipping validation");
+                        // Serialize struct object to JSON, then convert JsonElement to dictionary with proper type conversion
+                        var structResultJson = JsonSerializer.Serialize(result);
+                        var structJsonElement = JsonSerializer.Deserialize<JsonElement>(structResultJson);
+                        valueToValidate = ConvertJsonElementToDict(structJsonElement);
+                        // Convert enum integers to strings for validation
+                        if (valueToValidate is Dictionary<string, object?> structDict)
+                        {
+                            ConvertEnumIntsToStrings(structDict, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS);
+                        }
                     }
                     else
                     {
-                        return ErrorResponse(requestId, -32603, "Internal error", "Response validation failed: result is null but return type is not optional");
+                        var enumDef = Types.FindEnum(returnUserType, IdlData.ALL_ENUMS);
+                        if (enumDef != null && result != null && !(result is string) && !(result is System.Text.Json.JsonElement))
+                        {
+                            // Convert enum object to string representation
+                            valueToValidate = result.ToString();
+                        }
                     }
                 }
-                else
-                {
-                    // Convert struct objects to dictionaries and enum objects to strings for validation
-                    object? valueToValidate = result;
-
-                    // Handle array return types (e.g., List<Product>)
-                    if (returnType.TryGetValue("array", out var arrayTypeObj) && arrayTypeObj is Dictionary<string, object> arrayType)
-                    {
-                        if (result is System.Collections.IList resultList)
-                        {
-                            // Convert each item in the list to a dictionary for validation
-                            var validatedList = new List<object?>();
-                            foreach (var item in resultList)
-                            {
-                                if (item != null)
-                                {
-                                    var itemJson = JsonSerializer.Serialize(item);
-                                    var itemElement = JsonSerializer.Deserialize<JsonElement>(itemJson);
-                                    var itemDict = ConvertJsonElementToDict(itemElement);
-                                    if (itemDict is Dictionary<string, object?> dict)
-                                    {
-                                        ConvertEnumIntsToStrings(dict, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS);
-                                    }
-                                    validatedList.Add(itemDict);
-                                }
-                                else
-                                {
-                                    validatedList.Add(null);
-                                }
-                            }
-                            valueToValidate = validatedList;
-                        }
-                    }
-                    // Handle single struct return types
-                    else if (returnType.TryGetValue("userDefined", out var returnUserTypeObj) && returnUserTypeObj is string returnUserType)
-                    {
-                        var structDef = Types.FindStruct(returnUserType, IdlData.ALL_STRUCTS);
-                        if (structDef != null && !(result is Dictionary<string, object?>))
-                        {
-                            // Serialize struct object to JSON, then convert JsonElement to dictionary with proper type conversion
-                            var structResultJson = JsonSerializer.Serialize(result);
-                            var structJsonElement = JsonSerializer.Deserialize<JsonElement>(structResultJson);
-                            valueToValidate = ConvertJsonElementToDict(structJsonElement);
-                            // Convert enum integers to strings for validation
-                            if (valueToValidate is Dictionary<string, object?> structDict)
-                            {
-                                ConvertEnumIntsToStrings(structDict, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS);
-                            }
-                        }
-                        else
-                        {
-                            var enumDef = Types.FindEnum(returnUserType, IdlData.ALL_ENUMS);
-                            if (enumDef != null && !(result is string) && !(result is System.Text.Json.JsonElement))
-                            {
-                                // Convert enum object to string representation
-                                valueToValidate = result.ToString();
-                            }
-                        }
-                    }
-                    Validation.ValidateType(valueToValidate, returnType, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS, returnOptional);
-                    _logger?.LogDebug("Response validation passed for {InterfaceName}.{MethodName}", interfaceName, methodName);
-                }
+                Validation.ValidateType(valueToValidate, returnType, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS, returnOptional);
+                _logger?.LogDebug("Response validation passed for {InterfaceName}.{MethodName}", interfaceName, methodName);
             }
             catch (Exception e)
             {

@@ -210,7 +210,7 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 
 	// Check if generate-test-files flag is set
 	generateTestFilesFlag := fs.Lookup("generate-test-files")
-	generateTestServer := generateTestFilesFlag != nil && generateTestFilesFlag.Value.String() == "true"
+	generateTestServer := generateTestFilesFlag != nil && (generateTestFilesFlag.Value.String() == "true" || generateTestFilesFlag.Value.String() == "1")
 
 	// Generate test server and client if flag is set
 	if generateTestServer {
@@ -1581,6 +1581,11 @@ func generateTestServerJava(idl *parser.IDL, jsonLib string, basePackage string,
 
 	sb.WriteString("            server.start();\n")
 	sb.WriteString("            System.out.println(\"Test server started on port 8080\");\n")
+	sb.WriteString("            // Keep server running indefinitely\n")
+	sb.WriteString("            Object lock = new Object();\n")
+	sb.WriteString("            synchronized (lock) {\n")
+	sb.WriteString("                lock.wait();\n")
+	sb.WriteString("            }\n")
 	sb.WriteString("        } catch (Exception e) {\n")
 	sb.WriteString("            System.err.println(\"Fatal error: \" + e.getMessage());\n")
 	sb.WriteString("            e.printStackTrace();\n")
