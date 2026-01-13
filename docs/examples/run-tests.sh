@@ -34,14 +34,26 @@ wait_for_server() {
 
     print_info "Waiting for server at $url..."
     while [ $attempt -lt $max_attempts ]; do
-        if curl -s -X POST -H "Content-Type: application/json" -d '{}' "$url" > /dev/null 2>&1; then
-            print_success "Server is ready!"
+        # Try to get a response from the server
+        response=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' "$url" 2>&1)
+        http_code=$(echo "$response" | tail -1)
+        body=$(echo "$response" | head -n -1)
+
+        # Check if we got a valid HTTP response (any 2xx, 3xx, or 4xx is OK - we just want the server to be up)
+        if [ -n "$http_code" ] && [ "$http_code" -ge 200 ] && [ "$http_code" -lt 500 ]; then
+            print_success "Server is ready! (HTTP $http_code)"
             return 0
         fi
+
+        # Debug output on first failure
+        if [ $attempt -eq 0 ]; then
+            echo "  Initial health check failed (http_code='$http_code'), retrying..."
+        fi
+
         sleep 0.5
         attempt=$((attempt + 1))
     done
-    print_error "Server failed to start within 10 seconds"
+    print_error "Server failed to start within 10 seconds (last http_code='$http_code')"
     return 1
 }
 
@@ -189,12 +201,30 @@ test_java() {
     java -cp "$JAVA_CP" TestServer > /tmp/java-server.log 2>&1 &
     SERVER_PID=$!
 
-    # Wait for server
-    if ! wait_for_server "http://localhost:8080"; then
-        print_error "Java server failed to start"
-        echo "=== Java server log ==="
+    # Give server a moment to start
+    sleep 2
+
+    # Check if process is still running
+    if ! kill -0 $SERVER_PID 2>/dev/null; then
+        print_error "Java server process died immediately"
+        echo "=== Server log ==="
         cat /tmp/java-server.log
         echo "=== End of log ==="
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        FAILED_LANGUAGES+=("Java")
+        cd "$DIR"
+        return 1
+    fi
+
+    # Wait for server
+    if ! wait_for_server "http://localhost:8080"; then
+        print_error "Java server health check failed"
+        echo "=== Server log (last 30 lines) ==="
+        tail -30 /tmp/java-server.log || cat /tmp/java-server.log
+        echo "=== End of log ==="
+        echo "=== Process status ==="
+        ps -p $SERVER_PID -o pid,stat,cmd 2>/dev/null || echo "Process $SERVER_PID not found"
+        echo "=== End of status ==="
         FAILED_TESTS=$((FAILED_TESTS + 1))
         FAILED_LANGUAGES+=("Java")
         kill $SERVER_PID 2>/dev/null || true

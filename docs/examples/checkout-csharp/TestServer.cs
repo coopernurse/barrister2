@@ -25,7 +25,12 @@ public class CartServiceImpl : CartService
 {
     public override Cart addToCart(AddToCartRequest request)
     {
-        return null;
+        return new Cart
+        {
+            CartId = "test",
+            Items = new List<CartItem>(),
+            Subtotal = 3.14,
+        };
     }
 
     public override Cart? getCart(string cartId)
@@ -44,7 +49,10 @@ public class OrderServiceImpl : OrderService
 {
     public override CheckoutResponse createOrder(CreateOrderRequest request)
     {
-        return null;
+        return new CheckoutResponse
+        {
+            OrderId = "test",
+        };
     }
 
     public override Order? getOrder(string orderId)

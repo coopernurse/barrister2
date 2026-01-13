@@ -31,6 +31,16 @@ public interface ITransport
 
 public class HttpTransport : ITransport
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    static HttpTransport()
+    {
+        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
+    }
+
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
 
@@ -58,7 +68,7 @@ public class HttpTransport : ITransport
             { "id", requestId }
         };
 
-        var json = JsonSerializer.Serialize(request);
+        var json = JsonSerializer.Serialize(request, _jsonOptions);
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         var response = await _httpClient.PostAsync(_baseUrl, content);

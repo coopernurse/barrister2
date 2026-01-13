@@ -136,6 +136,13 @@ func (p *CSharpClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 		if err := os.WriteFile(testServerProjPath, []byte(testServerProjCode), 0644); err != nil {
 			return fmt.Errorf("failed to write TestServer.csproj: %w", err)
 		}
+
+		// Generate TestClient.csproj
+		testClientProjCode := generateTestClientCsproj()
+		testClientProjPath := filepath.Join(outputDir, "TestClient.csproj")
+		if err := os.WriteFile(testClientProjPath, []byte(testClientProjCode), 0644); err != nil {
+			return fmt.Errorf("failed to write TestClient.csproj: %w", err)
+		}
 	}
 
 	return nil
@@ -1180,6 +1187,14 @@ func writeITransportCs(sb *strings.Builder) {
 func writeHttpTransportCs(sb *strings.Builder) {
 	sb.WriteString("public class HttpTransport : ITransport\n")
 	sb.WriteString("{\n")
+	sb.WriteString("    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions\n")
+	sb.WriteString("    {\n")
+	sb.WriteString("        PropertyNamingPolicy = JsonNamingPolicy.CamelCase\n")
+	sb.WriteString("    };\n\n")
+	sb.WriteString("    static HttpTransport()\n")
+	sb.WriteString("    {\n")
+	sb.WriteString("        _jsonOptions.Converters.Add(new JsonStringEnumConverter());\n")
+	sb.WriteString("    }\n\n")
 	sb.WriteString("    private readonly HttpClient _httpClient;\n")
 	sb.WriteString("    private readonly string _baseUrl;\n\n")
 	sb.WriteString("    public HttpTransport(string baseUrl, Dictionary<string, string>? headers = null)\n")
@@ -1204,7 +1219,7 @@ func writeHttpTransportCs(sb *strings.Builder) {
 	sb.WriteString("            { \"params\", parameters },\n")
 	sb.WriteString("            { \"id\", requestId }\n")
 	sb.WriteString("        };\n\n")
-	sb.WriteString("        var json = JsonSerializer.Serialize(request);\n")
+	sb.WriteString("        var json = JsonSerializer.Serialize(request, _jsonOptions);\n")
 	sb.WriteString("        var content = new StringContent(json, System.Text.Encoding.UTF8, \"application/json\");\n\n")
 	sb.WriteString("        var response = await _httpClient.PostAsync(_baseUrl, content);\n")
 	sb.WriteString("        response.EnsureSuccessStatusCode();\n\n")
@@ -1452,6 +1467,35 @@ func generateTestServerCsproj() string {
 	return sb.String()
 }
 
+// generateTestClientCsproj generates TestClient.csproj project file
+// Note: .NET SDK automatically includes all .cs files in the project directory,
+// so we exclude Server.cs and TestServer.cs to avoid duplicate class definitions.
+func generateTestClientCsproj() string {
+	var sb strings.Builder
+
+	sb.WriteString("<Project Sdk=\"Microsoft.NET.Sdk\">\n\n")
+	sb.WriteString("  <PropertyGroup>\n")
+	sb.WriteString("    <TargetFramework>net8.0</TargetFramework>\n")
+	sb.WriteString("    <ImplicitUsings>enable</ImplicitUsings>\n")
+	sb.WriteString("    <Nullable>enable</Nullable>\n")
+	sb.WriteString("    <LangVersion>latest</LangVersion>\n")
+	sb.WriteString("    <OutputType>Exe</OutputType>\n")
+	sb.WriteString("  </PropertyGroup>\n\n")
+
+	sb.WriteString("  <ItemGroup>\n")
+	sb.WriteString("    <FrameworkReference Include=\"Microsoft.AspNetCore.App\" />\n")
+	sb.WriteString("  </ItemGroup>\n\n")
+
+	sb.WriteString("  <ItemGroup>\n")
+	sb.WriteString("    <Compile Remove=\"Server.cs\" />\n")
+	sb.WriteString("    <Compile Remove=\"TestServer.cs\" />\n")
+	sb.WriteString("  </ItemGroup>\n\n")
+
+	sb.WriteString("</Project>\n")
+
+	return sb.String()
+}
+
 // writeTestInterfaceImplCs generates a concrete implementation class for an interface
 func writeTestInterfaceImplCs(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	implName := iface.Name + "Impl"
@@ -1593,14 +1637,121 @@ func writeMethodImplementationCs(sb *strings.Builder, iface *parser.Interface, m
 			elementType := mapTypeToCsType(method.ReturnType.Array, structMap, enumMap, false)
 			fmt.Fprintf(sb, "        return new List<%s>();\n", elementType)
 		} else if method.ReturnType.IsUserDefined() {
-			// For user-defined types (structs/enums), return null
-			sb.WriteString("        return null;\n")
+			// For user-defined types, check if it's an enum or struct
+			typeName := method.ReturnType.UserDefined
+			if enumDef, ok := enumMap[typeName]; ok {
+				// Return the first enum value
+				if len(enumDef.Values) > 0 {
+					fmt.Fprintf(sb, "        return %s.%s;\n", typeName, enumDef.Values[0].Name)
+				} else {
+					sb.WriteString("        return null;\n")
+				}
+			} else if structDef, ok := structMap[typeName]; ok {
+				// Generate a struct instance with minimal valid values for required fields
+				if method.ReturnOptional {
+					sb.WriteString("        return null;\n")
+				} else {
+					writeMinimalStructInstanceCs(sb, typeName, structDef, structMap, enumMap)
+				}
+			} else {
+				sb.WriteString("        return null;\n")
+			}
 		} else {
 			sb.WriteString("        return null;\n")
 		}
 	} else {
 		sb.WriteString("        return null;\n")
 	}
+}
+
+// writeMinimalStructInstanceCs generates a minimal valid struct instance with all required fields
+func writeMinimalStructInstanceCs(sb *strings.Builder, typeName string, structDef *parser.Struct, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+	fmt.Fprintf(sb, "        return new %s\n", typeName)
+	sb.WriteString("        {\n")
+
+	for _, field := range structDef.Fields {
+		// Only include required fields
+		if field.Optional {
+			continue
+		}
+
+		fieldName := field.Name
+		// Convert to PascalCase for C#
+		csFieldName := snakeToPascalCase(fieldName)
+
+		// Generate appropriate default value based on field type
+		if field.Type.IsBuiltIn() {
+			switch field.Type.BuiltIn {
+			case "string":
+				fmt.Fprintf(sb, "            %s = \"test\",\n", csFieldName)
+			case "int":
+				fmt.Fprintf(sb, "            %s = 42,\n", csFieldName)
+			case "float":
+				fmt.Fprintf(sb, "            %s = 3.14,\n", csFieldName)
+			case "bool":
+				fmt.Fprintf(sb, "            %s = true,\n", csFieldName)
+			default:
+				fmt.Fprintf(sb, "            %s = null,\n", csFieldName)
+			}
+		} else if field.Type.IsArray() {
+			elementType := mapTypeToCsType(field.Type.Array, structMap, enumMap, false)
+			fmt.Fprintf(sb, "            %s = new List<%s>(),\n", csFieldName, elementType)
+		} else if field.Type.IsUserDefined() {
+			userType := field.Type.UserDefined
+			// Check if it's an enum
+			if enumDef, ok := enumMap[userType]; ok {
+				// Use first enum value
+				if len(enumDef.Values) > 0 {
+					fmt.Fprintf(sb, "            %s = %s.%s,\n", csFieldName, userType, enumDef.Values[0].Name)
+				} else {
+					fmt.Fprintf(sb, "            %s = default,\n", csFieldName)
+				}
+			} else if nestedStruct, ok := structMap[userType]; ok {
+				// Recursively generate nested struct (only go one level deep for simplicity)
+				fmt.Fprintf(sb, "            %s = new %s\n", csFieldName, userType)
+				sb.WriteString("            {\n")
+				for _, nestedField := range nestedStruct.Fields {
+					if nestedField.Optional {
+						continue
+					}
+					nestedCsFieldName := snakeToPascalCase(nestedField.Name)
+					if nestedField.Type.IsBuiltIn() {
+						switch nestedField.Type.BuiltIn {
+						case "string":
+							fmt.Fprintf(sb, "                %s = \"test\",\n", nestedCsFieldName)
+						case "int":
+							fmt.Fprintf(sb, "                %s = 42,\n", nestedCsFieldName)
+						case "float":
+							fmt.Fprintf(sb, "                %s = 3.14,\n", nestedCsFieldName)
+						case "bool":
+							fmt.Fprintf(sb, "                %s = true,\n", nestedCsFieldName)
+						default:
+							fmt.Fprintf(sb, "                %s = default,\n", nestedCsFieldName)
+						}
+					} else if nestedField.Type.IsUserDefined() {
+						if nestedEnum, ok := enumMap[nestedField.Type.UserDefined]; ok {
+							if len(nestedEnum.Values) > 0 {
+								fmt.Fprintf(sb, "                %s = %s.%s,\n", nestedCsFieldName, nestedField.Type.UserDefined, nestedEnum.Values[0].Name)
+							} else {
+								fmt.Fprintf(sb, "                %s = default,\n", nestedCsFieldName)
+							}
+						} else {
+							fmt.Fprintf(sb, "                %s = null,\n", nestedCsFieldName)
+						}
+					} else {
+						fmt.Fprintf(sb, "                %s = default,\n", nestedCsFieldName)
+					}
+				}
+				sb.WriteString("            },\n")
+			} else {
+				fmt.Fprintf(sb, "            %s = null,\n", csFieldName)
+			}
+		} else {
+			fmt.Fprintf(sb, "            %s = null,\n", csFieldName)
+		}
+	}
+
+	sb.WriteString("        };\n")
 }
 
 // writeTestClientMethodCallCs generates a test method call
