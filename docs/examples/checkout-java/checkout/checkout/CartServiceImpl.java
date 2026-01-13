@@ -2,19 +2,22 @@
 
 package checkout.checkout;
 
+import java.util.ArrayList;
+
 public class CartServiceImpl implements CartService {
     @Override
     public Cart addToCart(AddToCartRequest request) {
         // Return a valid cart with items to pass validation
         Cart cart = new Cart();
-        cart.cartId = "cart-1";
-        cart.subtotal = 9.99;
-        cart.items = new java.util.ArrayList<CartItem>();
+        cart.setCartId("cart-1");
+        cart.setSubtotal(9.99);
+        ArrayList<CartItem> items = new ArrayList<CartItem>();
         CartItem item = new CartItem();
-        item.productId = request.productId;
-        item.quantity = request.quantity;
-        item.price = 9.99;
-        cart.items.add(item);
+        item.setProductId(request.getProductId());
+        item.setQuantity(request.getQuantity());
+        item.setPrice(9.99);
+        items.add(item);
+        cart.setItems(items);
         return cart;
     }
 
@@ -22,9 +25,9 @@ public class CartServiceImpl implements CartService {
     public Cart getCart(String cartId) {
         // Return a valid cart to pass validation
         Cart cart = new Cart();
-        cart.cartId = cartId;
-        cart.subtotal = 0.0;
-        cart.items = new java.util.ArrayList<CartItem>();
+        cart.setCartId(cartId);
+        cart.setSubtotal(0.0);
+        cart.setItems(new ArrayList<CartItem>());
         return cart;
     }
 

@@ -607,7 +607,37 @@ public class BarristerServer
                 var returnOptional = methodDef.TryGetValue("returnOptional", out var opt) && opt is bool optBool && optBool;
                 // Convert struct objects to dictionaries and enum objects to strings for validation
                 object? valueToValidate = result;
-                if (returnType.TryGetValue("userDefined", out var returnUserTypeObj) && returnUserTypeObj is string returnUserType)
+
+                // Handle array return types (e.g., List<Product>)
+                if (returnType.TryGetValue("array", out var arrayTypeObj) && arrayTypeObj is Dictionary<string, object> arrayType)
+                {
+                    if (result is System.Collections.IList resultList)
+                    {
+                        // Convert each item in the list to a dictionary for validation
+                        var validatedList = new List<object?>();
+                        foreach (var item in resultList)
+                        {
+                            if (item != null)
+                            {
+                                var itemJson = JsonSerializer.Serialize(item);
+                                var itemElement = JsonSerializer.Deserialize<JsonElement>(itemJson);
+                                var itemDict = ConvertJsonElementToDict(itemElement);
+                                if (itemDict is Dictionary<string, object?> dict)
+                                {
+                                    ConvertEnumIntsToStrings(dict, IdlData.ALL_STRUCTS, IdlData.ALL_ENUMS);
+                                }
+                                validatedList.Add(itemDict);
+                            }
+                            else
+                            {
+                                validatedList.Add(null);
+                            }
+                        }
+                        valueToValidate = validatedList;
+                    }
+                }
+                // Handle single struct return types
+                else if (returnType.TryGetValue("userDefined", out var returnUserTypeObj) && returnUserTypeObj is string returnUserType)
                 {
                     var structDef = Types.FindStruct(returnUserType, IdlData.ALL_STRUCTS);
                     if (structDef != null && result != null && !(result is Dictionary<string, object?>))
