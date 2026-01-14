@@ -125,13 +125,13 @@ jobs:
           provenance: false
 
       - name: Create and push manifest
-        uses: docker/manifest-action@v1
-        with:
-          name: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
-          tags: |
-            ${{ steps.meta.outputs.version }}-amd64
-            ${{ steps.meta.outputs.version }}-arm64
-          push: true
+        run: |
+          # Create manifest combining both architectures
+          docker manifest create ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }} \
+            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-amd64 \
+            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-arm64
+          # Push the manifest
+          docker manifest push ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
 
   assemble:
     needs: [build, docker]
