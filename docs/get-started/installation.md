@@ -22,7 +22,7 @@ Barrister can be installed in several ways depending on your workflow.
 ### Method 1: Go Install (Recommended for Go developers)
 
 ```bash
-go install github.com/coopernurse/barrister2@latest
+go install github.com/coopernurse/barrister2/cmd/barrister@latest
 ```
 
 This installs the `barrister` binary in your `GOPATH/bin` directory. Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`.
