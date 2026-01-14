@@ -350,9 +350,9 @@ CI runs these tests on every PR. If tests fail, docs don't deploy.
 
 | Method | Steps | Best For |
 |--------|-------|----------|
-| **Go Install** | `go install github.com/bitmechanic/barrister2@latest` | Go developers, want latest |
+| **Go Install** | `go install github.com/coopernurse/barrister2@latest` | Go developers, want latest |
 | **Download Binary** | Download from Releases, add to PATH | Quick setup, no Go needed |
-| **Docker** | `docker pull ghcr.io/bitmechanic/barrister2:latest` | Containerized workflows |
+| **Docker** | `docker pull ghcr.io/coopernurse/barrister2:latest` | Containerized workflows |
 | **Build from Source** | `git clone && make build` | Contributing, custom builds |
 
 ### Language-Specific Prerequisites

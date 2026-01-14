@@ -22,7 +22,7 @@ Barrister can be installed in several ways depending on your workflow.
 ### Method 1: Go Install (Recommended for Go developers)
 
 ```bash
-go install github.com/bitmechanic/barrister2@latest
+go install github.com/coopernurse/barrister2@latest
 ```
 
 This installs the `barrister` binary in your `GOPATH/bin` directory. Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`.
@@ -49,7 +49,7 @@ docker pull ghcr.io/coopernurse/barrister2:latest
 Run Barrister via Docker:
 
 ```bash
-docker run --rm -v $(pwd):/work ghcr.io/bitmechanic/barrister2:latest barrister --help
+docker run --rm -v $(pwd):/work ghcr.io/coopernurse/barrister2:latest barrister --help
 ```
 
 ### Method 4: Build from Source
@@ -57,7 +57,7 @@ docker run --rm -v $(pwd):/work ghcr.io/bitmechanic/barrister2:latest barrister 
 Clone and build:
 
 ```bash
-git clone https://github.com/bitmechanic/barrister2.git
+git clone https://github.com/coopernurse/barrister2.git
 cd barrister2
 make build
 ```

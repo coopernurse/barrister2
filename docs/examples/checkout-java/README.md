@@ -17,7 +17,7 @@ A complete working example of a Barrister2 RPC service in Java.
   - `TestServer.java` - Example implementation
   - `TestClient.java` - Example client
   - `pom.xml` - Maven build configuration
-  - `com/bitmechanic/barrister2/` - Runtime library
+  - `com/coopernurse/barrister2/` - Runtime library
 
 ## Running
 

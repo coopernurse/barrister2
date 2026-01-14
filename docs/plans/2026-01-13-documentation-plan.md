@@ -272,9 +272,9 @@ Generate code for all supported languages from checkout.idl
 **Content to include:**
 1. Prerequisites (Go 1.21+, or pre-built binary)
 2. Four installation methods:
-   - Go install: `go install github.com/bitmechanic/barrister2@latest`
+   - Go install: `go install github.com/coopernurse/barrister2@latest`
    - Download binary from Releases
-   - Docker: `docker pull ghcr.io/bitmechanic/barrister2:latest`
+   - Docker: `docker pull ghcr.io/coopernurse/barrister2:latest`
    - Build from source: `make build`
 3. Verification: `barrister --version`
 4. Troubleshooting section
