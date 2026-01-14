@@ -99,12 +99,12 @@ generate_code() {
     # For Java code generation, the generator requires a base-package flag.
     if [ "$plugin" = "java-client-server" ]; then
         JAVA_BASE_PACKAGE="com.barrister.test"
-        if ! "$BINARY_PATH" -plugin "$plugin" -base-package "$JAVA_BASE_PACKAGE" -test-server -dir "$output_dir" "$TEST_IDL"; then
+        if ! "$BINARY_PATH" -plugin "$plugin" -base-package "$JAVA_BASE_PACKAGE" -generate-test-files -dir "$output_dir" "$TEST_IDL"; then
             echo -e "${RED}ERROR: Code generation failed for $name${NC}"
             return 1
         fi
     else
-        if ! "$BINARY_PATH" -plugin "$plugin" -test-server -dir "$output_dir" "$TEST_IDL"; then
+        if ! "$BINARY_PATH" -plugin "$plugin" -generate-test-files -dir "$output_dir" "$TEST_IDL"; then
             echo -e "${RED}ERROR: Code generation failed for $name${NC}"
             return 1
         fi

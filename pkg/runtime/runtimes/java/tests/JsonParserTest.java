@@ -1,4 +1,4 @@
-import barrister2.*;
+import com.bitmechanic.barrister2.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import org.junit.Test;

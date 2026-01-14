@@ -1,4 +1,4 @@
-import barrister2.*;
+import com.bitmechanic.barrister2.*;
 import org.junit.Test;
 import org.junit.Assert;
 

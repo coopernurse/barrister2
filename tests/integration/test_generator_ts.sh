@@ -70,9 +70,9 @@ fi
 echo -e "${YELLOW}Creating output directory: $OUTPUT_DIR${NC}"
 mkdir -p "$OUTPUT_DIR"
 
-# Step 3: Generate code with test-server flag
+# Step 3: Generate code with -generate-test-files flag
 echo -e "${YELLOW}Generating TypeScript code from $TEST_IDL...${NC}"
-if ! "$BINARY_PATH" -plugin ts-client-server -test-server -dir "$OUTPUT_DIR" "$TEST_IDL"; then
+if ! "$BINARY_PATH" -plugin ts-client-server -generate-test-files -dir "$OUTPUT_DIR" "$TEST_IDL"; then
     echo -e "${RED}ERROR: Code generation failed${NC}"
     exit 1
 fi

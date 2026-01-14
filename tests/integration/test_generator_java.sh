@@ -88,7 +88,7 @@ mkdir -p "$OUTPUT_DIR"
 # Step 3: Generate Java code with Jackson (default)
 echo -e "${YELLOW}Generating Java code with Jackson...${NC}"
 cd "$PROJECT_ROOT"
-"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -test-server -dir "$OUTPUT_DIR" "$TEST_IDL"
+"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -generate-test-files -dir "$OUTPUT_DIR" "$TEST_IDL"
 
 # Verify generated files
 echo -e "${YELLOW}Verifying generated files...${NC}"
@@ -98,15 +98,15 @@ REQUIRED_FILES=(
     "TestClient.java"
     "idl.json"
     "pom.xml"
-    "barrister2/RPCError.java"
-    "barrister2/Validation.java"
-    "barrister2/Types.java"
-    "barrister2/JsonParser.java"
-    "barrister2/JacksonJsonParser.java"
-    "barrister2/Transport.java"
-    "barrister2/Request.java"
-    "barrister2/Response.java"
-    "barrister2/HTTPTransport.java"
+    "com/bitmechanic/barrister2/RPCError.java"
+    "com/bitmechanic/barrister2/Validation.java"
+    "com/bitmechanic/barrister2/Types.java"
+    "com/bitmechanic/barrister2/JsonParser.java"
+    "com/bitmechanic/barrister2/JacksonJsonParser.java"
+    "com/bitmechanic/barrister2/Transport.java"
+    "com/bitmechanic/barrister2/Request.java"
+    "com/bitmechanic/barrister2/Response.java"
+    "com/bitmechanic/barrister2/HTTPTransport.java"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -118,7 +118,7 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 
 # Verify GSON parser is NOT included (only Jackson should be)
-if [ -f "$OUTPUT_DIR/barrister2/GsonJsonParser.java" ]; then
+if [ -f "$OUTPUT_DIR/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java should not be generated when using Jackson${NC}"
     exit 1
 fi
@@ -151,7 +151,7 @@ else
 fi
 echo "" >> "$DEBUG_LOG"
 echo "=== HYPOTHESIS D: barrister2 directory structure ===" >> "$DEBUG_LOG"
-ls -la "$OUTPUT_DIR/barrister2/" >> "$DEBUG_LOG" 2>&1 || echo "ls failed" >> "$DEBUG_LOG"
+ls -la "$OUTPUT_DIR/com/bitmechanic/barrister2/" >> "$DEBUG_LOG" 2>&1 || echo "ls failed" >> "$DEBUG_LOG"
 
 # Step 4: Build the Java project using Docker
 echo -e "${YELLOW}Building Java project with Maven in Docker...${NC}"
@@ -265,15 +265,15 @@ echo -e "${YELLOW}Testing GSON code generation...${NC}"
 cd "$PROJECT_ROOT"
 GSON_OUTPUT_DIR="/tmp/barrister_test_java_gson_$$"
 mkdir -p "$GSON_OUTPUT_DIR"
-"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -test-server -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
+"$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -generate-test-files -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
 
 # Verify GSON files
-if [ ! -f "$GSON_OUTPUT_DIR/barrister2/GsonJsonParser.java" ]; then
+if [ ! -f "$GSON_OUTPUT_DIR/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java not found when using GSON${NC}"
     exit 1
 fi
 
-if [ -f "$GSON_OUTPUT_DIR/barrister2/JacksonJsonParser.java" ]; then
+if [ -f "$GSON_OUTPUT_DIR/com/bitmechanic/barrister2/JacksonJsonParser.java" ]; then
     echo -e "${RED}ERROR: JacksonJsonParser.java should not be generated when using GSON${NC}"
     exit 1
 fi
