@@ -111,15 +111,24 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Docker images
+      - name: Build and push Docker images (linux-amd64)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-amd64
-            ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-arm64
+          platforms: linux/amd64
+          tags: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Build and push Docker images (linux-arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}-arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
