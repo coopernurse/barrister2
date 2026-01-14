@@ -9,25 +9,9 @@ layout: default
 
 Barrister can be installed in several ways depending on your workflow.
 
-> **Recommended**: Use the Go install method if you're a Go developer. Use Docker if you want to try Barrister without installing Go.
-
-## Prerequisites
-
-- Go 1.21 or later (for Go install method)
-- Docker (for Docker method)
-- Make and Go (for building from source)
-
 ## Installation Methods
 
-### Method 1: Go Install (Recommended for Go developers)
-
-```bash
-go install github.com/coopernurse/barrister2/cmd/barrister@latest
-```
-
-This installs the `barrister` binary in your `GOPATH/bin` directory. Make sure `$GOPATH/bin` or `$HOME/go/bin` is in your `PATH`.
-
-### Method 2: Download Pre-built Binary
+### Method 1: Download Pre-built Binary
 
 Download the latest release from the [GitHub Releases page](https://github.com/coopernurse/barrister2/releases).
 
@@ -38,7 +22,7 @@ chmod +x barrister
 mv barrister /usr/local/bin/
 ```
 
-### Method 3: Docker
+### Method 2: Docker
 
 Pull the latest Docker image:
 
@@ -52,7 +36,7 @@ Run Barrister via Docker:
 docker run --rm -v $(pwd):/work ghcr.io/coopernurse/barrister2:latest barrister --help
 ```
 
-### Method 4: Build from Source
+### Method 3: Build from Source
 
 Clone and build:
 
