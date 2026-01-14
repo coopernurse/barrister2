@@ -22,12 +22,11 @@ The namespace becomes the package/module name in generated code.
 ## Comments
 
 ```idl
-// Single-line comments start with //
+// Comments start with //
 
-/*
- Multi-line comments
- are supported
- */
+// Multi-line comments are supported                                                                                                                                                                                                        
+// by stacking single-line comments                                                                                                                                                                                                         
+// on consecutive lines
 ```
 
 ## Enums
