@@ -89,6 +89,15 @@ If you get permission errors, make the binary executable:
 chmod +x barrister
 ```
 
+### macOS "developer cannot be verified"
+
+On macOS, downloaded binaries may be blocked by Gatekeeper with the error "developer cannot be verified". To allow the binary to run:
+
+```bash
+xattr -cr /path/to/barrister-darwin-amd64
+# Or right-click the file and select "Open Anyway" in System Settings
+```
+
 ## Next Steps
 
 - [Quickstart Overview](quickstart-overview.html) - Learn what you'll build
