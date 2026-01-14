@@ -51,10 +51,10 @@ The binary will be created at `./target/barrister`.
 ## Verify Installation
 
 ```bash
-barrister --version
+barrister -h
 ```
 
-You should see: `Barrister v0.x.x`
+You should see usage output that documents the supported command line flags.
 
 ## Troubleshooting
 
