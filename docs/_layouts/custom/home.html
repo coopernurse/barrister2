@@ -1,0 +1,199 @@
+---
+layout: default
+---
+
+<!-- Hero Section -->
+<div class="hero">
+  <div class="hero-content">
+    <h1>Type-Safe JSON-RPC for Modern Applications</h1>
+    <p class="hero-subheadline">
+      Generate clients and servers from IDL definitions. Go, Java, Python, TypeScript, C#.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ '/get-started/installation' | relative_url }}" class="btn btn-primary btn-large">
+        Get Started
+      </a>
+      <a href="{{ '/idl-guide/syntax' | relative_url }}" class="btn btn-secondary btn-large">
+        View IDL Guide
+      </a>
+      <a href="https://github.com/coopernurse/barrister2" class="btn btn-ghost btn-large" style="color: white; border-color: rgba(255,255,255,0.3);">
+        GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Feature Highlights -->
+<section class="features-section" aria-labelledby="features-title">
+  <h2 id="features-title" class="section-title">Why Barrister2?</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Document icon">📝</div>
+      <h3>IDL-Based Code Generation</h3>
+      <p>Define your service once with our Interface Definition Language, then generate type-safe clients and servers in multiple languages.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Lock icon">🔒</div>
+      <h3>Type-Safe RPC</h3>
+      <p>Automatic validation of request and response types ensures data integrity and catches errors at compile time, not runtime.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Globe icon">🌐</div>
+      <h3>Multi-Language Support</h3>
+      <p>Generate code for Go, Java, Python, TypeScript, and C# from the same IDL file. Perfect for polyglot architectures.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Signal icon">📡</div>
+      <h3>JSON-RPC 2.0</h3>
+      <p>Built on the standard JSON-RPC 2.0 protocol with broad language support. Easy to debug with standard tools.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Game controller icon">🎮</div>
+      <h3>Web UI Playground</h3>
+      <p>Experiment with IDL definitions and generate code directly in your browser with our interactive Web UI.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon" role="img" aria-label="Lightning bolt icon">⚡</div>
+      <h3>Fast & Lightweight</h3>
+      <p>Minimal runtime overhead with embedded type validation. Generate only the code you need, no bloated frameworks.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Look Code Example -->
+<section class="code-example-section" aria-labelledby="code-example-title">
+  <h2 id="code-example-title" class="section-title">Quick Look</h2>
+  <p class="section-description">
+    Define your service interface in a simple IDL file, and Barrister2 generates type-safe code for you.
+  </p>
+
+  <div class="code-example-container">
+    <div class="code-example-tabs" role="tablist" aria-label="Code examples">
+      <button class="code-tab active" data-tab="idl" role="tab" aria-selected="true" aria-controls="pane-idl" id="tab-idl">IDL Definition</button>
+      <button class="code-tab" data-tab="go" role="tab" aria-selected="false" aria-controls="pane-go" id="tab-go">Go Server</button>
+      <button class="code-tab" data-tab="python" role="tab" aria-selected="false" aria-controls="pane-python" id="tab-python">Python Client</button>
+    </div>
+
+    <div class="code-example-content">
+      <div class="code-pane active" id="pane-idl" role="tabpanel" aria-labelledby="tab-idl">
+{% highlight idl %}
+namespace checkout
+
+interface CatalogService {
+    listProducts() []Product
+    getProduct(productId string) Product [optional]
+}
+
+struct Product {
+    productId    string
+    name         string
+    price        float
+    stock        int
+}
+{% endhighlight %}
+      </div>
+
+      <div class="code-pane" id="pane-go" role="tabpanel" aria-labelledby="tab-go" tabindex="0">
+{% highlight go %}
+package main
+
+import (
+    "context"
+    "github.com/coopernurse/barrister2-go"
+)
+
+type CatalogServer struct {
+    // Your data access layer
+}
+
+func (s *CatalogServer) ListProducts(ctx context.Context) ([]Product, error) {
+    // Implement your business logic
+    return []Product{
+        {ProductId: "1", Name: "Widget", Price: 9.99, Stock: 100},
+    }, nil
+}
+
+func (s *CatalogServer) GetProduct(ctx context.Context, productId string) (*Product, error) {
+    // Fetch product by ID
+    return &Product{
+        ProductId: productId,
+        Name: "Widget",
+        Price: 9.99,
+        Stock: 100,
+    }, nil
+}
+{% endhighlight %}
+      </div>
+
+      <div class="code-pane" id="pane-python" role="tabpanel" aria-labelledby="tab-python" tabindex="0">
+{% highlight python %}
+import barrister2
+
+# Create a client
+client = barrister2.Client("http://localhost:8080/rpc")
+service = client.checkout_CatalogService()
+
+# Call remote methods with type safety
+products = service.list_products()
+for product in products:
+    print(f"{product.name}: ${product.price}")
+
+# Get a specific product
+product = service.get_product("1")
+if product:
+    print(f"Found: {product.name}")
+{% endhighlight %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Use Cases Section -->
+<section class="use-cases-section" aria-labelledby="use-cases-title">
+  <h2 id="use-cases-title" class="section-title">Common Use Cases</h2>
+  <div class="use-cases-grid">
+    <div class="use-case-card">
+      <h3>Microservices</h3>
+      <p>Build type-safe communication between services. Ensure contract compatibility across your entire microservices architecture.</p>
+    </div>
+
+    <div class="use-case-card">
+      <h3>Mobile & Web Backends</h3>
+      <p>Generate SDKs for iOS, Android, and web frontends from a single IDL definition. Keep all clients in sync automatically.</p>
+    </div>
+
+    <div class="use-case-card">
+      <h3>API Gateways</h3>
+      <p>Create validated interfaces between API gateways and backend services. Automatic request/response validation for free.</p>
+    </div>
+
+    <div class="use-case-card">
+      <h3>Polyglot Systems</h3>
+      <p>Mix and match languages freely. Write services in Go, Python, or Java, and call them from any supported language.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section" aria-labelledby="cta-title">
+  <div class="cta-card">
+    <h2 id="cta-title">Ready to Build Type-Safe APIs?</h2>
+    <p>Get started in minutes with our quickstart guide, or explore the IDL reference to learn more.</p>
+    <div class="cta-actions">
+      <a href="{{ '/get-started/installation' | relative_url }}" class="btn btn-primary btn-large">
+        Install Barrister2
+      </a>
+      <a href="{{ '/get-started/quickstart-overview' | relative_url }}" class="btn btn-outline btn-large">
+        Quickstart Guide
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Homepage-specific JavaScript -->
+<script src="{{ '/assets/js/homepage.js' | relative_url }}" defer></script>

@@ -1,14 +1,22 @@
 <header>
   <div class="header-content">
     <h1><a href="{{ '/' | relative_url }}">{{ site.title }}</a></h1>
+
+    <!-- Mobile menu button (Task 22) -->
+    <button class="mobile-menu-button" aria-label="Toggle menu" aria-expanded="false" aria-controls="main-nav">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
     {% include search.html %}
-    <nav>
+    <nav id="main-nav" aria-label="Main navigation">
       <ul>
         <li><a href="{{ '/get-started/installation.html' | relative_url }}">Get Started</a></li>
         <li><a href="{{ '/idl-guide/syntax.html' | relative_url }}">IDL Guide</a></li>
         <li class="dropdown">
-          <a href="#">Languages ▾</a>
-          <ul class="dropdown-content">
+          <a href="#" aria-haspopup="true" aria-expanded="false">Languages ▾</a>
+          <ul class="dropdown-content" aria-label="Languages">
             <li><a href="{{ '/languages/go/quickstart.html' | relative_url }}">Go</a></li>
             <li><a href="{{ '/languages/java/quickstart.html' | relative_url }}">Java</a></li>
             <li><a href="{{ '/languages/python/quickstart.html' | relative_url }}">Python</a></li>

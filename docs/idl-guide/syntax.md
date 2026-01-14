@@ -1,5 +1,7 @@
 ---
-title: IDL Syntax
+title: Syntax
+parent: IDL Guide
+nav_order: 1
 layout: default
 ---
 

@@ -3,6 +3,42 @@ description: IDL-based JSON-RPC code generation
 lang: en
 baseurl: /barrister2
 
+# Performance optimizations
+# dns_prefetch: Pre-resolve DNS for external origins
+# compress: Enable gzip compression (GitHub Pages handles this)
+# heading_anchors: Enable heading anchors (already set below)
+
+# Theme
+theme: "just-the-docs"
+
+# Just the Docs settings
+search_enabled: true
+heading_anchors: true
+permalinks: true
+heading_level: 2
+copy_code: true
+
+# Table of Contents settings (Task 13)
+toc:
+  enabled: true
+  heading_level: 2
+  headings: "h2,h3"
+
+# Search configuration
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 3
+  preview_words_after: 3
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: true
+aux_links:
+  "GitHub Repository": "https://github.com/coopernurse/barrister2"
+
+# Footer content
+footer_content: "Copyright &copy; 2026 Barrister2. Distributed by <a href=\"https://github.com/coopernurse/barrister2/blob/main/LICENSE\">MIT license</a>."
+
 markdown: kramdown
 highlighter: rouge
 plugins_dir: _plugins

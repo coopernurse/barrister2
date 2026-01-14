@@ -1,5 +1,7 @@
 ---
 title: Quickstart Overview
+parent: Get Started
+nav_order: 2
 layout: default
 ---
 

@@ -1,0 +1,74 @@
+- title: "Home"
+  url: /
+
+- title: "Get Started"
+  children:
+    - title: "Installation"
+      url: /get-started/installation
+    - title: "Quickstart"
+      url: /get-started/quickstart-overview
+
+- title: "IDL Guide"
+  children:
+    - title: "Syntax"
+      url: /idl-guide/syntax
+    - title: "Types"
+      url: /idl-guide/types
+    - title: "Validation"
+      url: /idl-guide/validation
+
+- title: "Language Guides"
+  children:
+    - title: "Go"
+      children:
+        - title: "Install"
+          url: /languages/go/install
+        - title: "Quickstart"
+          url: /languages/go/quickstart
+        - title: "Reference"
+          url: /languages/go/reference
+    - title: "Java"
+      children:
+        - title: "Install"
+          url: /languages/java/install
+        - title: "Quickstart"
+          url: /languages/java/quickstart
+        - title: "Reference"
+          url: /languages/java/reference
+    - title: "Python"
+      children:
+        - title: "Install"
+          url: /languages/python/install
+        - title: "Quickstart"
+          url: /languages/python/quickstart
+        - title: "Reference"
+          url: /languages/python/reference
+    - title: "TypeScript"
+      children:
+        - title: "Install"
+          url: /languages/typescript/install
+        - title: "Quickstart"
+          url: /languages/typescript/quickstart
+        - title: "Reference"
+          url: /languages/typescript/reference
+    - title: "C#"
+      children:
+        - title: "Install"
+          url: /languages/csharp/install
+        - title: "Quickstart"
+          url: /languages/csharp/quickstart
+        - title: "Reference"
+          url: /languages/csharp/reference
+
+- title: "Examples"
+  children:
+    - title: "Go Example"
+      url: /examples/checkout-go
+    - title: "Java Example"
+      url: /examples/checkout-java
+    - title: "Python Example"
+      url: /examples/checkout-python
+    - title: "TypeScript Example"
+      url: /examples/checkout-typescript
+    - title: "C# Example"
+      url: /examples/checkout-csharp

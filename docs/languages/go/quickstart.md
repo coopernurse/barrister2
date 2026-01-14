@@ -1,5 +1,8 @@
 ---
-title: Go Quickstart
+title: Quickstart
+parent: Go
+grand_parent: Language Guides
+nav_order: 2
 layout: default
 ---
 
@@ -7,10 +10,15 @@ layout: default
 
 Build a complete Barrister2 RPC service in Go with our e-commerce checkout example.
 
+> **Time Estimate**: 25-30 minutes
+> This quickstart takes about 30 minutes to complete and covers all the essentials.
+
 ## Prerequisites
 
 - Go 1.21 or later
 - Barrister CLI installed ([Installation Guide](../../get-started/installation))
+
+> **Note**: Make sure your Go version is 1.21 or later. Check with `go version`.
 
 ## 1. Define the Service (2 min)
 

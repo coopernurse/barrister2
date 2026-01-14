@@ -7,8 +7,23 @@ module Jekyll
 
     def render(context)
       site = context.registers[:site]
-      # Build file path relative to site source (workspace root)
-      file_path = File.join(site.source, @path)
+      
+      # site.source points to /Users/james/src/barrister2/docs
+      # workspace_root is /Users/james/src/barrister2
+      # The path ../../examples/checkout.idl is a relative path from workspace root
+      # - ../../ means go up from /Users/james/src to /Users/james
+      # - BUT we want it relative to docs, so ../examples is the correct interpretation
+      
+      # Since the docs folder is one level down from workspace root,
+      # ../../examples should be interpreted as ../examples from docs folder
+      
+      workspace_root = File.dirname(site.source)
+      
+      # Normalize paths starting with ../../ to be ../ for one level up from docs
+      path_to_use = @path.sub(/^\.\.\/\.\.\//, '../')
+      
+      # Join relative to docs folder and expand to absolute
+      file_path = File.expand_path(path_to_use, site.source)
 
       if File.exist?(file_path)
         contents = File.read(file_path)

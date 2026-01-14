@@ -1,11 +1,15 @@
 ---
 title: Installation
+parent: Get Started
+nav_order: 1
 layout: default
 ---
 
 # Installing Barrister
 
 Barrister can be installed in several ways depending on your workflow.
+
+> **Recommended**: Use the Go install method if you're a Go developer. Use Docker if you want to try Barrister without installing Go.
 
 ## Prerequisites
 
@@ -25,11 +29,11 @@ This installs the `barrister` binary in your `GOPATH/bin` directory. Make sure `
 
 ### Method 2: Download Pre-built Binary
 
-Download the latest release from the [GitHub Releases page](https://github.com/bitmechanic/barrister2/releases).
+Download the latest release from the [GitHub Releases page](https://github.com/coopernurse/barrister2/releases).
 
 ```bash
 # Example for Linux AMD64
-wget https://github.com/bitmechanic/barrister2/releases/latest/download/barrister-linux-amd64 -O barrister
+wget https://github.com/coopernurse/barrister2/releases/latest/download/barrister-linux-amd64 -O barrister
 chmod +x barrister
 mv barrister /usr/local/bin/
 ```
@@ -39,7 +43,7 @@ mv barrister /usr/local/bin/
 Pull the latest Docker image:
 
 ```bash
-docker pull ghcr.io/bitmechanic/barrister2:latest
+docker pull ghcr.io/coopernurse/barrister2:latest
 ```
 
 Run Barrister via Docker:
@@ -70,6 +74,8 @@ You should see: `Barrister v0.x.x`
 
 ## Troubleshooting
 
+> **Need Help?** If you encounter issues not covered here, please [open an issue on GitHub](https://github.com/coopernurse/barrister2/issues).
+
 ### Command not found
 
 If you get `barrister: command not found`:
@@ -90,6 +96,8 @@ go version
 ```
 
 ### Permission denied
+
+> **Common Issue**: This usually happens when downloading pre-built binaries. Make sure to set executable permissions.
 
 If you get permission errors, make the binary executable:
 

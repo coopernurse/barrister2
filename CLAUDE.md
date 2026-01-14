@@ -124,12 +124,14 @@ See [RUNTIME_IMPLEMENTATION_GUIDE.md](docs/RUNTIME_IMPLEMENTATION_GUIDE.md) for 
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+Always use the `--no-daemon` flag when running `bd`
+
 ## Quick Reference
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+bd --no-daemon ready              # Find available work
+bd --no-daemon show <id>          # View issue details
+bd --no-daemon update <id> --status in_progress  # Claim work
+bd --no-daemon close <id>         # Complete work
+bd --no-daemon sync               # Sync with git
 ```

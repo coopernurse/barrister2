@@ -1,0 +1,15 @@
+---
+layout: null
+---
+[
+  {% assign searchable_pages = site.html_pages | where_exp: "page", "page.title != nil" %}
+  {% for page in searchable_pages %}
+    {% unless page.url contains '/plans/' or page.url contains '/TABLET-' or page.url contains '/MOBILE-' or page.url contains '/ACCESSIBILITY-' or page.url contains '/SEARCH_' or page.url contains '/LINK_' or page.url contains '/PERFORMANCE_' or page.url contains '/BROWSER_' or page.url contains '/CODE_' or page.url contains '/CROSS_' %}
+    {
+      "id": "{{ site.baseurl }}{{ page.url }}",
+      "title": {{ page.title | jsonify }},
+      "content": {{ page.content | strip_html | strip_newlines | truncatewords: 50 | jsonify }}
+    }{% unless forloop.last %},{% endunless %}
+    {% endunless %}
+  {% endfor %}
+]

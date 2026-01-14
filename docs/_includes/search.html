@@ -1,4 +1,12 @@
 <div class="search-container">
-  <input type="text" id="search-input" placeholder="Search documentation...">
-  <div id="search-results"></div>
+  <label for="search-input" class="visually-hidden">Search documentation</label>
+  <input
+    type="text"
+    id="search-input"
+    placeholder="Search documentation... (press /)"
+    aria-label="Search documentation"
+    aria-autocomplete="list"
+    aria-controls="search-results"
+    autocomplete="off">
+  <div id="search-results" role="listbox" aria-label="Search results" aria-live="polite"></div>
 </div>

@@ -175,7 +175,7 @@ clean:
 docs-build:
 	@echo "Building Jekyll documentation..."
 	@cd docs && bundle install > /dev/null 2>&1 || bundle install
-	@cd docs && bundle exec jekyll build
+	@cd docs && SASS_SILENCE_DEPRECATIONS=darken bundle exec jekyll build
 	@echo "Documentation built at docs/_site/"
 	@echo "Preview with: make docs-serve"
 

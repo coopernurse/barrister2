@@ -1,5 +1,8 @@
 ---
-title: Go Reference
+title: Reference
+parent: Go
+grand_parent: Language Guides
+nav_order: 3
 layout: default
 ---
 
