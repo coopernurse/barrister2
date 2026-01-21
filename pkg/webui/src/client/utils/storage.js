@@ -21,7 +21,8 @@ export function saveEndpoint(url) {
         
         const endpoint = {
             url: url,
-            lastUsed: new Date().toISOString()
+            lastUsed: new Date().toISOString(),
+            headers: existingIndex >= 0 ? (endpoints[existingIndex].headers || []) : []
         };
         
         if (existingIndex >= 0) {
@@ -34,6 +35,22 @@ export function saveEndpoint(url) {
         return true;
     } catch (e) {
         console.error('Failed to save endpoint to storage:', e);
+        return false;
+    }
+}
+
+export function updateEndpointHeaders(url, headers) {
+    try {
+        const endpoints = getEndpoints();
+        const existingIndex = endpoints.findIndex(e => e.url === url);
+        if (existingIndex >= 0) {
+            endpoints[existingIndex].headers = headers;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(endpoints));
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('Failed to update endpoint headers in storage:', e);
         return false;
     }
 }

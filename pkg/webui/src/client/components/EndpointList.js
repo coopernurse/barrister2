@@ -1,7 +1,7 @@
 // EndpointList component - sidebar with endpoint management
 
 import m from 'mithril'
-import { getEndpoints, saveEndpoint, removeEndpoint } from '../utils/storage.js';
+import { getEndpoints, saveEndpoint, removeEndpoint, updateEndpointHeaders } from '../utils/storage.js';
 import { discoverIDL } from '../services/api.js';
 import { buildTypeRegistry } from '../utils/types.js';
 
@@ -9,6 +9,7 @@ export default {
     newEndpointUrl: '',
     adding: false,
     discovering: false,
+    editingHeadersUrl: null, // URL of the endpoint whose headers are being edited
     
     oninit() {
         this.endpoints = getEndpoints();
@@ -53,32 +54,92 @@ export default {
                 this.endpoints.length === 0 ? [
                     m('div.list-group-item.text-muted.text-center', 'No endpoints yet')
                 ] : this.endpoints.map(endpoint => 
-                    m('div.list-group-item', {
-                        class: currentEndpoint === endpoint.url ? 'active' : '',
-                        onclick: () => {
-                            if (currentEndpoint !== endpoint.url) {
-                                this.handleSelectEndpoint(endpoint.url, vnode);
-                            }
-                        }
-                    }, [
-                        m('div.d-flex.justify-content-between.align-items-center', [
-                            m('div.flex-grow-1', [
-                                m('div.fw-bold', endpoint.url),
-                                m('small.text-muted', new Date(endpoint.lastUsed).toLocaleString())
-                            ]),
-                            m('button.btn.btn-sm.btn-outline-danger', {
-                                onclick: (e) => {
-                                    e.stopPropagation();
-                                    this.handleRemoveEndpoint(endpoint.url, vnode);
+                    m('div', [
+                        m('div.list-group-item', {
+                            class: currentEndpoint === endpoint.url ? 'active' : '',
+                            onclick: () => {
+                                if (currentEndpoint !== endpoint.url) {
+                                    this.handleSelectEndpoint(endpoint, vnode);
                                 }
-                            }, '×')
-                        ])
+                            },
+                            style: { cursor: 'pointer' }
+                        }, [
+                            m('div.d-flex.justify-content-between.align-items-center', [
+                                m('div.flex-grow-1', [
+                                    m('div.fw-bold', { style: { wordBreak: 'break-all' } }, endpoint.url),
+                                    m('small', { class: currentEndpoint === endpoint.url ? 'text-light' : 'text-muted' }, new Date(endpoint.lastUsed).toLocaleString())
+                                ]),
+                                m('div.btn-group', [
+                                    m('button.btn.btn-sm', {
+                                        class: currentEndpoint === endpoint.url ? 'btn-outline-light' : 'btn-outline-secondary',
+                                        title: 'Manage Headers',
+                                        onclick: (e) => {
+                                            e.stopPropagation();
+                                            this.toggleHeaderEditor(endpoint.url);
+                                        }
+                                    }, m('i.bi.bi-list')),
+                                    m('button.btn.btn-sm.btn-outline-danger', {
+                                        onclick: (e) => {
+                                            e.stopPropagation();
+                                            this.handleRemoveEndpoint(endpoint.url, vnode);
+                                        }
+                                    }, '×')
+                                ])
+                            ])
+                        ]),
+                        // Inline Header Editor
+                        this.editingHeadersUrl === endpoint.url ? m('div.header-editor.p-2.border.border-top-0', [
+                            m('div.small.fw-bold.mb-1', 'HTTP Headers'),
+                            (endpoint.headers || []).map((header, idx) => 
+                                m('div.d-flex.mb-1.gap-1', [
+                                    m('input.form-control.form-control-xs[placeholder=Name]', {
+                                        value: header.name,
+                                        oninput: (e) => {
+                                            header.name = e.target.value;
+                                            this.saveHeaders(endpoint);
+                                        }
+                                    }),
+                                    m('input.form-control.form-control-xs[placeholder=Value]', {
+                                        value: header.value,
+                                        oninput: (e) => {
+                                            header.value = e.target.value;
+                                            this.saveHeaders(endpoint);
+                                        }
+                                    }),
+                                    m('button.btn.btn-xs.btn-outline-danger', {
+                                        onclick: () => {
+                                            endpoint.headers.splice(idx, 1);
+                                            this.saveHeaders(endpoint);
+                                        }
+                                    }, '×')
+                                ])
+                            ),
+                            m('button.btn.btn-xs.btn-outline-primary.mt-1', {
+                                onclick: () => {
+                                    endpoint.headers = endpoint.headers || [];
+                                    endpoint.headers.push({ name: '', value: '' });
+                                    this.saveHeaders(endpoint);
+                                }
+                            }, '+ Add Header')
+                        ]) : null
                     ])
                 )
             )
         ]);
     },
     
+    toggleHeaderEditor(url) {
+        if (this.editingHeadersUrl === url) {
+            this.editingHeadersUrl = null;
+        } else {
+            this.editingHeadersUrl = url;
+        }
+    },
+
+    saveHeaders(endpoint) {
+        updateEndpointHeaders(endpoint.url, endpoint.headers);
+    },
+
     async handleAddEndpoint(vnode) {
         const url = this.newEndpointUrl.trim();
         if (!url) return;
@@ -88,10 +149,11 @@ export default {
         try {
             saveEndpoint(url);
             this.endpoints = getEndpoints();
+            const endpoint = this.endpoints.find(e => e.url === url);
             this.newEndpointUrl = '';
             
             // Auto-select and discover
-            await this.handleSelectEndpoint(url, vnode);
+            await this.handleSelectEndpoint(endpoint, vnode);
         } catch (error) {
             alert('Failed to add endpoint: ' + error.message);
         } finally {
@@ -100,21 +162,30 @@ export default {
         }
     },
     
-    async handleSelectEndpoint(url, vnode) {
+    async handleSelectEndpoint(endpoint, vnode) {
+        const url = endpoint.url;
         const { onEndpointSelect } = vnode.attrs;
         this.discovering = true;
         m.redraw();
         
         try {
+            // Convert headers array to map for the discover call
+            const headersMap = (endpoint.headers || []).reduce((acc, h) => {
+                if (h.name && h.name.trim()) {
+                    acc[h.name.trim()] = h.value || '';
+                }
+                return acc;
+            }, {});
+
             // Discover IDL
-            const idl = await discoverIDL(url);
+            const idl = await discoverIDL(url, headersMap);
             
             // Build type registry
             const typeRegistry = buildTypeRegistry(idl);
             
             // Update app state
             if (onEndpointSelect) {
-                onEndpointSelect(url, idl, typeRegistry);
+                onEndpointSelect(url, idl, typeRegistry, endpoint.headers);
             }
         } catch (error) {
             alert('Failed to discover IDL: ' + error.message);
@@ -133,7 +204,7 @@ export default {
             if (vnode.attrs.currentEndpoint === url) {
                 const { onEndpointSelect } = vnode.attrs;
                 if (onEndpointSelect) {
-                    onEndpointSelect(null, null, null);
+                    onEndpointSelect(null, null, null, []);
                 }
             }
         }

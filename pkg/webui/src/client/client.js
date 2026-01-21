@@ -13,6 +13,7 @@ import { callMethod } from './services/api.js';
 // Application state
 const AppState = {
     currentEndpoint: null,
+    currentHeaders: [],
     idl: null,
     typeRegistry: null,
     selectedInterface: null,
@@ -121,8 +122,9 @@ const App = {
                 }, [
                     m(EndpointList, {
                         currentEndpoint: AppState.currentEndpoint,
-                        onEndpointSelect: (endpoint, idl, typeRegistry) => {
-                            AppState.currentEndpoint = endpoint;
+                        onEndpointSelect: (endpointUrl, idl, typeRegistry, headers) => {
+                            AppState.currentEndpoint = endpointUrl;
+                            AppState.currentHeaders = headers || [];
                             AppState.idl = idl;
                             AppState.typeRegistry = typeRegistry;
                             AppState.selectedInterface = null;
@@ -214,11 +216,20 @@ const App = {
                             };
                             
                             try {
+                                // Convert headers array to map
+                                const headersMap = AppState.currentHeaders.reduce((acc, h) => {
+                                    if (h.name && h.name.trim()) {
+                                        acc[h.name.trim()] = h.value || '';
+                                    }
+                                    return acc;
+                                }, {});
+
                                 const response = await callMethod(
                                     AppState.currentEndpoint,
                                     AppState.selectedInterface.name,
                                     AppState.selectedMethod.name,
-                                    paramsArray
+                                    paramsArray,
+                                    headersMap
                                 );
                                 AppState.responseJson = response;
                             } catch (err) {

@@ -166,9 +166,19 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	// Copy relevant headers
 	proxyReq.Header.Set("Content-Type", "application/json")
 	for key, values := range r.Header {
-		if strings.HasPrefix(strings.ToLower(key), "x-") && key != "X-Target-Endpoint" {
+		if strings.HasPrefix(strings.ToLower(key), "x-") && key != "X-Target-Endpoint" && key != "X-Barrister-Headers" {
 			for _, value := range values {
 				proxyReq.Header.Add(key, value)
+			}
+		}
+	}
+
+	// Add custom headers from X-Barrister-Headers
+	if hJson := r.Header.Get("X-Barrister-Headers"); hJson != "" {
+		var customHeaders map[string]string
+		if err := json.Unmarshal([]byte(hJson), &customHeaders); err == nil {
+			for k, v := range customHeaders {
+				proxyReq.Header.Set(k, v)
 			}
 		}
 	}

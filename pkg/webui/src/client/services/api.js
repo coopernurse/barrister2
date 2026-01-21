@@ -5,20 +5,26 @@ const PROXY_URL = '/api/proxy';
 /**
  * Discover IDL from an endpoint using barrister-idl method
  */
-export async function discoverIDL(endpoint) {
+export async function discoverIDL(endpoint, customHeaders) {
     const request = {
         jsonrpc: '2.0',
         method: 'barrister-idl',
         id: 1
     };
     
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Target-Endpoint': endpoint
+    };
+
+    if (customHeaders && Object.keys(customHeaders).length > 0) {
+        headers['X-Barrister-Headers'] = JSON.stringify(customHeaders);
+    }
+    
     try {
         const response = await fetch(PROXY_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Target-Endpoint': endpoint
-            },
+            headers: headers,
             body: JSON.stringify(request)
         });
         
@@ -45,7 +51,7 @@ export async function discoverIDL(endpoint) {
 /**
  * Make an RPC call to a method
  */
-export async function callMethod(endpoint, interfaceName, methodName, params) {
+export async function callMethod(endpoint, interfaceName, methodName, params, customHeaders) {
     const method = `${interfaceName}.${methodName}`;
     const request = {
         jsonrpc: '2.0',
@@ -53,14 +59,20 @@ export async function callMethod(endpoint, interfaceName, methodName, params) {
         params: params,
         id: Date.now() // Use timestamp as ID
     };
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Target-Endpoint': endpoint
+    };
+
+    if (customHeaders && Object.keys(customHeaders).length > 0) {
+        headers['X-Barrister-Headers'] = JSON.stringify(customHeaders);
+    }
     
     try {
         const response = await fetch(PROXY_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Target-Endpoint': endpoint
-            },
+            headers: headers,
             body: JSON.stringify(request)
         });
         
