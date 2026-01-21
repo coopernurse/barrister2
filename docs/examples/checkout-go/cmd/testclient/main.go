@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"checkout/pkg/checkout"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,10 +43,10 @@ func main() {
 	fmt.Println("Server is ready. Running tests...")
 	fmt.Println()
 
-	transport := NewHTTPTransport(serverURL, nil)
-	catalogserviceClient := NewCatalogServiceClient(transport)
-	cartserviceClient := NewCartServiceClient(transport)
-	orderserviceClient := NewOrderServiceClient(transport)
+	transport := checkout.NewHTTPTransport(serverURL, nil)
+	catalogserviceClient := checkout.NewCatalogServiceClient(transport)
+	cartserviceClient := checkout.NewCartServiceClient(transport)
+	orderserviceClient := checkout.NewOrderServiceClient(transport)
 
 	errors := []string{}
 
@@ -88,7 +89,7 @@ func main() {
 				errors = append(errors, fmt.Sprintf("CartService.addToCart failed: %v", r))
 			}
 		}()
-		result, err := cartserviceClient.AddToCart(AddToCartRequest{ProductId: "test", Quantity: 1})
+		result, err := cartserviceClient.AddToCart(checkout.AddToCartRequest{ProductId: "test", Quantity: 1})
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("CartService.addToCart failed: %v", err))
 			return
@@ -136,7 +137,7 @@ func main() {
 				errors = append(errors, fmt.Sprintf("OrderService.createOrder failed: %v", r))
 			}
 		}()
-		result, err := orderserviceClient.CreateOrder(CreateOrderRequest{CartId: "test", ShippingAddress: Address{Street: "test", City: "test", State: "test", ZipCode: "test", Country: "test"}, PaymentMethod: PaymentMethodCreditCard})
+		result, err := orderserviceClient.CreateOrder(checkout.CreateOrderRequest{CartId: "test", ShippingAddress: checkout.Address{Street: "test", City: "test", State: "test", ZipCode: "test", Country: "test"}, PaymentMethod: checkout.PaymentMethodCreditCard})
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("OrderService.createOrder failed: %v", err))
 			return

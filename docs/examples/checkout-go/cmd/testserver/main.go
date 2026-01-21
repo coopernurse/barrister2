@@ -4,31 +4,32 @@
 package main
 
 import (
+	"checkout/pkg/checkout"
 	"math"
 	"strings"
 )
 
 type CatalogServiceImpl struct{}
 
-func (i *CatalogServiceImpl) ListProducts() ([]Product, error) {
-	var zero []Product
+func (i *CatalogServiceImpl) ListProducts() ([]checkout.Product, error) {
+	var zero []checkout.Product
 	return zero, nil
 }
 
-func (i *CatalogServiceImpl) GetProduct(productId string) (*Product, error) {
-	var zero *Product
+func (i *CatalogServiceImpl) GetProduct(productId string) (*checkout.Product, error) {
+	var zero *checkout.Product
 	return zero, nil
 }
 
 type CartServiceImpl struct{}
 
-func (i *CartServiceImpl) AddToCart(request AddToCartRequest) (Cart, error) {
-	var zero Cart
+func (i *CartServiceImpl) AddToCart(request checkout.AddToCartRequest) (checkout.Cart, error) {
+	var zero checkout.Cart
 	return zero, nil
 }
 
-func (i *CartServiceImpl) GetCart(cartId string) (*Cart, error) {
-	var zero *Cart
+func (i *CartServiceImpl) GetCart(cartId string) (*checkout.Cart, error) {
+	var zero *checkout.Cart
 	return zero, nil
 }
 
@@ -39,18 +40,18 @@ func (i *CartServiceImpl) ClearCart(cartId string) (bool, error) {
 
 type OrderServiceImpl struct{}
 
-func (i *OrderServiceImpl) CreateOrder(request CreateOrderRequest) (CheckoutResponse, error) {
-	var zero CheckoutResponse
+func (i *OrderServiceImpl) CreateOrder(request checkout.CreateOrderRequest) (checkout.CheckoutResponse, error) {
+	var zero checkout.CheckoutResponse
 	return zero, nil
 }
 
-func (i *OrderServiceImpl) GetOrder(orderId string) (*Order, error) {
-	var zero *Order
+func (i *OrderServiceImpl) GetOrder(orderId string) (*checkout.Order, error) {
+	var zero *checkout.Order
 	return zero, nil
 }
 
 func main() {
-	server := NewBarristerServer("0.0.0.0", 8080)
+	server := checkout.NewBarristerServer("0.0.0.0", 8080)
 	server.Register("CatalogService", &CatalogServiceImpl{})
 	server.Register("CartService", &CartServiceImpl{})
 	server.Register("OrderService", &OrderServiceImpl{})

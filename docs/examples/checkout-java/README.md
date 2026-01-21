@@ -26,13 +26,13 @@ A complete working example of a Barrister2 RPC service in Java.
 Code is already generated. To regenerate:
 
 ```bash
-barrister -plugin java-client-server -base-package checkout checkout.idl
+barrister -plugin java-client-server -base-package com.example.myapp checkout.idl
 ```
 
 ### Start Server
 
 ```bash
-mvn exec:java -Dexec.mainClass="Server"
+mvn exec:java -Dexec.mainClass="com.example.myapp.Server"
 ```
 
 Server runs on http://localhost:8080
@@ -40,7 +40,7 @@ Server runs on http://localhost:8080
 ### Run Client
 
 ```bash
-mvn exec:java -Dexec.mainClass="TestClient"
+mvn exec:java -Dexec.mainClass="com.example.myapp.TestClient"
 ```
 
 ## Implementation Pattern

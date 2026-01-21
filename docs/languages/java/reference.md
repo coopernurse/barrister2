@@ -94,17 +94,17 @@ if (order.getStatus() == OrderStatus.PENDING) {
 
 ## Error Handling
 
-Throw `RPCException` with custom codes:
+Throw `RPCError` with custom codes:
 
 ```java
-import com.bitmechanic.barrister2.RPCException;
+import com.bitmechanic.barrister2.RPCError;
 
 // Standard JSON-RPC errors
-throw new RPCException(-32602, "Invalid params");
+throw new RPCError(-32602, "Invalid params");
 
 // Custom application errors (use codes >= 1000)
-throw new RPCException(1001, "CartNotFound: Cart does not exist");
-throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+throw new RPCError(1001, "CartNotFound: Cart does not exist");
+throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
 ```
 
 Common error codes:
@@ -142,9 +142,27 @@ class CatalogServiceImpl implements CatalogService {
 
 // Start server
 public static void main(String[] args) throws Exception {
-    BarristerServer server = new BarristerServer(8080);
-    server.registerCatalogService(new CatalogServiceImpl());
+    JsonParser jsonParser = new JacksonJsonParser(); // or GsonJsonParser
+    Server server = new Server(8080, jsonParser);
+    server.register("CatalogService", new CatalogServiceImpl());
     server.start();
+}
+```
+
+## Client Usage
+
+```java
+import checkout.*;
+import com.bitmechanic.barrister2.*;
+
+JsonParser jsonParser = new JacksonJsonParser();
+Transport transport = new HTTPTransport("http://localhost:8080", jsonParser);
+CatalogServiceClient catalog = new CatalogServiceClient(transport, jsonParser);
+
+// Method calls return Java objects
+List<Product> products = catalog.listProducts();
+for (Product p : products) {
+    System.out.println(p.getName() + " - $" + p.getPrice());
 }
 ```
 
@@ -198,7 +216,7 @@ Barrister automatically validates:
 - Enum values are valid
 
 ```java
-// This will throw RPCException (-32602) if validation fails
+// This will throw RPCError (-32602) if validation fails
 Cart cart = cart.addToCart(new AddToCartRequest(
     null,  // cartId is optional
     "prod001",
@@ -212,7 +230,7 @@ Cart cart = cart.addToCart(new AddToCartRequest(
 2. **Stream for collections**: Use Java streams for filtering and mapping
 3. **Immutable where possible**: Consider making generated classes immutable
 4. **Use Jackson annotations**: Add `@JsonProperty` for custom field names
-5. **Handle RPCException**: Catch and handle RPC errors appropriately
+5. **Handle RPCError**: Catch and handle RPC errors appropriately
 
 ## Working with Nested Structs
 

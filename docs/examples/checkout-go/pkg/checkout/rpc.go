@@ -1,4 +1,4 @@
-package barrister2
+package checkout
 
 import "fmt"
 

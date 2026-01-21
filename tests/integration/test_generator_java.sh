@@ -93,20 +93,21 @@ cd "$PROJECT_ROOT"
 # Verify generated files
 echo -e "${YELLOW}Verifying generated files...${NC}"
 REQUIRED_FILES=(
-    "Server.java"
-    "TestServer.java"
-    "TestClient.java"
-    "idl.json"
+    "src/main/java/com/example/server/Server.java"
+    "src/main/java/com/example/server/Client.java"
+    "src/test/java/com/example/server/TestServer.java"
+    "src/test/java/com/example/server/TestClient.java"
+    "src/main/resources/idl.json"
     "pom.xml"
-    "com/bitmechanic/barrister2/RPCError.java"
-    "com/bitmechanic/barrister2/Validation.java"
-    "com/bitmechanic/barrister2/Types.java"
-    "com/bitmechanic/barrister2/JsonParser.java"
-    "com/bitmechanic/barrister2/JacksonJsonParser.java"
-    "com/bitmechanic/barrister2/Transport.java"
-    "com/bitmechanic/barrister2/Request.java"
-    "com/bitmechanic/barrister2/Response.java"
-    "com/bitmechanic/barrister2/HTTPTransport.java"
+    "src/main/java/com/bitmechanic/barrister2/RPCError.java"
+    "src/main/java/com/bitmechanic/barrister2/Validation.java"
+    "src/main/java/com/bitmechanic/barrister2/Types.java"
+    "src/main/java/com/bitmechanic/barrister2/JsonParser.java"
+    "src/main/java/com/bitmechanic/barrister2/JacksonJsonParser.java"
+    "src/main/java/com/bitmechanic/barrister2/Transport.java"
+    "src/main/java/com/bitmechanic/barrister2/Request.java"
+    "src/main/java/com/bitmechanic/barrister2/Response.java"
+    "src/main/java/com/bitmechanic/barrister2/HTTPTransport.java"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -118,74 +119,22 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 
 # Verify GSON parser is NOT included (only Jackson should be)
-if [ -f "$OUTPUT_DIR/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
+if [ -f "$OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java should not be generated when using Jackson${NC}"
     exit 1
 fi
 
 echo -e "${GREEN}✓ Generated files verified${NC}"
 
-# Debug: Log file structure and pom.xml content
-DEBUG_LOG="$PROJECT_ROOT/.cursor/debug.log"
-echo "=== HYPOTHESIS A: Files exist in output directory ===" > "$DEBUG_LOG"
-find "$OUTPUT_DIR" -name "*.java" -type f >> "$DEBUG_LOG" 2>&1 || echo "find failed" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== HYPOTHESIS B: pom.xml sourceDirectory configuration ===" >> "$DEBUG_LOG"
-grep -A 2 "sourceDirectory" "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "grep failed" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== HYPOTHESIS C: TestServer.java package declaration ===" >> "$DEBUG_LOG"
-head -5 "$OUTPUT_DIR/TestServer.java" >> "$DEBUG_LOG" 2>&1 || echo "head failed" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== NEW ISSUE: inc.java content (checking for syntax errors) ===" >> "$DEBUG_LOG"
-if [ -f "$OUTPUT_DIR/inc.java" ]; then
-    cat "$OUTPUT_DIR/inc.java" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read inc.java" >> "$DEBUG_LOG"
-else
-    echo "inc.java not found" >> "$DEBUG_LOG"
-fi
-echo "" >> "$DEBUG_LOG"
-echo "=== POST-FIX: TestServer.java content (checking method registration) ===" >> "$DEBUG_LOG"
-if [ -f "$OUTPUT_DIR/TestServer.java" ]; then
-    cat "$OUTPUT_DIR/TestServer.java" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read TestServer.java" >> "$DEBUG_LOG"
-else
-    echo "TestServer.java not found" >> "$DEBUG_LOG"
-fi
-echo "" >> "$DEBUG_LOG"
-echo "=== HYPOTHESIS D: barrister2 directory structure ===" >> "$DEBUG_LOG"
-ls -la "$OUTPUT_DIR/com/bitmechanic/barrister2/" >> "$DEBUG_LOG" 2>&1 || echo "ls failed" >> "$DEBUG_LOG"
-
 # Step 4: Build the Java project using Docker
 echo -e "${YELLOW}Building Java project with Maven in Docker...${NC}"
 cd "$OUTPUT_DIR"
-echo "=== POST-FIX: Full pom.xml content ===" >> "$DEBUG_LOG"
-cat "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "Failed to read pom.xml" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== POST-FIX: Checking pom.xml for build-helper plugin ===" >> "$DEBUG_LOG"
-grep -A 10 "build-helper" "$OUTPUT_DIR/pom.xml" >> "$DEBUG_LOG" 2>&1 || echo "build-helper not found in pom.xml" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== POST-FIX: Maven compile verbose output (should show Compiling) ===" >> "$DEBUG_LOG"
 docker run --rm \
     -v "$OUTPUT_DIR:/workspace" \
     -v "$M2_CACHE_DIR:/root/.m2" \
     -w /workspace \
     "$DOCKER_IMAGE" \
-    bash -c "mvn clean compile 2>&1" >> "$DEBUG_LOG" 2>&1 || true
-
-echo "=== POST-FIX: Checking if sources were added after generate-sources ===" >> "$DEBUG_LOG"
-docker run --rm \
-    -v "$OUTPUT_DIR:/workspace" \
-    -v "$M2_CACHE_DIR:/root/.m2" \
-    -w /workspace \
-    "$DOCKER_IMAGE" \
-    bash -c "mvn generate-sources -q && mvn help:evaluate -Dexpression=project.build.sourceDirectories -q -DforceStdout 2>&1" >> "$DEBUG_LOG" 2>&1 || echo "Failed to get source directories" >> "$DEBUG_LOG"
-echo "" >> "$DEBUG_LOG"
-echo "=== POST-FIX: Full compile output (looking for Compiling messages) ===" >> "$DEBUG_LOG"
-
-docker run --rm \
-    -v "$OUTPUT_DIR:/workspace" \
-    -v "$M2_CACHE_DIR:/root/.m2" \
-    -w /workspace \
-    "$DOCKER_IMAGE" \
-    mvn clean compile
+    mvn clean test-compile
 
 echo -e "${GREEN}✓ Java project built successfully${NC}"
 
@@ -198,16 +147,14 @@ docker run -d \
     -v "$M2_CACHE_DIR:/root/.m2" \
     -w /workspace \
     "$DOCKER_IMAGE" \
-    mvn exec:java -Dexec.mainClass="TestServer"
+    mvn exec:java -Dexec.mainClass="com.example.server.TestServer" -Dexec.classpathScope=test
 
 # Give container a moment to start, then check if it's still running
 sleep 2
-echo "=== Initial container logs (after 2 seconds) ===" >> "$DEBUG_LOG"
-docker logs "$CONTAINER_NAME" >> "$DEBUG_LOG" 2>&1 || true
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo -e "${RED}ERROR: Container exited immediately${NC}"
     echo "Container logs:"
-    docker logs "$CONTAINER_NAME" 2>&1 | tee -a "$DEBUG_LOG"
+    docker logs "$CONTAINER_NAME" 2>&1
     exit 1
 fi
 
@@ -225,8 +172,8 @@ done
 
 if [ $WAIT_COUNT -ge $TIMEOUT ]; then
     echo -e "${RED}ERROR: Server did not become ready within $TIMEOUT seconds${NC}"
-    echo "Server log:"
-    cat server.log
+    echo "Container logs:"
+    docker logs "$CONTAINER_NAME" 2>&1
     exit 1
 fi
 
@@ -237,10 +184,8 @@ echo -e "${YELLOW}Running HTTP API tests...${NC}"
 cd "$SCRIPT_DIR"
 if ! bash test_http_api.sh "$SERVER_URL"; then
     echo -e "${RED}ERROR: HTTP API tests failed${NC}"
-    echo "=== Container logs (for debugging) ===" >> "$DEBUG_LOG"
-    docker logs "$CONTAINER_NAME" >> "$DEBUG_LOG" 2>&1
     echo "Container logs:"
-    docker logs "$CONTAINER_NAME"
+    docker logs "$CONTAINER_NAME" 2>&1
     exit 1
 fi
 echo -e "${GREEN}✓ HTTP API tests passed${NC}"
@@ -257,7 +202,7 @@ docker run --rm \
     -v "$M2_CACHE_DIR:/root/.m2" \
     -w /workspace \
     "$DOCKER_IMAGE" \
-    mvn exec:java -Dexec.mainClass="TestClient" -Dexec.args="$CLIENT_SERVER_URL"
+    mvn exec:java -Dexec.mainClass="com.example.server.TestClient" -Dexec.args="$CLIENT_SERVER_URL" -Dexec.classpathScope=test
 echo -e "${GREEN}✓ Test client executed successfully${NC}"
 
 # Step 8: Test with GSON instead of Jackson
@@ -268,12 +213,12 @@ mkdir -p "$GSON_OUTPUT_DIR"
 "$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -generate-test-files -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
 
 # Verify GSON files
-if [ ! -f "$GSON_OUTPUT_DIR/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
+if [ ! -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java not found when using GSON${NC}"
     exit 1
 fi
 
-if [ -f "$GSON_OUTPUT_DIR/com/bitmechanic/barrister2/JacksonJsonParser.java" ]; then
+if [ -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/JacksonJsonParser.java" ]; then
     echo -e "${RED}ERROR: JacksonJsonParser.java should not be generated when using GSON${NC}"
     exit 1
 fi
@@ -286,7 +231,7 @@ docker run --rm \
     -v "$M2_CACHE_DIR:/root/.m2" \
     -w /workspace \
     "$DOCKER_IMAGE" \
-    mvn clean compile
+    mvn clean test-compile
 echo -e "${GREEN}✓ GSON version built successfully${NC}"
 
 # Cleanup GSON test

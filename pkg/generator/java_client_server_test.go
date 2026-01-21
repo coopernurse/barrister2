@@ -57,17 +57,17 @@ func TestJavaGeneratorBasicFiles(t *testing.T) {
 	}
 
 	// Check namespace Idl file
-	nsPath := filepath.Join(tmpDir, "com", "example", "inc", "incIdl.java")
+	nsPath := filepath.Join(tmpDir, "src", "main", "java", "com", "example", "inc", "incIdl.java")
 	if _, err := os.Stat(nsPath); err != nil {
 		t.Fatalf("expected namespace idl file at %s, missing: %v", nsPath, err)
 	}
 
 	// Check Server.java and Client.java in base package
-	serverPath := filepath.Join(tmpDir, "com", "example", "Server.java")
+	serverPath := filepath.Join(tmpDir, "src", "main", "java", "com", "example", "Server.java")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Fatalf("expected Server.java at %s, missing: %v", serverPath, err)
 	}
-	clientPath := filepath.Join(tmpDir, "com", "example", "Client.java")
+	clientPath := filepath.Join(tmpDir, "src", "main", "java", "com", "example", "Client.java")
 	if _, err := os.Stat(clientPath); err != nil {
 		t.Fatalf("expected Client.java at %s, missing: %v", clientPath, err)
 	}
@@ -88,9 +88,9 @@ func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
 				Namespace: "",
 				Methods: []*parser.Method{
 					{
-						Name:         "add",
-						Parameters:   []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
-						ReturnType:   &parser.Type{BuiltIn: "int"},
+						Name:       "add",
+						Parameters: []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
+						ReturnType: &parser.Type{BuiltIn: "int"},
 					},
 				},
 			},
@@ -117,11 +117,11 @@ func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
 	}
 
 	// Check that test files are generated when flag is true
-	testServerPath := filepath.Join(tmpDir, "TestServer.java")
+	testServerPath := filepath.Join(tmpDir, "src", "test", "java", "com", "example", "TestServer.java")
 	if _, err := os.Stat(testServerPath); err != nil {
 		t.Fatalf("expected TestServer.java at %s, missing: %v", testServerPath, err)
 	}
-	testClientPath := filepath.Join(tmpDir, "TestClient.java")
+	testClientPath := filepath.Join(tmpDir, "src", "test", "java", "com", "example", "TestClient.java")
 	if _, err := os.Stat(testClientPath); err != nil {
 		t.Fatalf("expected TestClient.java at %s, missing: %v", testClientPath, err)
 	}
@@ -142,9 +142,9 @@ func TestJavaGeneratorTestFilesDisabled(t *testing.T) {
 				Namespace: "",
 				Methods: []*parser.Method{
 					{
-						Name:         "add",
-						Parameters:   []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
-						ReturnType:   &parser.Type{BuiltIn: "int"},
+						Name:       "add",
+						Parameters: []*parser.Parameter{{Name: "a", Type: &parser.Type{BuiltIn: "int"}}, {Name: "b", Type: &parser.Type{BuiltIn: "int"}}},
+						ReturnType: &parser.Type{BuiltIn: "int"},
 					},
 				},
 			},
@@ -172,11 +172,11 @@ func TestJavaGeneratorTestFilesDisabled(t *testing.T) {
 	}
 
 	// Check that test files are NOT generated when generate-test-files is false
-	testServerPath := filepath.Join(tmpDir, "TestServer.java")
+	testServerPath := filepath.Join(tmpDir, "src", "test", "java", "com", "example", "TestServer.java")
 	if _, err := os.Stat(testServerPath); err == nil {
 		t.Fatalf("TestServer.java should NOT be generated when -generate-test-files=false")
 	}
-	testClientPath := filepath.Join(tmpDir, "TestClient.java")
+	testClientPath := filepath.Join(tmpDir, "src", "test", "java", "com", "example", "TestClient.java")
 	if _, err := os.Stat(testClientPath); err == nil {
 		t.Fatalf("TestClient.java should NOT be generated when -generate-test-files=false")
 	}

@@ -85,7 +85,7 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 	}
 
 	// Copy runtime library files with selective copying based on json-lib
-	if err := p.copyRuntimeFiles(outputDir, jsonLib); err != nil {
+	if err := p.copyRuntimeFiles(filepath.Join(outputDir, "src/main/java"), jsonLib); err != nil {
 		return fmt.Errorf("failed to copy runtime files: %w", err)
 	}
 
@@ -100,8 +100,11 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 
 		// Convert namespace to package name (lowercase)
 		packageName := strings.ToLower(namespace)
-		fullPackage := basePackage + "." + packageName
-		packageDir := filepath.Join(outputDir, strings.ReplaceAll(fullPackage, ".", string(filepath.Separator)))
+		fullPackage := basePackage
+		if packageName != "" && packageName != strings.ToLower(basePackage) {
+			fullPackage = basePackage + "." + packageName
+		}
+		packageDir := filepath.Join(outputDir, "src/main/java", strings.ReplaceAll(fullPackage, ".", string(filepath.Separator)))
 
 		// Generate enum files
 		for _, enum := range types.Enums {
@@ -166,13 +169,10 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 		}
 	}
 
-	// Generate Server.java and Client.java under the base package directory
-	// Produce two variants: a packaged version (in base package) and an un-packaged
-	// root-copied version for legacy tooling/tests.
+	// Register Server.java and Client.java in the base package
 	serverCodePkg := generateServerJava(idl, structMap, namespaceMap, basePackage, basePackage)
-	serverCodeRoot := generateServerJava(idl, structMap, namespaceMap, basePackage, "")
 	// Server and Client belong in the base package
-	basePackageDir := filepath.Join(outputDir, strings.ReplaceAll(basePackage, ".", string(filepath.Separator)))
+	basePackageDir := filepath.Join(outputDir, "src/main/java", strings.ReplaceAll(basePackage, ".", string(filepath.Separator)))
 	if err := os.MkdirAll(basePackageDir, 0755); err != nil {
 		return fmt.Errorf("failed to create base package directory: %w", err)
 	}
@@ -181,36 +181,30 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 		return fmt.Errorf("failed to write Server.java: %w", err)
 	}
 
-	// Also write an un-packaged copy of Server.java at the output root for compatibility
-	// with older tests/tools that expect Server.java to live at the project root.
-	serverRootPath := filepath.Join(outputDir, "Server.java")
-	_ = os.WriteFile(serverRootPath, []byte(serverCodeRoot), 0644)
-
 	// Generate Client.java
 	clientCodePkg := generateClientJava(idl, namespaceMap, basePackage, basePackage)
-	clientCodeRoot := generateClientJava(idl, namespaceMap, basePackage, "")
 	clientPath := filepath.Join(basePackageDir, "Client.java")
 	if err := os.WriteFile(clientPath, []byte(clientCodePkg), 0644); err != nil {
 		return fmt.Errorf("failed to write Client.java: %w", err)
 	}
-
-	// Also write an un-packaged copy of Client.java at the output root for compatibility
-	clientRootPath := filepath.Join(outputDir, "Client.java")
-	_ = os.WriteFile(clientRootPath, []byte(clientCodeRoot), 0644)
 
 	// Write IDL JSON document for barrister-idl RPC method
 	jsonData, err := json.MarshalIndent(idl, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal IDL to JSON: %w", err)
 	}
-	jsonPath := filepath.Join(outputDir, "idl.json")
+	resourcesDir := filepath.Join(dirFlag.Value.String(), "src/main/resources")
+	if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create resources directory: %w", err)
+	}
+	jsonPath := filepath.Join(resourcesDir, "idl.json")
 	if err := os.WriteFile(jsonPath, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write idl.json: %w", err)
 	}
 
 	// Check if generate-test-files flag is set
 	generateTestFilesFlag := fs.Lookup("generate-test-files")
-	generateTestServer := generateTestFilesFlag != nil && (generateTestFilesFlag.Value.String() == "true" || generateTestFilesFlag.Value.String() == "1")
+	generateTestServer := generateTestFilesFlag != nil && generateTestFilesFlag.Value.String() == "true"
 
 	// Generate test server and client if flag is set
 	if generateTestServer {
@@ -223,7 +217,7 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 			}
 			implCode := generateTestInterfaceImplFile(iface, ifacePackage, structMap, enumMap, jsonLib, basePackage)
 			implName := GetBaseName(iface.Name) + "Impl"
-			implPath := filepath.Join(outputDir, strings.ReplaceAll(ifacePackage, ".", string(filepath.Separator)), implName+".java")
+			implPath := filepath.Join(dirFlag.Value.String(), "src/main/java", strings.ReplaceAll(ifacePackage, ".", string(filepath.Separator)), implName+".java")
 			if err := os.MkdirAll(filepath.Dir(implPath), 0755); err != nil {
 				return fmt.Errorf("failed to create package directory: %w", err)
 			}
@@ -232,23 +226,27 @@ func (p *JavaClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 			}
 		}
 
-		// Generate TestServer.java
+		// Generate TestServer.java in base package
 		testServerCode := generateTestServerJava(idl, jsonLib, basePackage, namespaceMap)
-		testServerPath := filepath.Join(outputDir, "TestServer.java")
+		testServerDir := filepath.Join(dirFlag.Value.String(), "src/test/java", strings.ReplaceAll(basePackage, ".", string(filepath.Separator)))
+		if err := os.MkdirAll(testServerDir, 0755); err != nil {
+			return fmt.Errorf("failed to create test java directory: %w", err)
+		}
+		testServerPath := filepath.Join(testServerDir, "TestServer.java")
 		if err := os.WriteFile(testServerPath, []byte(testServerCode), 0644); err != nil {
 			return fmt.Errorf("failed to write TestServer.java: %w", err)
 		}
 
-		// Generate TestClient.java
+		// Generate TestClient.java in base package
 		testClientCode := generateTestClientJava(idl, structMap, enumMap, jsonLib, basePackage, namespaceMap)
-		testClientPath := filepath.Join(outputDir, "TestClient.java")
+		testClientPath := filepath.Join(testServerDir, "TestClient.java")
 		if err := os.WriteFile(testClientPath, []byte(testClientCode), 0644); err != nil {
 			return fmt.Errorf("failed to write TestClient.java: %w", err)
 		}
 
 		// Generate pom.xml
 		pomCode := generatePomXml(jsonLib)
-		pomPath := filepath.Join(outputDir, "pom.xml")
+		pomPath := filepath.Join(dirFlag.Value.String(), "pom.xml")
 		if err := os.WriteFile(pomPath, []byte(pomCode), 0644); err != nil {
 			return fmt.Errorf("failed to write pom.xml: %w", err)
 		}
@@ -977,9 +975,20 @@ func generateServerJava(idl *parser.IDL, _ map[string]*parser.Struct, namespaceM
 	sb.WriteString("        Object id = request.get(\"id\");\n")
 	sb.WriteString("        Object params = request.get(\"params\");\n\n")
 	sb.WriteString("        if (\"barrister-idl\".equals(method)) {\n")
-	sb.WriteString("            // Return IDL definition - read from idl.json\n")
+	sb.WriteString("            // Return IDL definition - read from idl.json in resources\n")
 	sb.WriteString("            try {\n")
-	sb.WriteString("                String idlJson = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(\"idl.json\")));\n")
+	sb.WriteString("                InputStream is = Server.class.getResourceAsStream(\"/idl.json\");\n")
+	sb.WriteString("                if (is == null) {\n")
+	sb.WriteString("                    return Map.of(\n")
+	sb.WriteString("                        \"jsonrpc\", \"2.0\",\n")
+	sb.WriteString("                        \"error\", Map.of(\n")
+	sb.WriteString("                            \"code\", -32603,\n")
+	sb.WriteString("                            \"message\", \"Failed to load IDL: /idl.json not found in classpath\"\n")
+	sb.WriteString("                        ),\n")
+	sb.WriteString("                        \"id\", id\n")
+	sb.WriteString("                    );\n")
+	sb.WriteString("                }\n")
+	sb.WriteString("                String idlJson = new String(is.readAllBytes());\n")
 	sb.WriteString("                Object idlDoc = jsonParser.fromJson(idlJson, Object.class);\n")
 	sb.WriteString("                return Map.of(\n")
 	sb.WriteString("                    \"jsonrpc\", \"2.0\",\n")
@@ -1532,6 +1541,7 @@ func generateTestServerJava(idl *parser.IDL, jsonLib string, basePackage string,
 	var sb strings.Builder
 
 	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	sb.WriteString(fmt.Sprintf("package %s;\n\n", basePackage))
 	sb.WriteString("import com.bitmechanic.barrister2.*;\n")
 
 	// Add imports for interface implementations
@@ -1603,10 +1613,21 @@ func generateTestClientJava(idl *parser.IDL, structMap map[string]*parser.Struct
 	var sb strings.Builder
 
 	sb.WriteString("// Generated by barrister - do not edit\n\n")
+	sb.WriteString(fmt.Sprintf("package %s;\n\n", basePackage))
 	sb.WriteString("import com.bitmechanic.barrister2.*;\n")
 
 	// Add imports for client classes
 	imports := make(map[string]bool)
+	for _, s := range idl.Structs {
+		typeNamespace := GetNamespaceFromType(s.Name, s.Namespace)
+		structPackage := basePackage
+		if typeNamespace != "" {
+			structPackage = basePackage + "." + strings.ToLower(typeNamespace)
+		}
+		if structPackage != basePackage {
+			imports[structPackage+"."+GetBaseName(s.Name)] = true
+		}
+	}
 	for _, iface := range idl.Interfaces {
 		ifaceNamespace := GetNamespaceFromType(iface.Name, iface.Namespace)
 		ifacePackage := basePackage
@@ -1658,8 +1679,9 @@ func generateTestClientJava(idl *parser.IDL, structMap map[string]*parser.Struct
 				if i > 0 {
 					sb.WriteString(", ")
 				}
-				writeTestParamValue(&sb, param, structMap, enumMap, basePackage, ifacePackage)
+				writeTestParamValue(&sb, param, structMap, enumMap, basePackage, ifacePackage, jsonLib)
 			}
+
 			sb.WriteString(");\n")
 			fmt.Fprintf(&sb, "            System.out.println(\"✓ %s.%s passed\");\n", GetBaseName(iface.Name), method.Name)
 			sb.WriteString("        } catch (Exception e) {\n")
@@ -1677,7 +1699,7 @@ func generateTestClientJava(idl *parser.IDL, structMap map[string]*parser.Struct
 }
 
 // writeTestParamValue generates a test parameter value
-func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, basePackage string, currentPackage string) {
+func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, basePackage string, currentPackage string, jsonLib string) {
 	_ = structMap
 	if param.Type.IsBuiltIn() {
 		switch param.Type.BuiltIn {
@@ -1693,11 +1715,34 @@ func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap
 			sb.WriteString("null")
 		}
 	} else if param.Type.IsArray() {
-		elementType := getJavaTypeWithPackage(param.Type.Array, enumMap, basePackage, currentPackage)
-		fmt.Fprintf(sb, "java.util.Arrays.asList(/* %s values */)", elementType)
+		if param.Type.Array.BuiltIn == "float" {
+			sb.WriteString("java.util.Arrays.asList(1.1, 2.2, 3.3)")
+		} else if param.Type.Array.BuiltIn == "int" {
+			sb.WriteString("java.util.Arrays.asList(1, 2, 3)")
+		} else {
+			elementType := getJavaTypeWithPackage(param.Type.Array, enumMap, basePackage, currentPackage)
+			fmt.Fprintf(sb, "java.util.Arrays.asList(/* %s values */)", elementType)
+		}
 	} else if param.Type.IsUserDefined() {
-		// For now, just use null for user-defined types in test client
-		sb.WriteString("null")
+		typeName := GetBaseName(param.Type.UserDefined)
+		typeNamespace := GetNamespaceFromType(param.Type.UserDefined, "")
+		fullTypeName := typeName
+		if typeNamespace != "" {
+			fullTypeName = basePackage + "." + strings.ToLower(typeNamespace) + "." + typeName
+		}
+
+		if _, isEnum := enumMap[param.Type.UserDefined]; isEnum {
+			// Find first enum value
+			enum := enumMap[param.Type.UserDefined]
+			if len(enum.Values) > 0 {
+				fmt.Fprintf(sb, "%s.%s", fullTypeName, enum.Values[0].Name)
+			} else {
+				sb.WriteString("null")
+			}
+		} else {
+			// It's a struct
+			fmt.Fprintf(sb, "new %s()", fullTypeName)
+		}
 	} else {
 		sb.WriteString("null")
 	}
@@ -1748,25 +1793,6 @@ func generatePomXml(jsonLib string) string {
 	sb.WriteString("    </dependencies>\n\n")
 	sb.WriteString("    <build>\n")
 	sb.WriteString("        <plugins>\n")
-	sb.WriteString("            <plugin>\n")
-	sb.WriteString("                <groupId>org.codehaus.mojo</groupId>\n")
-	sb.WriteString("                <artifactId>build-helper-maven-plugin</artifactId>\n")
-	sb.WriteString("                <version>3.4.0</version>\n")
-	sb.WriteString("                <executions>\n")
-	sb.WriteString("                    <execution>\n")
-	sb.WriteString("                        <id>add-root-sources</id>\n")
-	sb.WriteString("                        <phase>generate-sources</phase>\n")
-	sb.WriteString("                        <goals>\n")
-	sb.WriteString("                            <goal>add-source</goal>\n")
-	sb.WriteString("                        </goals>\n")
-	sb.WriteString("                        <configuration>\n")
-	sb.WriteString("                            <sources>\n")
-	sb.WriteString("                                <source>.</source>\n")
-	sb.WriteString("                            </sources>\n")
-	sb.WriteString("                        </configuration>\n")
-	sb.WriteString("                    </execution>\n")
-	sb.WriteString("                </executions>\n")
-	sb.WriteString("            </plugin>\n")
 	sb.WriteString("            <plugin>\n")
 	sb.WriteString("                <groupId>org.apache.maven.plugins</groupId>\n")
 	sb.WriteString("                <artifactId>maven-compiler-plugin</artifactId>\n")

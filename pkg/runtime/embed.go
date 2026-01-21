@@ -112,15 +112,22 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 // The files are copied to outputDir/{runtimePackageName}/ where runtimePackageName is typically
 // "barrister2" for Python, but may vary by language.
 func CopyRuntimeFiles(lang string, outputDir string) error {
+	return CopyRuntimeFilesToPackage(lang, outputDir, getRuntimePackageName(lang))
+}
+
+// CopyRuntimeFilesToPackage copies all runtime files for the specified language to the output directory
+// using the specified package name (relative to outputDir).
+// If packageName is empty, files are copied directly into outputDir.
+func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string) error {
 	files, err := GetRuntimeFiles(lang)
 	if err != nil {
 		return err
 	}
 
-	// Determine the runtime package directory name based on language
-	// For Python, it's "barrister2"
-	runtimePackageName := getRuntimePackageName(lang)
-	runtimeDir := filepath.Join(outputDir, runtimePackageName)
+	runtimeDir := outputDir
+	if packageName != "" {
+		runtimeDir = filepath.Join(outputDir, packageName)
+	}
 
 	if err := os.MkdirAll(runtimeDir, 0755); err != nil {
 		return fmt.Errorf("failed to create runtime directory: %w", err)

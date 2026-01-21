@@ -37,6 +37,8 @@ enum UserRole {
 
 Barrister includes a web UI with an interactive playground that allows you to experiment with IDL definitions and generate code for multiple languages directly in your browser.
 
+<img src="docs/assets/images/webui/homepage.png" alt="Barrister Web UI" width="700">
+
 ### Starting the Web UI
 
 To start the web UI server:

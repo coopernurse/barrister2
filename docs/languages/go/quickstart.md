@@ -20,7 +20,12 @@ Build a complete Barrister2 RPC service in Go with our e-commerce checkout examp
 
 > **Note**: Make sure your Go version is 1.21 or later. Check with `go version`.
 
-## 1. Define the Service (2 min)
+## 1. Create Project and Define the Service (2 min)
+
+```bash
+mkdir checkout-service && cd checkout-service
+go mod init checkout-service
+```
 
 Create `checkout.idl` with your service definition:
 
@@ -31,20 +36,45 @@ Create `checkout.idl` with your service definition:
 Generate the Go code from your IDL:
 
 ```bash
-barrister -plugin go-client-server checkout.idl
+mkdir -p pkg/checkout
+barrister -plugin go-client-server -dir pkg/checkout checkout.idl
 ```
 
 This creates:
-- `checkout.go` - Type definitions
-- `server.go` - Barrister server framework
-- `client.go` - HTTP client framework
-- `barrister2/` - Runtime library
-- `go.mod` - Go module file
-- `idl.json` - IDL metadata
+- `pkg/checkout/checkout.go` - Type definitions
+- `pkg/checkout/server.go` - Barrister server framework
+- `pkg/checkout/client.go` - HTTP client framework
+- `pkg/checkout/rpc.go`, `types.go`, `validation.go` - Merged runtime
+- `pkg/checkout/idl.json` - IDL metadata
 
-## 3. Implement the Server (10-15 min)
+> **Note**: The generated code uses the namespace from your IDL as the package name (`checkout` in this example).
 
-Create `main.go` that implements your service handlers:
+## 3. Project Structure
+
+Your directory should look like this:
+
+```
+checkout-service/
+├── go.mod
+├── checkout.idl
+└── pkg/
+    └── checkout/
+        ├── checkout.go
+        ├── server.go
+        ├── client.go
+        ├── rpc.go
+        ├── types.go
+        ├── validation.go
+        └── idl.json
+```
+
+## 4. Create Your Server (10-15 min)
+
+Create `cmd/server/main.go` that implements your service handlers:
+
+```bash
+mkdir -p cmd/server
+```
 
 ```go
 package main
@@ -54,8 +84,7 @@ import (
     "math/rand"
     "time"
 
-    "barrister2"
-    "checkout"
+    "checkout-service/pkg/checkout"
 )
 
 var products = []*checkout.Product{
@@ -156,11 +185,11 @@ func NewOrderService(cartService *CartService) *OrderService {
 func (s *OrderService) CreateOrder(request *checkout.CreateOrderRequest) (*checkout.CheckoutResponse, error) {
     cart, ok := s.carts[request.CartId]
     if !ok {
-        return nil, barrister2.NewRPCError(1001, "CartNotFound: Cart does not exist")
+        return nil, checkout.NewRPCError(1001, "CartNotFound: Cart does not exist")
     }
 
     if len(cart.Items) == 0 {
-        return nil, barrister2.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
+        return nil, checkout.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
     }
 
     // Create order
@@ -170,7 +199,7 @@ func (s *OrderService) CreateOrder(request *checkout.CreateOrderRequest) (*check
         Cart:            cart,
         ShippingAddress: request.ShippingAddress,
         PaymentMethod:   request.PaymentMethod,
-        Status:          checkout.OrderStatus_Pending,
+        Status:          checkout.OrderStatusPending,
         Total:           cart.Subtotal,
         CreatedAt:       time.Now().Unix(),
     }
@@ -184,39 +213,51 @@ func (s *OrderService) GetOrder(orderId string) (*checkout.Order, error) {
 }
 
 func main() {
-    server := barrister2.NewServer("0.0.0.0", 8080)
+    server := checkout.NewBarristerServer("0.0.0.0", 8080)
     cartSvc := NewCartService()
 
-    server.RegisterCatalogService(&CatalogService{})
-    server.RegisterCartService(cartSvc)
-    server.RegisterOrderService(NewOrderService(cartSvc))
+    server.Register("CatalogService", &CatalogService{})
+    server.Register("CartService", cartSvc)
+    server.Register("OrderService", NewOrderService(cartSvc))
 
     fmt.Println("Server starting on http://localhost:8080")
     server.ServeForever()
 }
 ```
 
-Start your server:
+> **Note**: The generated code uses build tags to separate server and client code. Use `-tags server_only` when building the server.
+
+## 5. Build and Run Your Server
 
 ```bash
-go run main.go
+go build -tags server_only -o bin/server ./cmd/server
+./bin/server
 ```
 
-## 4. Implement the Client (5-10 min)
+Or run directly:
 
-Create `client.go` to call your service:
+```bash
+go run -tags server_only ./cmd/server
+```
+
+## 6. Create Your Client (5-10 min)
+
+Create `cmd/client/main.go` to call your service:
+
+```bash
+mkdir -p cmd/client
+```
 
 ```go
 package main
 
 import (
     "fmt"
-    "barrister2"
-    "checkout"
+    "checkout-service/pkg/checkout"
 )
 
 func main() {
-    transport := barrister2.NewHTTPTransport("http://localhost:8080")
+    transport := checkout.NewHTTPTransport("http://localhost:8080", nil)
     catalog := checkout.NewCatalogServiceClient(transport)
     cart := checkout.NewCartServiceClient(transport)
     orders := checkout.NewOrderServiceClient(transport)
@@ -245,24 +286,24 @@ func main() {
             ZipCode: "94105",
             Country: "USA",
         },
-        PaymentMethod: checkout.PaymentMethod_CreditCard,
+        PaymentMethod: checkout.PaymentMethodCreditCard,
     })
     fmt.Printf("✓ Order created: %s\n", response.OrderId)
 }
 ```
 
-Run your client:
+## 7. Run Your Client
 
 ```bash
-go run client.go
+go run -tags client_only ./cmd/client
 ```
 
 ## Error Codes
 
-Return errors using `barrister2.NewRPCError()`:
+Return errors using the generated error function:
 
 ```go
-return nil, barrister2.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
+return nil, checkout.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
 ```
 
 | Code | Name |
@@ -272,6 +313,28 @@ return nil, barrister2.NewRPCError(1002, "CartEmpty: Cannot create order from em
 | 1003 | PaymentFailed |
 | 1004 | OutOfStock |
 | 1005 | InvalidAddress |
+
+## Complete Example Structure
+
+```
+checkout-service/
+├── go.mod                 # Your module file
+├── checkout.idl           # Your IDL
+└── pkg/
+    └── checkout/
+        ├── checkout.go    # Generated types
+        ├── server.go      # Generated server
+        ├── client.go      # Generated client
+        ├── rpc.go         # Merged runtime
+        ├── types.go       # Merged runtime
+        ├── validation.go  # Merged runtime
+        └── idl.json       # IDL metadata
+└── cmd/
+    ├── server/
+    │   └── main.go        # Your server implementation
+    └── client/
+        └── main.go        # Your client implementation
+```
 
 ## Next Steps
 
@@ -283,8 +346,7 @@ return nil, barrister2.NewRPCError(1002, "CartEmpty: Cannot create order from em
 Complete example in `docs/examples/checkout-go/`:
 
 ```bash
-cd docs/examples/checkout-go/server
-go run test_server.go  # Terminal 1
-cd ../client
-go run test_client.go  # Terminal 2
+cd docs/examples/checkout-go
+go run -tags server_only ./cmd/testserver/main.go  # Terminal 1
+go run -tags client_only ./cmd/testclient/main.go  # Terminal 2
 ```

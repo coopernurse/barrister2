@@ -24,31 +24,48 @@ Create `checkout.idl` with your service definition:
 Generate the Java code from your IDL:
 
 ```bash
-barrister -plugin java-client-server -base-package checkout checkout.idl
+barrister -plugin java-client-server -base-package com.example.myapp checkout.idl
 ```
 
 This creates:
-- `src/main/java/checkout/` - Type definitions
-- `Server.java` - RPC server framework
-- `Client.java` - RPC client framework
+- `src/main/java/com/example/myapp/` - Type definitions and Server/Client frameworks
+- `src/main/resources/idl.json` - IDL metadata
+- `src/main/java/com/bitmechanic/barrister2/` - Runtime library
 - `pom.xml` - Maven configuration
-- `com/bitmechanic/barrister2/` - Runtime library
-- `idl.json` - IDL metadata
 
 ## 3. Implement the Server (10-15 min)
 
-Create `MyServer.java` that implements your service handlers:
+Create `src/main/java/com/example/myapp/MyServer.java` that implements your service handlers:
 
 ```java
-import checkout.*;
+package com.example.myapp;
+
+import com.example.myapp.checkout.*;
 import com.bitmechanic.barrister2.*;
 import java.util.*;
 
 public class MyServer {
-    static List<Product> products = Arrays.asList(
-        new Product("prod001", "Wireless Mouse", "Ergonomic mouse", 29.99, 50, "https://example.com/mouse.jpg"),
-        new Product("prod002", "Mechanical Keyboard", "RGB keyboard", 89.99, 25, "https://example.com/keyboard.jpg")
-    );
+    static List<Product> products = new ArrayList<>();
+
+    static {
+        Product p1 = new Product();
+        p1.setProductId("prod001");
+        p1.setName("Wireless Mouse");
+        p1.setDescription("Ergonomic mouse");
+        p1.setPrice(29.99);
+        p1.setStock(50);
+        p1.setImageUrl("https://example.com/mouse.jpg");
+        products.add(p1);
+
+        Product p2 = new Product();
+        p2.setProductId("prod002");
+        p2.setName("Mechanical Keyboard");
+        p2.setDescription("RGB keyboard");
+        p2.setPrice(89.99);
+        p2.setStock(25);
+        p2.setImageUrl("https://example.com/keyboard.jpg");
+        products.add(p2);
+    }
 
     static Map<String, Cart> carts = new HashMap<>();
     static Map<String, Order> orders = new HashMap<>();
@@ -58,10 +75,10 @@ public class MyServer {
             return products;
         }
 
-        public Optional<Product> getProduct(String productId) {
+        public Product getProduct(String productId) {
             return products.stream()
                 .filter(p -> p.getProductId().equals(productId))
-                .findFirst();
+                .findFirst().orElse(null);
         }
     }
 
@@ -74,22 +91,29 @@ public class MyServer {
 
             Cart cart = carts.get(cartId);
             if (cart == null) {
-                cart = new Cart(cartId, new ArrayList<>(), 0.0);
+                cart = new Cart();
+                cart.setCartId(cartId);
+                cart.setItems(new ArrayList<>());
+                cart.setSubtotal(0.0);
                 carts.put(cartId, cart);
             }
 
             Product product = products.stream()
                 .filter(p -> p.getProductId().equals(request.getProductId()))
-                .findFirst().orElseThrow(() -> new RPCException(-32602, "Product not found"));
+                .findFirst().orElseThrow(() -> new RPCError(-32602, "Product not found"));
 
-            cart.getItems().add(new CartItem(request.getProductId(), request.getQuantity(), product.getPrice()));
+            CartItem item = new CartItem();
+            item.setProductId(request.getProductId());
+            item.setQuantity(request.getQuantity());
+            item.setPrice(product.getPrice());
+            cart.getItems().add(item);
             cart.setSubtotal(cart.getItems().stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum());
 
             return cart;
         }
 
-        public Optional<Cart> getCart(String cartId) {
-            return Optional.ofNullable(carts.get(cartId));
+        public Cart getCart(String cartId) {
+            return carts.get(cartId);
         }
 
         public boolean clearCart(String cartId) {
@@ -107,38 +131,41 @@ public class MyServer {
         public CheckoutResponse createOrder(CreateOrderRequest request) {
             Cart cart = carts.get(request.getCartId());
             if (cart == null) {
-                throw new RPCException(1001, "CartNotFound: Cart does not exist");
+                throw new RPCError(1001, "CartNotFound: Cart does not exist");
             }
 
             if (cart.getItems().isEmpty()) {
-                throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+                throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
             }
 
             String orderId = "order_" + (int)(Math.random() * 90000 + 10000);
-            Order order = new Order(
-                orderId,
-                cart,
-                request.getShippingAddress(),
-                request.getPaymentMethod(),
-                OrderStatus.PENDING,
-                cart.getSubtotal(),
-                System.currentTimeMillis() / 1000
-            );
+            Order order = new Order();
+            order.setOrderId(orderId);
+            order.setCart(cart);
+            order.setShippingAddress(request.getShippingAddress());
+            order.setPaymentMethod(request.getPaymentMethod());
+            order.setStatus(OrderStatus.pending);
+            order.setTotal(cart.getSubtotal());
+            order.setCreatedAt((int)(System.currentTimeMillis() / 1000));
             orders.put(orderId, order);
 
-            return new CheckoutResponse(orderId, "Order created successfully");
+            CheckoutResponse resp = new CheckoutResponse();
+            resp.setOrderId(orderId);
+            resp.setMessage("Order created successfully");
+            return resp;
         }
 
-        public Optional<Order> getOrder(String orderId) {
-            return Optional.ofNullable(orders.get(orderId));
+        public Order getOrder(String orderId) {
+            return orders.get(orderId);
         }
     }
 
     public static void main(String[] args) throws Exception {
-        BarristerServer server = new BarristerServer(8080);
-        server.registerCatalogService(new CatalogServiceImpl());
-        server.registerCartService(new CartServiceImpl());
-        server.registerOrderService(new OrderServiceImpl());
+        JsonParser jsonParser = new JacksonJsonParser();
+        Server server = new Server(8080, jsonParser);
+        server.register("CatalogService", new CatalogServiceImpl());
+        server.register("CartService", new CartServiceImpl());
+        server.register("OrderService", new OrderServiceImpl());
         server.start();
     }
 }
@@ -147,23 +174,27 @@ public class MyServer {
 Start your server:
 
 ```bash
-mvn exec:java -Dexec.mainClass="MyServer"
+mvn compile exec:java -Dexec.mainClass="com.example.myapp.MyServer"
 ```
 
 ## 4. Implement the Client (5-10 min)
 
-Create `MyClient.java` to call your service:
+Create `src/main/java/com/example/myapp/MyClient.java` to call your service:
 
 ```java
-import checkout.*;
+package com.example.myapp;
+
+import com.example.myapp.checkout.*;
 import com.bitmechanic.barrister2.*;
+import java.util.*;
 
 public class MyClient {
-    public static void main(String[] args) {
-        Transport transport = new HTTPTransport("http://localhost:8080");
-        CatalogServiceClient catalog = new CatalogServiceClient(transport);
-        CartServiceClient cart = new CartServiceClient(transport);
-        OrderServiceClient orders = new OrderServiceClient(transport);
+    public static void main(String[] args) throws Exception {
+        JsonParser jsonParser = new JacksonJsonParser();
+        Transport transport = new HTTPTransport("http://localhost:8080", jsonParser);
+        CatalogServiceClient catalog = new CatalogServiceClient(transport, jsonParser);
+        CartServiceClient cart = new CartServiceClient(transport, jsonParser);
+        OrderServiceClient orders = new OrderServiceClient(transport, jsonParser);
 
         // List products
         List<Product> products = catalog.listProducts();
@@ -173,19 +204,26 @@ public class MyClient {
         }
 
         // Add to cart
-        Cart result = cart.addToCart(new AddToCartRequest(
-            null,
-            products.get(0).getProductId(),
-            2
-        ));
+        AddToCartRequest addReq = new AddToCartRequest();
+        addReq.setProductId(products.get(0).getProductId());
+        addReq.setQuantity(2);
+        Cart result = cart.addToCart(addReq);
         System.out.println("\nCart: " + result.getCartId());
 
         // Create order
-        CheckoutResponse response = orders.createOrder(new CreateOrderRequest(
-            result.getCartId(),
-            new Address("123 Main St", "San Francisco", "CA", "94105", "USA"),
-            PaymentMethod.CREDIT_CARD
-        ));
+        CreateOrderRequest orderReq = new CreateOrderRequest();
+        orderReq.setCartId(result.getCartId());
+        
+        Address addr = new Address();
+        addr.setStreet("123 Main St");
+        addr.setCity("San Francisco");
+        addr.setState("CA");
+        addr.setZipCode("94105");
+        addr.setCountry("USA");
+        orderReq.setShippingAddress(addr);
+        orderReq.setPaymentMethod(PaymentMethod.credit_card);
+
+        CheckoutResponse response = orders.createOrder(orderReq);
         System.out.println("✓ Order created: " + response.getOrderId());
     }
 }
@@ -194,15 +232,15 @@ public class MyClient {
 Run your client:
 
 ```bash
-mvn compile exec:java -Dexec.mainClass="MyClient"
+mvn compile exec:java -Dexec.mainClass="com.example.myapp.MyClient"
 ```
 
 ## Error Codes
 
-Throw `RPCException` with custom error codes:
+Throw `RPCError` with custom error codes:
 
 ```java
-throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
 ```
 
 | Code | Name |
@@ -224,6 +262,6 @@ Complete example in `docs/examples/checkout-java/`:
 
 ```bash
 cd docs/examples/checkout-java
-mvn exec:java -Dexec.mainClass="Server"      # Terminal 1
-mvn exec:java -Dexec.mainClass="TestClient"   # Terminal 2
+mvn exec:java -Dexec.mainClass="com.example.myapp.TestServer"      # Terminal 1
+mvn exec:java -Dexec.mainClass="com.example.myapp.TestClient"      # Terminal 2
 ```
