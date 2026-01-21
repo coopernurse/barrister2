@@ -600,6 +600,27 @@ table {
 
 // Additional Utility Classes
 
+// Max width for images to prevent them from being too wide
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius);
+}
+
+// Specific scaling for screenshots
+.main-content img,
+article img {
+  max-width: 80%;
+  display: block;
+  margin: var(--spacing-lg) auto;
+  box-shadow: var(--shadow-md);
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    margin: var(--spacing-md) auto;
+  }
+}
+
 // Container for max-width content
 .container {
   max-width: 1200px;

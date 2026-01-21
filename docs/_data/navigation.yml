@@ -60,6 +60,15 @@
         - title: "Reference"
           url: /languages/csharp/reference
 
+- title: "Web UI"
+  children:
+    - title: "Overview"
+      url: /webui/
+    - title: "Universal Client"
+      url: /webui/universal-client
+    - title: "Playground"
+      url: /webui/playground
+
 - title: "Examples"
   children:
     - title: "Go Example"
