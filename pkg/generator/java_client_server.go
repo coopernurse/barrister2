@@ -1699,7 +1699,7 @@ func generateTestClientJava(idl *parser.IDL, structMap map[string]*parser.Struct
 }
 
 // writeTestParamValue generates a test parameter value
-func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, basePackage string, currentPackage string, jsonLib string) {
+func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, basePackage string, currentPackage string, _ string) {
 	_ = structMap
 	if param.Type.IsBuiltIn() {
 		switch param.Type.BuiltIn {
@@ -1715,11 +1715,12 @@ func writeTestParamValue(sb *strings.Builder, param *parser.Parameter, structMap
 			sb.WriteString("null")
 		}
 	} else if param.Type.IsArray() {
-		if param.Type.Array.BuiltIn == "float" {
+		switch param.Type.Array.BuiltIn {
+		case "float":
 			sb.WriteString("java.util.Arrays.asList(1.1, 2.2, 3.3)")
-		} else if param.Type.Array.BuiltIn == "int" {
+		case "int":
 			sb.WriteString("java.util.Arrays.asList(1, 2, 3)")
-		} else {
+		default:
 			elementType := getJavaTypeWithPackage(param.Type.Array, enumMap, basePackage, currentPackage)
 			fmt.Fprintf(sb, "java.util.Arrays.asList(/* %s values */)", elementType)
 		}
