@@ -18,4 +18,5 @@ docs/examples/checkout-typescript/dist/
 docs/examples/checkout-typescript/package-lock.json
 docs/examples/checkout-csharp/bin/
 docs/examples/checkout-csharp/obj/
-docs/examples/checkout-java/target/
+docs/examples/checkout-java/target/.DS_Store
+.DS_Store
