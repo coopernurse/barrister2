@@ -5,15 +5,12 @@ package main
 
 import (
 	"checkout/pkg/checkout"
-	"math"
-	"strings"
 )
 
 type CatalogServiceImpl struct{}
 
 func (i *CatalogServiceImpl) ListProducts() ([]checkout.Product, error) {
-	var zero []checkout.Product
-	return zero, nil
+	return []checkout.Product{}, nil
 }
 
 func (i *CatalogServiceImpl) GetProduct(productId string) (*checkout.Product, error) {
@@ -24,8 +21,9 @@ func (i *CatalogServiceImpl) GetProduct(productId string) (*checkout.Product, er
 type CartServiceImpl struct{}
 
 func (i *CartServiceImpl) AddToCart(request checkout.AddToCartRequest) (checkout.Cart, error) {
-	var zero checkout.Cart
-	return zero, nil
+	return checkout.Cart{
+		Items: []checkout.CartItem{},
+	}, nil
 }
 
 func (i *CartServiceImpl) GetCart(cartId string) (*checkout.Cart, error) {

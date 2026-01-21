@@ -283,8 +283,3 @@ var CHECKOUT_ALL_ENUMS = EnumMap{
 		},
 	},
 }
-// NewRPCError creates a new RPCError with the given code and message
-func NewRPCError(code int, message string) *RPCError {
-	return NewRPCError(code, message)
-}
-

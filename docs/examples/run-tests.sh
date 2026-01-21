@@ -120,7 +120,7 @@ test_go() {
 
     # Build server using build tags to exclude client code
     print_info "Building Go server..."
-    go build -tags test_server -o /tmp/test-server . > /tmp/go-build.log 2>&1
+    go build -tags server_only -o /tmp/test-server ./cmd/testserver > /tmp/go-build.log 2>&1
     if [ $? -ne 0 ]; then
         print_error "Go server build failed"
         cat /tmp/go-build.log
@@ -148,7 +148,7 @@ test_go() {
 
     # Build client using build tags to exclude server code
     print_info "Building Go client..."
-    go build -tags test_client -o /tmp/test-client . > /tmp/go-client-build.log 2>&1
+    go build -tags client_only -o /tmp/test-client ./cmd/testclient > /tmp/go-client-build.log 2>&1
     if /tmp/test-client > /tmp/go-client.log 2>&1; then
         print_success "Go tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
@@ -194,11 +194,11 @@ test_java() {
 
     # Build classpath for runtime dependencies
     print_info "Building classpath..."
-    JAVA_CP="target/classes:$(mvn dependency:build-classpath -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout 2>/dev/null)"
+    JAVA_CP="target/classes:target/test-classes:$(mvn dependency:build-classpath -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout 2>/dev/null)"
 
     # Start server in background using compiled classes
     print_info "Starting Java server..."
-    java -cp "$JAVA_CP" TestServer > /tmp/java-server.log 2>&1 &
+    java -cp "$JAVA_CP" com.example.myapp.TestServer > /tmp/java-server.log 2>&1 &
     SERVER_PID=$!
 
     # Give server a moment to start
@@ -233,7 +233,7 @@ test_java() {
     fi
 
     # Run tests
-    if java -cp "$JAVA_CP" TestClient > /tmp/java-client.log 2>&1; then
+    if java -cp "$JAVA_CP" com.example.myapp.TestClient > /tmp/java-client.log 2>&1; then
         print_success "Java tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else
