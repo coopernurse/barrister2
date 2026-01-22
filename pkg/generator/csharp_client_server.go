@@ -252,7 +252,7 @@ func mapTypeToCsType(t *parser.Type, structMap map[string]*parser.Struct, enumMa
 		case "string":
 			csType = "string"
 		case "int":
-			csType = "int"
+			csType = "long"
 		case "float":
 			csType = "double"
 		case "bool":
@@ -497,7 +497,7 @@ func generateServerCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	return sb.String()
 }
 
-// writeInterfaceStubCs generates an abstract class for an interface
+// writeInterfaceStubCs generates an interface for an IDL interface
 func writeInterfaceStubCs(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	if iface.Comment != "" {
 		lines := strings.Split(strings.TrimSpace(iface.Comment), "\n")
@@ -505,7 +505,7 @@ func writeInterfaceStubCs(sb *strings.Builder, iface *parser.Interface, structMa
 			fmt.Fprintf(sb, "// %s\n", line)
 		}
 	}
-	fmt.Fprintf(sb, "public abstract class %s\n", iface.Name)
+	fmt.Fprintf(sb, "public interface I%s\n", iface.Name)
 	sb.WriteString("{\n")
 
 	for _, method := range iface.Methods {
@@ -514,9 +514,7 @@ func writeInterfaceStubCs(sb *strings.Builder, iface *parser.Interface, structMa
 		if method.ReturnType != nil {
 			returnType = mapTypeToCsType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
 		}
-		fmt.Fprintf(sb, "    public abstract %s ", returnType)
-
-		fmt.Fprintf(sb, "%s(", method.Name)
+		fmt.Fprintf(sb, "    %s %s(", returnType, method.Name)
 
 		// Parameters
 		for i, param := range method.Parameters {
@@ -526,7 +524,7 @@ func writeInterfaceStubCs(sb *strings.Builder, iface *parser.Interface, structMa
 			paramType := mapTypeToCsType(param.Type, structMap, enumMap, false)
 			fmt.Fprintf(sb, "%s %s", paramType, param.Name)
 		}
-		sb.WriteString(");\n\n")
+		sb.WriteString(");\n")
 	}
 	sb.WriteString("}\n\n")
 }
@@ -548,6 +546,14 @@ func writeBarristerServerCs(sb *strings.Builder, idl *parser.IDL) {
 	sb.WriteString("        _handlers[interfaceName] = implementation!;\n")
 	sb.WriteString("        _logger?.LogInformation(\"Registered handler for interface: {InterfaceName}\", interfaceName);\n")
 	sb.WriteString("    }\n\n")
+
+	// Generate typed Register methods for each interface
+	for _, iface := range idl.Interfaces {
+		fmt.Fprintf(sb, "    public void Register%s(I%s implementation)\n", iface.Name, iface.Name)
+		sb.WriteString("    {\n")
+		fmt.Fprintf(sb, "        this.Register(\"%s\", implementation);\n", iface.Name)
+		sb.WriteString("    }\n\n")
+	}
 
 	sb.WriteString("    public async Task RunAsync(string host = \"localhost\", int port = 8080)\n")
 	sb.WriteString("    {\n")
@@ -1167,6 +1173,11 @@ func generateClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	// Generate HttpTransport
 	writeHttpTransportCs(&sb)
 
+	// Generate interface definitions for all IDL interfaces (needed since Client.cs is compiled separately from Server.cs)
+	for _, iface := range idl.Interfaces {
+		writeInterfaceStubCs(&sb, iface, structMap, enumMap)
+	}
+
 	// Generate client classes for each interface
 	for _, iface := range idl.Interfaces {
 		writeInterfaceClientCs(&sb, iface, structMap, enumMap)
@@ -1250,10 +1261,10 @@ func writeHttpTransportCs(sb *strings.Builder) {
 	sb.WriteString("}\n\n")
 }
 
-// writeInterfaceClientCs generates a client class for an interface
+// writeInterfaceClientCs generates a client class for an interface that implements the interface
 func writeInterfaceClientCs(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	clientClassName := iface.Name + "Client"
-	fmt.Fprintf(sb, "public class %s\n", clientClassName)
+	fmt.Fprintf(sb, "public class %s : I%s\n", clientClassName, iface.Name)
 	sb.WriteString("{\n")
 	sb.WriteString("    private readonly ITransport _transport;\n\n")
 	sb.WriteString("    public " + clientClassName + "(ITransport transport)\n")
@@ -1261,16 +1272,17 @@ func writeInterfaceClientCs(sb *strings.Builder, iface *parser.Interface, struct
 	sb.WriteString("        _transport = transport;\n")
 	sb.WriteString("    }\n\n")
 
-	// Generate methods
+	// Generate methods for each interface method
 	for _, method := range iface.Methods {
-		writeClientMethodCs(sb, iface, method, structMap, enumMap)
+		writeClientMethodImplCs(sb, iface, method, structMap, enumMap)
+		sb.WriteString("\n")
 	}
 
 	sb.WriteString("}\n\n")
 }
 
-// writeClientMethodCs generates a method implementation for a client class
-func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+// writeClientMethodImplCs generates a synchronous method implementation for a client class
+func writeClientMethodImplCs(sb *strings.Builder, iface *parser.Interface, method *parser.Method, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	// Return type
 	var returnTypeStr string
 	if method.ReturnType != nil {
@@ -1279,7 +1291,8 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 		returnTypeStr = "object?"
 	}
 
-	fmt.Fprintf(sb, "    public async Task<%s> %sAsync(", returnTypeStr, method.Name)
+	// Generate synchronous method that implements the interface
+	fmt.Fprintf(sb, "    public %s %s(", returnTypeStr, method.Name)
 
 	// Parameters
 	for i, param := range method.Parameters {
@@ -1293,14 +1306,36 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 	}
 	sb.WriteString(")\n")
 	sb.WriteString("    {\n")
+	sb.WriteString("        var task = ")
+	fmt.Fprintf(sb, "%sAsync(", method.Name)
+	for i, param := range method.Parameters {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		fmt.Fprintf(sb, "%s", param.Name)
+	}
+	sb.WriteString(");\n")
+	sb.WriteString("        return task.GetAwaiter().GetResult();\n")
+	sb.WriteString("    }\n")
 
-	// Note: Parameter validation is skipped here because:
-	// 1. Parameters are already typed (compile-time safety)
-	// 2. The server will validate the JSON payload (runtime safety)
-	// If additional client-side validation is needed, it can be added here
+	// Generate async version as well for convenience
 	sb.WriteString("\n")
+	fmt.Fprintf(sb, "    public async Task<%s> %sAsync(", returnTypeStr, method.Name)
 
-	// Create parameters array for transport (transport handles JSON serialization)
+	// Parameters for async
+	for i, param := range method.Parameters {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		paramType := mapTypeToCsType(param.Type, structMap, enumMap, false)
+		sb.WriteString(paramType)
+		sb.WriteString(" ")
+		fmt.Fprintf(sb, "%s", param.Name)
+	}
+	sb.WriteString(")\n")
+	sb.WriteString("    {\n")
+
+	// Create parameters array for transport
 	fmt.Fprintf(sb, "        var method = \"%s.%s\";\n", iface.Name, method.Name)
 	sb.WriteString("        var parameters = new object[] { ")
 	for i, param := range method.Parameters {
@@ -1322,7 +1357,6 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 
 	// Deserialize response to typed object
 	if method.ReturnType != nil {
-		// result is a JsonElement from the Dictionary, so we need to get its raw text and deserialize
 		sb.WriteString("        // Deserialize to return type\n")
 		sb.WriteString("        string resultJsonStr;\n")
 		sb.WriteString("        if (result is System.Text.Json.JsonElement jsonElement)\n")
@@ -1334,8 +1368,7 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 		sb.WriteString("            resultJsonStr = JsonSerializer.Serialize(result);\n")
 		sb.WriteString("        }\n")
 
-		// Deserialize directly to the typed return type
-		returnTypeStr := mapTypeToCsType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
+		returnTypeStr = mapTypeToCsType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
 		sb.WriteString("        var clientJsonOptions = new JsonSerializerOptions\n")
 		sb.WriteString("        {\n")
 		sb.WriteString("            PropertyNameCaseInsensitive = true\n")
@@ -1347,7 +1380,7 @@ func writeClientMethodCs(sb *strings.Builder, iface *parser.Interface, method *p
 	} else {
 		sb.WriteString("        return result;\n")
 	}
-	sb.WriteString("    }\n\n")
+	sb.WriteString("    }\n")
 }
 
 // generateTestServerCs generates TestServer.cs with concrete implementations of all interfaces
@@ -1382,7 +1415,7 @@ func generateTestServerCs(idl *parser.IDL, structMap map[string]*parser.Struct, 
 	sb.WriteString("        var server = new BarristerServer(logger);\n")
 	for _, iface := range idl.Interfaces {
 		implName := iface.Name + "Impl"
-		fmt.Fprintf(&sb, "        server.Register(\"%s\", new %s());\n", iface.Name, implName)
+		fmt.Fprintf(&sb, "        server.Register%s(new %s());\n", iface.Name, implName)
 	}
 	sb.WriteString("        await server.RunAsync(\"0.0.0.0\", 8080);\n")
 	sb.WriteString("    }\n")
@@ -1499,7 +1532,7 @@ func generateTestClientCsproj() string {
 // writeTestInterfaceImplCs generates a concrete implementation class for an interface
 func writeTestInterfaceImplCs(sb *strings.Builder, iface *parser.Interface, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
 	implName := iface.Name + "Impl"
-	fmt.Fprintf(sb, "public class %s : %s\n", implName, iface.Name)
+	fmt.Fprintf(sb, "public class %s : I%s\n", implName, iface.Name)
 	sb.WriteString("{\n")
 
 	for _, method := range iface.Methods {
@@ -1516,7 +1549,7 @@ func writeTestMethodImplCs(sb *strings.Builder, iface *parser.Interface, method 
 	if method.ReturnType != nil {
 		returnType = mapTypeToCsType(method.ReturnType, structMap, enumMap, method.ReturnOptional)
 	}
-	fmt.Fprintf(sb, "    public override %s ", returnType)
+	fmt.Fprintf(sb, "    public %s ", returnType)
 
 	fmt.Fprintf(sb, "%s(", method.Name)
 
@@ -1596,7 +1629,7 @@ func writeMethodImplementationCs(sb *strings.Builder, iface *parser.Interface, m
 			return
 		case "repeat_num":
 			// returns num as an array repeated 'count' number of times
-			sb.WriteString("        var result = new List<int>();\n")
+			sb.WriteString("        var result = new List<long>();\n")
 			sb.WriteString("        for (int i = 0; i < count; i++)\n")
 			sb.WriteString("        {\n")
 			sb.WriteString("            result.Add(num);\n")

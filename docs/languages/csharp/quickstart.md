@@ -9,7 +9,7 @@ Build a complete Barrister2 RPC service in C# with our e-commerce checkout examp
 
 ## Prerequisites
 
-- .NET 6.0 or later
+- .NET 8.0 or later
 - Barrister CLI installed ([Installation Guide](../../get-started/installation))
 
 ## 1. Define the Service (2 min)
@@ -261,9 +261,9 @@ class OrderServiceImpl : IOrderService
 
 class Program
 {
-    static void Main()
+    static async Task Main(string[] args)
     {
-        var server = new BarristerServer(8080);
+        var server = new BarristerServer();
         var cartService = new CartServiceImpl();
 
         server.RegisterCatalogService(new CatalogServiceImpl());
@@ -271,7 +271,7 @@ class Program
         server.RegisterOrderService(new OrderServiceImpl(cartService._carts));
 
         Console.WriteLine("Server starting on http://localhost:8080");
-        server.Start();
+        await server.RunAsync("localhost", 8080);
     }
 }
 ```
@@ -289,19 +289,24 @@ Create `MyClient.cs` to call your service:
 ```csharp
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Barrister2;
 using Checkout;
 
 class Program
 {
-    static void Main()
+    static async Task Main(string[] args)
     {
-        var transport = new HTTPTransport("http://localhost:8080");
-        var catalog = new CatalogServiceClient(transport);
-        var cart = new CartServiceClient(transport);
-        var orders = new OrderServiceClient(transport);
+        var transport = new HttpTransport("http://localhost:8080");
+        var catalogClient = new CatalogServiceClient(transport);
+        var cartClient = new CartServiceClient(transport);
+        var ordersClient = new OrderServiceClient(transport);
 
-        // List products
+        // The client classes implement the interfaces, so you can use them
+        // with dependency injection or directly
+        ICatalogService catalog = catalogClient;
+
+        // List products (sync)
         var products = catalog.ListProducts();
         Console.WriteLine("=== Products ===");
         foreach (var p in products)
@@ -309,16 +314,16 @@ class Program
             Console.WriteLine($"{p.Name} - ${p.Price}");
         }
 
-        // Add to cart
-        var result = cart.AddToCart(new AddToCartRequest
+        // Add to cart (sync)
+        var result = cartClient.AddToCart(new AddToCartRequest
         {
             ProductId = products[0].ProductId,
             Quantity = 2
         });
         Console.WriteLine($"\nCart: {result.CartId}");
 
-        // Create order
-        var response = orders.CreateOrder(new CreateOrderRequest
+        // Create order (sync)
+        var response = ordersClient.CreateOrder(new CreateOrderRequest
         {
             CartId = result.CartId,
             ShippingAddress = new Address
@@ -331,7 +336,7 @@ class Program
             },
             PaymentMethod = PaymentMethod.CreditCard
         });
-        Console.WriteLine($"✓ Order created: {response.OrderId}");
+        Console.WriteLine($"Order created: {response.OrderId}");
     }
 }
 ```

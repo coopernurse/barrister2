@@ -135,10 +135,10 @@ class CatalogServiceImpl : ICatalogService {
 
 // Start server
 class Program {
-    static void Main() {
-        var server = new BarristerServer(8080);
+    static async Task Main(string[] args) {
+        var server = new BarristerServer();
         server.RegisterCatalogService(new CatalogServiceImpl());
-        server.Start();
+        await server.RunAsync("localhost", 8080);
     }
 }
 ```
@@ -149,7 +149,7 @@ class Program {
 using Barrister2;
 using Checkout;
 
-var transport = new HTTPTransport("http://localhost:8080");
+var transport = new HttpTransport("http://localhost:8080");
 var catalog = new CatalogServiceClient(transport);
 
 // Method calls return C# objects
