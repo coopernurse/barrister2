@@ -21,40 +21,30 @@
   children:
     - title: "Go"
       children:
-        - title: "Install"
-          url: /languages/go/install
         - title: "Quickstart"
           url: /languages/go/quickstart
         - title: "Reference"
           url: /languages/go/reference
     - title: "Java"
       children:
-        - title: "Install"
-          url: /languages/java/install
         - title: "Quickstart"
           url: /languages/java/quickstart
         - title: "Reference"
           url: /languages/java/reference
     - title: "Python"
       children:
-        - title: "Install"
-          url: /languages/python/install
         - title: "Quickstart"
           url: /languages/python/quickstart
         - title: "Reference"
           url: /languages/python/reference
     - title: "TypeScript"
       children:
-        - title: "Install"
-          url: /languages/typescript/install
         - title: "Quickstart"
           url: /languages/typescript/quickstart
         - title: "Reference"
           url: /languages/typescript/reference
     - title: "C#"
       children:
-        - title: "Install"
-          url: /languages/csharp/install
         - title: "Quickstart"
           url: /languages/csharp/quickstart
         - title: "Reference"

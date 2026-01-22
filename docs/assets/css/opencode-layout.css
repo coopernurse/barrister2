@@ -250,7 +250,6 @@ body {
 
 .main a:hover {
   color: var(--color-accent-hover);
-  text-decoration: underline;
 }
 
 /* Code */

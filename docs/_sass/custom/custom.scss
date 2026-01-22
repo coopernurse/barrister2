@@ -300,14 +300,15 @@ table {
 // Homepage Hero Section
 
 .hero {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); // Darker for better contrast with white text (4.5:1 min)
-  color: var(--color-text-inverse);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
   padding: var(--spacing-3xl) var(--spacing-lg);
   border-radius: var(--border-radius-lg);
   margin-bottom: var(--spacing-2xl);
   box-shadow: var(--shadow-xl);
   position: relative;
   overflow: hidden;
+  border: 1px solid var(--color-border);
 
   // Add subtle pattern overlay
   &::before {
@@ -324,7 +325,7 @@ table {
   }
 
   h1 {
-    color: var(--color-text-inverse);
+    color: var(--color-text-primary);
     font-size: 2.5rem;
     font-weight: 800;
     margin-bottom: var(--spacing-md);
@@ -337,7 +338,7 @@ table {
   }
 
   h2 {
-    color: var(--color-text-inverse);
+    color: var(--color-text-primary);
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: var(--spacing-lg);
@@ -346,7 +347,7 @@ table {
   }
 
   p {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--color-text-secondary);
     font-size: 1.125rem;
     line-height: 1.7;
     max-width: 65ch;
@@ -398,30 +399,30 @@ table {
   }
 }
 
-// Primary button
+// Primary button - white background with dark text for high contrast
 .btn-primary {
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  border-color: var(--color-primary);
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
   box-shadow: var(--shadow-sm);
 
   &:hover {
-    background-color: var(--color-primary-hover);
-    border-color: var(--color-primary-hover);
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
     box-shadow: var(--shadow-md);
   }
 
   &:active {
-    background-color: var(--color-primary-hover);
+    background-color: #e5e7eb;
     box-shadow: var(--shadow-sm);
   }
 }
 
 // Secondary button
 .btn-secondary {
-  background-color: var(--color-surface-bg);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
   box-shadow: var(--shadow-sm);
 
   &:hover {
@@ -438,23 +439,24 @@ table {
 // Outline button (variant of secondary)
 .btn-outline {
   background-color: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: #374151;
+  border-color: #374151;
 
   &:hover {
-    background-color: rgba(99, 102, 241, 0.1);
+    background-color: rgba(55, 65, 81, 0.1);
   }
 }
 
 // Ghost button (minimal styling)
 .btn-ghost {
   background-color: transparent;
-  color: var(--color-text-secondary);
-  border-color: transparent;
+  color: var(--color-text-primary);
+  border-color: var(--color-border-dark);
 
   &:hover {
     background-color: var(--color-surface-secondary);
-    color: var(--color-text-primary);
+    color: #374151;
+    border-color: #374151;
   }
 }
 
@@ -1365,22 +1367,23 @@ body.mobile-menu-open header nav {
 }
 
 .cta-card {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
   padding: var(--spacing-2xl) var(--spacing-lg);
   border-radius: var(--border-radius-lg);
   text-align: center;
   box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
 
   h2 {
-    color: white;
+    color: var(--color-text-primary);
     font-size: 2rem;
     font-weight: 700;
     margin-bottom: var(--spacing-md);
   }
 
   p {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--color-text-primary);
     font-size: 1.125rem;
     max-width: 60ch;
     margin: 0 auto var(--spacing-lg);
@@ -1392,16 +1395,6 @@ body.mobile-menu-open header nav {
   gap: var(--spacing-md);
   justify-content: center;
   flex-wrap: wrap;
-
-  .btn-outline {
-    border-color: rgba(255, 255, 255, 0.5);
-    color: white;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: white;
-    }
-  }
 }
 
 /* Responsive Design */
