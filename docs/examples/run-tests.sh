@@ -181,9 +181,9 @@ test_java() {
         return 0
     fi
 
-    # Compile the project first
+    # Compile the project first (include test sources for TestServer/TestClient)
     print_info "Compiling Java project..."
-    if ! mvn compile -q > /tmp/java-compile.log 2>&1; then
+    if ! mvn test-compile -q > /tmp/java-compile.log 2>&1; then
         print_error "Java compile failed"
         cat /tmp/java-compile.log
         FAILED_TESTS=$((FAILED_TESTS + 1))
