@@ -15,13 +15,17 @@ public class TestServer extends Server {
     public static void main(String[] args) {
         try {
             JsonParser jsonParser = new JacksonJsonParser();
-            TestServer server = new TestServer(8080, jsonParser);
+            int port = 8080;
+            if (args.length > 0) {
+                port = Integer.parseInt(args[0]);
+            }
+            TestServer server = new TestServer(port, jsonParser);
 
             server.register("CatalogService", new com.example.myapp.checkout.CatalogServiceImpl());
             server.register("CartService", new com.example.myapp.checkout.CartServiceImpl());
             server.register("OrderService", new com.example.myapp.checkout.OrderServiceImpl());
             server.start();
-            System.out.println("Test server started on port 8080");
+            System.out.println("Test server started on port " + port);
             // Keep server running indefinitely
             Object lock = new Object();
             synchronized (lock) {

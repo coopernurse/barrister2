@@ -194,11 +194,16 @@ test_java() {
 
     # Build classpath for runtime dependencies
     print_info "Building classpath..."
-    JAVA_CP="target/classes:target/test-classes:$(mvn dependency:build-classpath -q -DincludeScope=runtime -Dmdep.outputFile=/dev/stdout 2>/dev/null)"
+    JAVA_CP="target/classes:target/test-classes"
+    CP_FILE=$(mktemp)
+    if mvn dependency:build-classpath -q -DincludeScope=runtime -Dmdep.outputFile="$CP_FILE"; then
+        JAVA_CP="$JAVA_CP:$(cat "$CP_FILE")"
+    fi
+    rm -f "$CP_FILE"
 
     # Start server in background using compiled classes
     print_info "Starting Java server..."
-    java -cp "$JAVA_CP" com.example.myapp.TestServer > /tmp/java-server.log 2>&1 &
+    java -cp "$JAVA_CP" com.example.myapp.TestServer 8081 > /tmp/java-server.log 2>&1 &
     SERVER_PID=$!
 
     # Give server a moment to start
@@ -217,7 +222,7 @@ test_java() {
     fi
 
     # Wait for server
-    if ! wait_for_server "http://localhost:8080"; then
+    if ! wait_for_server "http://localhost:8081"; then
         print_error "Java server health check failed"
         echo "=== Server log (last 30 lines) ==="
         tail -30 /tmp/java-server.log || cat /tmp/java-server.log
@@ -233,7 +238,7 @@ test_java() {
     fi
 
     # Run tests
-    if java -cp "$JAVA_CP" com.example.myapp.TestClient > /tmp/java-client.log 2>&1; then
+    if java -cp "$JAVA_CP" com.example.myapp.TestClient http://localhost:8081 > /tmp/java-client.log 2>&1; then
         print_success "Java tests passed!"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else
