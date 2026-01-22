@@ -4,8 +4,13 @@
 (function() {
   'use strict';
 
+  console.log('code-copy.js: Script loaded');
+
   function addCopyButtons() {
+    console.log('code-copy.js: addCopyButtons called');
+
     const codeContainers = document.querySelectorAll('div.highlighter-rouge, figure.highlight, pre');
+    console.log('code-copy.js: Found', codeContainers.length, 'code containers');
 
     codeContainers.forEach((container) => {
       if (container.querySelector('.code-copy-button-container')) {
@@ -38,9 +43,9 @@
           const originalHTML = button.innerHTML;
           button.innerHTML =
             '<svg class="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-            '<polyline points="20 6 9 17 4 12"></polyline>' +
-            '</svg>' +
-            '<span class="copy-text">Copied!</span>';
+              '<polyline points="20 6 9 17 4 12"></polyline>' +
+              '</svg>' +
+              '<span class="copy-text">Copied!</span>';
           button.classList.add('copy-success');
 
           setTimeout(() => {
@@ -65,6 +70,7 @@
     }
   }
 
+  // Run immediately if DOM is ready, otherwise wait
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
       addCopyButtons();
