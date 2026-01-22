@@ -16,7 +16,122 @@ Build a complete Barrister2 RPC service in Python with our e-commerce checkout e
 
 Create `checkout.idl` with your service definition:
 
-{% code_file ../../examples/checkout.idl %}
+```idl
+namespace checkout
+
+// Enums for order status and payment methods
+
+enum OrderStatus {
+    pending
+    paid
+    shipped
+    delivered
+    cancelled
+}
+
+enum PaymentMethod {
+    credit_card
+    debit_card
+    paypal
+    apple_pay
+}
+
+// Core domain entities
+
+struct Product {
+    productId    string
+    name         string
+    description  string
+    price        float
+    stock        int
+    imageUrl     string  [optional]
+}
+
+struct CartItem {
+    productId    string
+    quantity     int
+    price        float
+}
+
+struct Cart {
+    cartId       string
+    items        []CartItem
+    subtotal     float
+}
+
+struct Address {
+    street       string
+    city         string
+    state        string
+    zipCode      string
+    country      string
+}
+
+struct Order {
+    orderId           string
+    cart              Cart
+    shippingAddress   Address
+    paymentMethod     PaymentMethod
+    status            OrderStatus
+    total             float
+    createdAt         int
+}
+
+// Request/Response structures
+
+struct AddToCartRequest {
+    cartId       string  [optional]
+    productId    string
+    quantity     int
+}
+
+struct CreateOrderRequest {
+    cartId              string
+    shippingAddress     Address
+    paymentMethod       PaymentMethod
+}
+
+struct CheckoutResponse {
+    orderId      string
+    message      string  [optional]
+}
+
+// Error Codes for createOrder:
+//   1001 - CartNotFound: Cart doesn't exist
+//   1002 - CartEmpty: Cart has no items
+//   1003 - PaymentFailed: Payment method rejected
+//   1004 - OutOfStock: Insufficient inventory
+//   1005 - InvalidAddress: Shipping address validation failed
+
+// Service interfaces
+
+interface CatalogService {
+    // Returns a list of all available products
+    listProducts() []Product
+
+    // Returns details for a specific product, or null if not found
+    getProduct(productId string) Product  [optional]
+}
+
+interface CartService {
+    // Adds an item to the cart (creates cart if cartId not provided)
+    addToCart(request AddToCartRequest) Cart
+
+    // Returns the cart contents, or null if cart doesn't exist
+    getCart(cartId string) Cart  [optional]
+
+    // Removes all items from the cart, returns true if successful
+    clearCart(cartId string) bool
+}
+
+interface OrderService {
+    // Converts a cart to an order
+    createOrder(request CreateOrderRequest) CheckoutResponse
+
+    // Returns the order details, or null if order doesn't exist
+    getOrder(orderId string) Order  [optional]
+}
+```
 
 This IDL defines:
 - **3 interfaces**: CatalogService, CartService, OrderService
@@ -322,13 +437,3 @@ raise RPCError(1002, "CartEmpty: Cannot create order from empty cart")
 - [Python Reference](reference.html) - Type mappings, patterns, best practices
 - [IDL Syntax](../../idl-guide/syntax.html) - Full IDL language reference
 - [Validation](../../idl-guide/validation.html) - How runtime validation works
-
-## Working Example
-
-The complete working example is available in `docs/examples/checkout-python/`:
-
-```bash
-cd docs/examples/checkout-python
-python3 server.py  # Terminal 1
-python3 client.py # Terminal 2
-```

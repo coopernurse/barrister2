@@ -16,31 +16,31 @@ layout: default
 | `[]Type` | `list` | `[1, 2, 3]` |
 | `map[string]Type` | `dict` | `{"key": "value"}` |
 | `Enum` | `str` | `"pending"` |
-| `Struct` | `dict` or dataclass | `{"field": "value"}` |
+| `Struct` | `dict` | `{"field": "value"}` |
 | `T [optional]` | `None` or type | `None` or value |
 
-## Generated Classes
+## Structs as Dictionaries
 
-Each struct in your IDL becomes a Python class:
+Each struct in your IDL becomes a dictionary in Python:
 
 ```python
 from checkout import Product, Cart, CartItem
 
-# Create instances
-product = Product(
-    productId="prod001",
-    name="Wireless Mouse",
-    description="Ergonomic mouse",
-    price=29.99,
-    stock=50,
-    imageUrl="https://example.com/mouse.jpg"  # optional field
-)
+# Create instances using dicts
+product = {
+    "productId": "prod001",
+    "name": "Wireless Mouse",
+    "description": "Ergonomic mouse",
+    "price": 29.99,
+    "stock": 50,
+    "imageUrl": "https://example.com/mouse.jpg"  # optional field
+}
 
-cart = Cart(
-    cartId="cart_1234",
-    items=[],
-    subtotal=0.0
-)
+cart = {
+    "cartId": "cart_1234",
+    "items": [],
+    "subtotal": 0.0
+}
 ```
 
 ## Optional Fields
@@ -49,18 +49,18 @@ Optional fields can be `None`:
 
 ```python
 # Define with optional field
-product = Product(
-    productId="prod001",
-    name="Wireless Mouse",
-    description="Ergonomic mouse",
-    price=29.99,
-    stock=50,
-    imageUrl=None  # optional field can be None
-)
+product = {
+    "productId": "prod001",
+    "name": "Wireless Mouse",
+    "description": "Ergonomic mouse",
+    "price": 29.99,
+    "stock": 50,
+    "imageUrl": None  # optional field can be None
+}
 
 # Check for optional field
-if product.imageUrl:
-    print(product.imageUrl)
+if product.get("imageUrl"):
+    print(product["imageUrl"])
 ```
 
 ## Error Handling
@@ -95,16 +95,16 @@ from server import BarristerServer, CatalogService
 
 class CatalogServiceImpl(CatalogService):
     def listProducts(self):
-        # Return list of Product instances
+        # Return list of Product dicts
         return [
-            Product(productId="p1", name="Item 1", price=10.0, stock=5),
-            Product(productId="p2", name="Item 2", price=20.0, stock=3)
+            {"productId": "p1", "name": "Item 1", "price": 10.0, "stock": 5},
+            {"productId": "p2", "name": "Item 2", "price": 20.0, "stock": 3}
         ]
 
     def getProduct(self, productId):
         # Return None for optional return type
         for p in products:
-            if p.productId == productId:
+            if p["productId"] == productId:
                 return p
         return None
 
@@ -124,15 +124,13 @@ catalog = CatalogServiceClient(transport)
 
 # Method calls return Python dicts or None
 products = catalog.listProducts()
-for p_dict in products:
-    product = Product(**p_dict)  # Convert to class instance
-    print(f"{product.name}: ${product.price}")
+for product in products:
+    print(f"{product['name']}: ${product['price']}")
 
 # Optional methods return None if not found
-product_dict = catalog.getProduct("prod001")
-if product_dict:
-    product = Product(**product_dict)
-    print(product.name)
+product = catalog.getProduct("prod001")
+if product:
+    print(product['name'])
 ```
 
 ## Validation
@@ -152,7 +150,7 @@ cart = cart.addToCart({
 
 ## Best Practices
 
-1. **Use dataclasses for type safety**: Convert returned dicts to generated classes
+1. **Use dicts for struct values**: All struct values should be dictionaries
 2. **Handle None for optionals**: Always check if optional return values are None
 3. **Use descriptive error codes**: Custom errors should have codes >= 1000
 4. **Validate early**: Let Barrister validate input, validate business logic in handlers
@@ -161,24 +159,24 @@ cart = cart.addToCart({
 ## Working with Nested Structs
 
 ```python
-# Nested structs work naturally
-order = Order(
-    orderId="order_123",
-    cart=Cart(
-        cartId="cart_123",
-        items=[CartItem(...)],
-        subtotal=59.98
-    ),
-    shippingAddress=Address(
-        street="123 Main St",
-        city="San Francisco",
-        state="CA",
-        zipCode="94105",
-        country="USA"
-    ),
-    paymentMethod=PaymentMethod.credit_card,
-    status=OrderStatus.pending,
-    total=59.98,
-    createdAt=1642000000
-)
+# Nested structs work naturally as dicts
+order = {
+    "orderId": "order_123",
+    "cart": {
+        "cartId": "cart_123",
+        "items": [...],
+        "subtotal": 59.98
+    },
+    "shippingAddress": {
+        "street": "123 Main St",
+        "city": "San Francisco",
+        "state": "CA",
+        "zipCode": "94105",
+        "country": "USA"
+    },
+    "paymentMethod": "credit_card",
+    "status": "pending",
+    "total": 59.98,
+    "createdAt": 1642000000
+}
 ```

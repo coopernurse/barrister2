@@ -68,16 +68,3 @@
       url: /webui/universal-client
     - title: "Playground"
       url: /webui/playground
-
-- title: "Examples"
-  children:
-    - title: "Go Example"
-      url: /examples/checkout-go
-    - title: "Java Example"
-      url: /examples/checkout-java
-    - title: "Python Example"
-      url: /examples/checkout-python
-    - title: "TypeScript Example"
-      url: /examples/checkout-typescript
-    - title: "C# Example"
-      url: /examples/checkout-csharp
