@@ -36,6 +36,8 @@ search:
 aux_links:
   "GitHub Repository": "https://github.com/coopernurse/barrister2"
 
+github_repo: "https://github.com/coopernurse/barrister2"
+
 # Footer content
 footer_content: "Copyright &copy; 2026 Barrister2. Distributed by <a href=\"https://github.com/coopernurse/barrister2/blob/main/LICENSE\">MIT license</a>."
 
