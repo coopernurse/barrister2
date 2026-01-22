@@ -33,11 +33,13 @@ barrister -plugin python-client-server checkout.idl
 ```
 
 This creates:
-- `checkout.py` - Type definitions for all your structs and enums
+- `checkout.py` - IDL metadata and helpers (structs are dicts, enums are strings)
 - `server.py` - BarristerServer framework with abstract service classes
 - `client.py` - HTTPTransport and service client classes
 - `barrister2/` - Runtime library (RPCError, validation, types)
 - `idl.json` - IDL metadata for introspection
+
+Note: the Python generator only creates classes for interfaces (service stubs). Structs are plain dicts and enums are strings, so use maps and lists directly in your handlers and client code.
 
 ## 3. Implement the Server (10-15 min)
 
@@ -46,17 +48,28 @@ Create a file `my_server.py` that implements your service handlers:
 ```python
 #!/usr/bin/env python3
 from server import BarristerServer, CatalogService, CartService, OrderService
-from checkout import *
 from barrister2 import RPCError
 import random
 import time
 
 # In-memory storage
 products_db = [
-    Product(productId="prod001", name="Wireless Mouse", description="Ergonomic mouse",
-             price=29.99, stock=50, imageUrl="https://example.com/mouse.jpg"),
-    Product(productId="prod002", name="Mechanical Keyboard", description="RGB keyboard",
-             price=89.99, stock=25, imageUrl="https://example.com/keyboard.jpg"),
+    {
+        "productId": "prod001",
+        "name": "Wireless Mouse",
+        "description": "Ergonomic mouse",
+        "price": 29.99,
+        "stock": 50,
+        "imageUrl": "https://example.com/mouse.jpg",
+    },
+    {
+        "productId": "prod002",
+        "name": "Mechanical Keyboard",
+        "description": "RGB keyboard",
+        "price": 89.99,
+        "stock": 25,
+        "imageUrl": "https://example.com/keyboard.jpg",
+    },
 ]
 
 carts_db = {}  # cart_id -> Cart
@@ -68,35 +81,43 @@ class CatalogServiceImpl(CatalogService):
 
     def getProduct(self, productId):
         for p in products_db:
-            if p.productId == productId:
+            if p["productId"] == productId:
                 return p
         return None
 
 class CartServiceImpl(CartService):
     def addToCart(self, request):
-        cart_id = request.cartId if request.cartId else f"cart_{random.randint(1000, 9999)}"
+        cart_id = request.get("cartId") or f"cart_{random.randint(1000, 9999)}"
 
         if cart_id not in carts_db:
-            carts_db[cart_id] = Cart(cartId=cart_id, items=[], subtotal=0.0)
+            carts_db[cart_id] = {"cartId": cart_id, "items": [], "subtotal": 0.0}
 
         cart = carts_db[cart_id]
-        product = next((p for p in products_db if p.productId == request.productId), None)
+        product = next(
+            (p for p in products_db if p["productId"] == request.get("productId")), None
+        )
 
         if not product:
-            raise RPCError(-32602, f"Product '{request.productId}' not found")
+            raise RPCError(-32602, f"Product '{request.get('productId')}' not found")
 
         # Add or update item
-        for item in cart.items:
-            if item.productId == request.productId:
-                item.quantity += request.quantity
-                item.price = product.price
+        for item in cart["items"]:
+            if item["productId"] == request.get("productId"):
+                item["quantity"] += request.get("quantity", 0)
+                item["price"] = product["price"]
                 break
         else:
-            cart.items.append(CartItem(productId=request.productId,
-                                       quantity=request.quantity,
-                                       price=product.price))
+            cart["items"].append(
+                {
+                    "productId": request.get("productId"),
+                    "quantity": request.get("quantity", 0),
+                    "price": product["price"],
+                }
+            )
 
-        cart.subtotal = sum(item.price * item.quantity for item in cart.items)
+        cart["subtotal"] = sum(
+            item["price"] * item["quantity"] for item in cart["items"]
+        )
         return cart
 
     def getCart(self, cartId):
@@ -104,32 +125,34 @@ class CartServiceImpl(CartService):
 
     def clearCart(self, cartId):
         if cartId in carts_db:
-            carts_db[cartId].items = []
-            carts_db[cartId].subtotal = 0.0
+            carts_db[cartId]["items"] = []
+            carts_db[cartId]["subtotal"] = 0.0
             return True
         return False
 
 class OrderServiceImpl(OrderService):
     def createOrder(self, request):
         # Validate cart exists
-        if request.cartId not in carts_db:
+        if request.get("cartId") not in carts_db:
             raise RPCError(1001, "CartNotFound: Cart does not exist")
 
-        cart = carts_db[request.cartId]
+        cart = carts_db[request.get("cartId")]
 
         # Check if cart is empty
-        if not cart.items:
+        if not cart["items"]:
             raise RPCError(1002, "CartEmpty: Cannot create order from empty cart")
 
         # Validate address
-        addr = request.shippingAddress
-        if not addr.street or not addr.city or not addr.zipCode:
+        addr = request.get("shippingAddress") or {}
+        if not addr.get("street") or not addr.get("city") or not addr.get("zipCode"):
             raise RPCError(1005, "InvalidAddress: Shipping address validation failed")
 
         # Check stock
-        for item in cart.items:
-            product = next((p for p in products_db if p.productId == item.productId), None)
-            if product and product.stock < item.quantity:
+        for item in cart["items"]:
+            product = next(
+                (p for p in products_db if p["productId"] == item["productId"]), None
+            )
+            if product and product["stock"] < item["quantity"]:
                 raise RPCError(1004, "OutOfStock: Insufficient inventory")
 
         # Simulate payment (fail 10% of the time for demo)
@@ -138,22 +161,22 @@ class OrderServiceImpl(OrderService):
 
         # Create order
         order_id = f"order_{random.randint(10000, 99999)}"
-        order = Order(
-            orderId=order_id,
-            cart=cart,
-            shippingAddress=request.shippingAddress,
-            paymentMethod=request.paymentMethod,
-            status=OrderStatus.pending,
-            total=cart.subtotal,
-            createdAt=int(time.time())
-        )
+        order = {
+            "orderId": order_id,
+            "cart": cart,
+            "shippingAddress": request.get("shippingAddress"),
+            "paymentMethod": request.get("paymentMethod"),
+            "status": "pending",
+            "total": cart["subtotal"],
+            "createdAt": int(time.time()),
+        }
         orders_db[order_id] = order
 
         # Clear cart
-        carts_db[request.cartId].items = []
-        carts_db[request.cartId].subtotal = 0.0
+        carts_db[request.get("cartId")]["items"] = []
+        carts_db[request.get("cartId")]["subtotal"] = 0.0
 
-        return CheckoutResponse(orderId=order_id, message="Order created successfully")
+        return {"orderId": order_id, "message": "Order created successfully"}
 
     def getOrder(self, orderId):
         return orders_db.get(orderId)
@@ -182,7 +205,7 @@ Create `my_client.py` to call your service:
 ```python
 #!/usr/bin/env python3
 from client import HTTPTransport, CatalogServiceClient, CartServiceClient, OrderServiceClient
-from checkout import *
+from barrister2 import RPCError
 
 # Connect to server
 transport = HTTPTransport("http://localhost:8080")
@@ -192,33 +215,33 @@ orders = OrderServiceClient(transport)
 
 # List products
 print("=== Products ===")
-products = [Product(**p) for p in catalog.listProducts()]
+products = catalog.listProducts()
 for p in products:
-    print(f"{p.name} - ${p.price:.2f}")
+    print(f"{p['name']} - ${p['price']:.2f}")
 
 # Create cart and add items
 print("\n=== Creating Cart ===")
 cart_data = cart.addToCart({
-    'productId': products[0].productId,
+    'productId': products[0]['productId'],
     'quantity': 2
 })
-my_cart = Cart(**cart_data)
-print(f"Cart: {my_cart.cartId}, Subtotal: ${my_cart.subtotal:.2f}")
+my_cart = cart_data
+print(f"Cart: {my_cart['cartId']}, Subtotal: ${my_cart['subtotal']:.2f}")
 
 # Add another item
 cart_data = cart.addToCart({
-    'cartId': my_cart.cartId,
-    'productId': products[1].productId,
+    'cartId': my_cart['cartId'],
+    'productId': products[1]['productId'],
     'quantity': 1
 })
-my_cart = Cart(**cart_data)
-print(f"Updated Subtotal: ${my_cart.subtotal:.2f}")
+my_cart = cart_data
+print(f"Updated Subtotal: ${my_cart['subtotal']:.2f}")
 
 # Create order
 print("\n=== Creating Order ===")
 try:
     response_data = orders.createOrder({
-        'cartId': my_cart.cartId,
+        'cartId': my_cart['cartId'],
         'shippingAddress': {
             'street': '123 Main St',
             'city': 'San Francisco',
@@ -228,17 +251,17 @@ try:
         },
         'paymentMethod': 'credit_card'
     })
-    response = CheckoutResponse(**response_data)
-    print(f"✓ Order created: {response.orderId}")
+    response = response_data
+    print(f"✓ Order created: {response['orderId']}")
 except RPCError as e:
     print(f"✗ Error {e.code}: {e.message}")
 
 # Test error case: empty cart
 print("\n=== Testing Error Case ===")
-cart.clearCart(my_cart.cartId)
+cart.clearCart(my_cart['cartId'])
 try:
     orders.createOrder({
-        'cartId': my_cart.cartId,
+        'cartId': my_cart['cartId'],
         'shippingAddress': {
             'street': '123 Main St',
             'city': 'San Francisco',
