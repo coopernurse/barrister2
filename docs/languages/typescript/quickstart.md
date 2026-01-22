@@ -155,71 +155,70 @@ Create `my_server.ts` that implements your service handlers:
 
 ```typescript
 import { BarristerServer, CatalogService, CartService, OrderService } from './server';
-import * as checkout from './checkout';
 import { RPCError } from './barrister2/rpc';
 
-const products: checkout.Product[] = [
-  new checkout.Product({
+const products = [
+  {
     productId: 'prod001',
     name: 'Wireless Mouse',
     description: 'Ergonomic mouse',
     price: 29.99,
     stock: 50,
     imageUrl: 'https://example.com/mouse.jpg'
-  }),
-  new checkout.Product({
+  },
+  {
     productId: 'prod002',
     name: 'Mechanical Keyboard',
     description: 'RGB keyboard',
     price: 89.99,
     stock: 25,
     imageUrl: 'https://example.com/keyboard.jpg'
-  })
+  }
 ];
 
-const carts = new Map<string, checkout.Cart>();
-const orders = new Map<string, checkout.Order>();
+const carts = new Map<string, any>();
+const orders = new Map<string, any>();
 
 class CatalogServiceImpl extends CatalogService {
-  listProducts(): checkout.Product[] {
+  listProducts(): any[] {
     return products;
   }
 
-  getProduct(productId: string): checkout.Product | null {
-    return products.find(p => p.productId === productId) || null;
+  getProduct(productId: string): any | null {
+    return products.find((p: any) => p.productId === productId) || null;
   }
 }
 
 class CartServiceImpl extends CartService {
-  addToCart(request: checkout.AddToCartRequest): checkout.Cart {
+  addToCart(request: any): any {
     let cartId = request.cartId || `cart_${Math.floor(Math.random() * 9000 + 1000)}`;
 
     let cart = carts.get(cartId);
     if (!cart) {
-      cart = new checkout.Cart({
+      cart = {
         cartId,
         items: [],
         subtotal: 0
-      });
+      };
       carts.set(cartId, cart);
     }
 
-    const product = products.find(p => p.productId === request.productId);
+    const product = products.find((p: any) => p.productId === request.productId);
     if (!product) {
-      throw new RPCException(-32602, 'Product not found');
+      throw new RPCError(-32602, 'Product not found');
     }
 
-    cart.items.push(new checkout.CartItem({
+    cart.items.push({
       productId: request.productId,
       quantity: request.quantity,
       price: product.price
-    }));
+    });
 
-    cart.subtotal = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    cart.subtotal = cart.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
     return cart;
   }
 
-  getCart(cartId: string): checkout.Cart | null {
+  getCart(cartId: string): any | null {
     return carts.get(cartId) || null;
   }
 
@@ -235,42 +234,84 @@ class CartServiceImpl extends CartService {
 }
 
 class OrderServiceImpl extends OrderService {
-  createOrder(request: checkout.CreateOrderRequest): checkout.CheckoutResponse {
+  createOrder(request: any): any {
     const cart = carts.get(request.cartId);
     if (!cart) {
-      throw new RPCException(1001, 'CartNotFound: Cart does not exist');
+      throw new RPCError(1001, 'CartNotFound: Cart does not exist');
     }
 
     if (!cart.items || cart.items.length === 0) {
-      throw new RPCException(1002, 'CartEmpty: Cannot create order from empty cart');
+      throw new RPCError(1002, 'CartEmpty: Cannot create order from empty cart');
     }
 
     const orderId = `order_${Math.floor(Math.random() * 90000 + 10000)}`;
-    const order = new checkout.Order({
+    const order = {
       orderId,
       cart,
       shippingAddress: request.shippingAddress,
       paymentMethod: request.paymentMethod,
-      status: checkout.OrderStatus.pending,
+      status: 'pending',
       total: cart.subtotal,
       createdAt: Math.floor(Date.now() / 1000)
-    });
+    };
 
-    orders.set(orderId, cart);
-    return new checkout.CheckoutResponse({ orderId, message: 'Order created successfully' });
+    orders.set(orderId, order);
+    return { orderId, message: 'Order created successfully' };
   }
 
-  getOrder(orderId: string): checkout.Order | null {
+  getOrder(orderId: string): any | null {
     return orders.get(orderId) || null;
   }
 }
 
-// Start server
-const server = new BarristerServer(8080);
-server.registerCatalogService(new CatalogServiceImpl());
-server.registerCartService(new CartServiceImpl());
-server.registerOrderService(new OrderServiceImpl());
-server.start();
+const server = new BarristerServer('0.0.0.0', 8080);
+server.register('CatalogService', new CatalogServiceImpl());
+server.register('CartService', new CartServiceImpl());
+server.register('OrderService', new OrderServiceImpl());
+server.serveForever();
+```
+
+Create a `package.json` file in the same directory:
+
+```json
+{
+  "name": "checkout-service",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/my_server.js"
+  },
+  "dependencies": {
+    "barrister2-ts-runtime": "file:./barrister2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
+
+Create a `tsconfig.json` file in the same directory:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
 ```
 
 Build and start your server:
@@ -285,58 +326,57 @@ npm start
 Create `my_client.ts` to call your service:
 
 ```typescript
-import { HTTPTransport } from './client';
-import * as checkout from './checkout';
-import { CatalogServiceClient, CartServiceClient, OrderServiceClient } from './checkout';
+import { HTTPTransport, CatalogServiceClient, CartServiceClient, OrderServiceClient } from './client';
 
 const transport = new HTTPTransport('http://localhost:8080');
 const catalog = new CatalogServiceClient(transport);
 const cart = new CartServiceClient(transport);
 const orders = new OrderServiceClient(transport);
 
-// List products
-const products = catalog.listProducts();
-console.log('=== Products ===');
-for (const p of products) {
-  console.log(`${p.name} - $${p.price}`);
+async function main() {
+  const products = await catalog.listProducts();
+  console.log('=== Products ===');
+  for (const p of products) {
+    console.log(`${p.name} - $${p.price}`);
+  }
+
+  const result = await cart.addToCart({
+    cartId: null,
+    productId: products[0].productId,
+    quantity: 2
+  });
+  console.log(`\nCart: ${result.cartId}`);
+
+  const response = await orders.createOrder({
+    cartId: result.cartId,
+    shippingAddress: {
+      street: '123 Main St',
+      city: 'San Francisco',
+      state: 'CA',
+      zipCode: '94105',
+      country: 'USA'
+    },
+    paymentMethod: 'credit_card'
+  });
+  console.log(`✓ Order created: ${response.orderId}`);
 }
 
-// Add to cart
-const result = cart.addToCart({
-  cartId: null,
-  productId: products[0].productId,
-  quantity: 2
-});
-console.log(`\nCart: ${result.cartId}`);
-
-// Create order
-const response = orders.createOrder({
-  cartId: result.cartId,
-  shippingAddress: {
-    street: '123 Main St',
-    city: 'San Francisco',
-    state: 'CA',
-    zipCode: '94105',
-    country: 'USA'
-  },
-  paymentMethod: checkout.PaymentMethod.credit_card
-});
-console.log(`✓ Order created: ${response.orderId}`);
+main().catch(console.error);
 ```
 
 Build and run your client:
 
 ```bash
 npm run build
-node dist/client.js
+node dist/my_client.js
 ```
 
 ## Error Codes
 
-Throw `RPCException` with custom error codes:
+Throw `RPCError` with custom error codes:
 
 ```typescript
-throw new RPCException(1002, 'CartEmpty: Cannot create order from empty cart');
+throw new RPCError(1002, 'CartEmpty: Cannot create order from empty cart');
 ```
 
 | Code | Name |
