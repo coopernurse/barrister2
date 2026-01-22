@@ -4,20 +4,23 @@
 (function() {
   'use strict';
 
-  console.log('code-copy.js: Script loaded');
-
   function addCopyButtons() {
-    console.log('code-copy.js: addCopyButtons called');
-
-    const codeContainers = document.querySelectorAll('div.highlighter-rouge, figure.highlight, pre');
-    console.log('code-copy.js: Found', codeContainers.length, 'code containers');
+    const codeContainers = document.querySelectorAll('div.highlighter-rouge, figure.highlight, pre:not(div.highlighter-rouge pre):not(figure.highlight pre)');
 
     codeContainers.forEach((container) => {
+      if (container.closest('.code-copy-button-container')) {
+        return;
+      }
+
       if (container.querySelector('.code-copy-button-container')) {
         return;
       }
 
-      const codeElement = container.querySelector('code');
+      if (container.tagName === 'PRE' && container.closest('div.highlighter-rouge, figure.highlight')) {
+        return;
+      }
+
+      const codeElement = container.tagName === 'CODE' ? container : container.querySelector('code');
       const codeText = codeElement ? codeElement.textContent : '';
 
       if (!codeText || !codeText.trim()) {
