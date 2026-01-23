@@ -343,7 +343,6 @@ Create a client project file `TestClient/TestClient.csproj`:
     <Compile Include="../Shared/Contract.cs" />
     <Compile Include="../Shared/Client.cs" />
     <Compile Include="../Shared/barrister2/*.cs" />
-    <EmbeddedFiles Include="../Shared/idl.json" />
   </ItemGroup>
 
 </Project>
