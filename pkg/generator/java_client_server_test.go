@@ -100,7 +100,7 @@ func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
 	p := NewJavaClientServer()
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	fs.String("dir", "", "output dir")
-	fs.Bool("generate-test-files", true, "generate test files")
+	fs.Bool("generate-test-files", false, "generate test files")
 	p.RegisterFlags(fs)
 	if err := fs.Set("dir", tmpDir); err != nil {
 		t.Fatalf("failed to set dir flag: %v", err)
@@ -154,7 +154,7 @@ func TestJavaGeneratorTestFilesDisabled(t *testing.T) {
 	p := NewJavaClientServer()
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	fs.String("dir", "", "output dir")
-	fs.Bool("generate-test-files", true, "generate test files")
+	fs.Bool("generate-test-files", false, "generate test files")
 	p.RegisterFlags(fs)
 	if err := fs.Set("dir", tmpDir); err != nil {
 		t.Fatalf("failed to set dir flag: %v", err)
