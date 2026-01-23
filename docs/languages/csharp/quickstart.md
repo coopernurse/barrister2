@@ -142,13 +142,32 @@ barrister -plugin csharp-client-server checkout.idl
 ```
 
 This creates:
-- `checkout.cs` - Type definitions
-- `Server.cs` - RPC server framework
-- `Client.cs` - RPC client framework
+- `checkout.cs` - Type definitions (in `checkout` namespace)
+- `barrister2/Server.cs` - RPC server framework (in `Barrister2` namespace)
+- `barrister2/Client.cs` - RPC client framework (in `Barrister2` namespace)
 - `barrister2/` - Runtime library
-- `idl.json` - IDL metadata
+- `idl.json` - IDL metadata (required for `barrister-idl` RPC method)
 
 ## 3. Implement the Server (10-15 min)
+
+Create a project file `TestServer.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>
+```
 
 Create `MyServer.cs` that implements your service handlers:
 

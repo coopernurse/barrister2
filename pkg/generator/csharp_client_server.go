@@ -113,8 +113,6 @@ func (p *CSharpClientServer) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 	// Check if generate-test-files flag is set
 	generateTestFilesFlag := fs.Lookup("generate-test-files")
 	generateTestServer := generateTestFilesFlag != nil && generateTestFilesFlag.Value.String() == "true"
-
-	// Generate test server and client if flag is set
 	if generateTestServer {
 		// Generate TestServer.cs
 		testServerCode := generateTestServerCs(idl, structMap, enumMap)
@@ -163,62 +161,66 @@ func generateNamespaceCs(namespace string, types *NamespaceTypes, structMap map[
 	sb.WriteString("using System.Text.Json.Serialization;\n")
 	sb.WriteString("using Barrister2;\n\n")
 
+	sb.WriteString(fmt.Sprintf("namespace %s\n", namespace))
+	sb.WriteString("{\n")
+
 	// Generate enum types first (they may be referenced by structs)
-	generateEnumTypesCs(&sb, types.Enums)
+	generateEnumTypesCs(&sb, types.Enums, "    ")
 	sb.WriteString("\n")
 
 	// Generate struct classes
-	generateStructClassesCs(&sb, types.Structs, structMap, enumMap)
+	generateStructClassesCs(&sb, types.Structs, structMap, enumMap, "    ")
 	sb.WriteString("\n")
 
 	// Generate IDL-specific type definitions for this namespace
-	sb.WriteString(fmt.Sprintf("// IDL-specific type definitions for namespace: %s\n", namespace))
-	sb.WriteString("public static class " + namespace + "Idl\n")
-	sb.WriteString("{\n")
-	sb.WriteString("    public static readonly Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>\n")
+	sb.WriteString(fmt.Sprintf("    // IDL-specific type definitions for namespace: %s\n", namespace))
+	sb.WriteString(fmt.Sprintf("    public static class %sIdl\n", namespace))
 	sb.WriteString("    {\n")
+	sb.WriteString("        public static readonly Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>\n")
+	sb.WriteString("        {\n")
 	for _, s := range types.Structs {
-		sb.WriteString(fmt.Sprintf("        { \"%s\", new Dictionary<string, object>\n", s.Name))
-		sb.WriteString("        {\n")
-		if s.Extends != "" {
-			sb.WriteString(fmt.Sprintf("            { \"extends\", \"%s\" },\n", s.Extends))
-		}
-		sb.WriteString("            { \"fields\", new List<Dictionary<string, object>>\n")
+		sb.WriteString(fmt.Sprintf("            { \"%s\", new Dictionary<string, object>\n", s.Name))
 		sb.WriteString("            {\n")
+		if s.Extends != "" {
+			sb.WriteString(fmt.Sprintf("                { \"extends\", \"%s\" },\n", s.Extends))
+		}
+		sb.WriteString("                { \"fields\", new List<Dictionary<string, object>>\n")
+		sb.WriteString("                {\n")
 		for _, field := range s.Fields {
-			sb.WriteString("                new Dictionary<string, object>\n")
-			sb.WriteString("                {\n")
-			sb.WriteString(fmt.Sprintf("                    { \"name\", \"%s\" },\n", field.Name))
-			sb.WriteString("                    { \"type\", ")
+			sb.WriteString("                    new Dictionary<string, object>\n")
+			sb.WriteString("                    {\n")
+			sb.WriteString(fmt.Sprintf("                        { \"name\", \"%s\" },\n", field.Name))
+			sb.WriteString("                        { \"type\", ")
 			writeTypeDictCs(&sb, field.Type)
 			sb.WriteString(" },\n")
 			if field.Optional {
-				sb.WriteString("                    { \"optional\", true },\n")
+				sb.WriteString("                        { \"optional\", true },\n")
 			}
-			sb.WriteString("                },\n")
+			sb.WriteString("                    },\n")
 		}
+		sb.WriteString("                }},\n")
 		sb.WriteString("            }},\n")
-		sb.WriteString("        }},\n")
 	}
-	sb.WriteString("    };\n\n")
+	sb.WriteString("        };\n\n")
 
-	sb.WriteString("    public static readonly Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>\n")
-	sb.WriteString("    {\n")
+	sb.WriteString("        public static readonly Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>\n")
+	sb.WriteString("        {\n")
 	for _, e := range types.Enums {
-		sb.WriteString(fmt.Sprintf("        { \"%s\", new Dictionary<string, object>\n", e.Name))
-		sb.WriteString("        {\n")
-		sb.WriteString("            { \"values\", new List<Dictionary<string, object>>\n")
+		sb.WriteString(fmt.Sprintf("            { \"%s\", new Dictionary<string, object>\n", e.Name))
 		sb.WriteString("            {\n")
+		sb.WriteString("                { \"values\", new List<Dictionary<string, object>>\n")
+		sb.WriteString("                {\n")
 		for _, val := range e.Values {
-			sb.WriteString("                new Dictionary<string, object>\n")
-			sb.WriteString("                {\n")
-			sb.WriteString(fmt.Sprintf("                    { \"name\", \"%s\" },\n", val.Name))
-			sb.WriteString("                },\n")
+			sb.WriteString("                    new Dictionary<string, object>\n")
+			sb.WriteString("                    {\n")
+			sb.WriteString(fmt.Sprintf("                        { \"name\", \"%s\" },\n", val.Name))
+			sb.WriteString("                    },\n")
 		}
+		sb.WriteString("                }},\n")
 		sb.WriteString("            }},\n")
-		sb.WriteString("        }},\n")
 	}
-	sb.WriteString("    };\n")
+	sb.WriteString("        };\n")
+	sb.WriteString("    }\n")
 	sb.WriteString("}\n")
 
 	return sb.String()
@@ -354,46 +356,46 @@ func snakeToPascalCase(s string) string {
 }
 
 // generateEnumTypesCs generates C# enum types for all enums in the namespace
-func generateEnumTypesCs(sb *strings.Builder, enums []*parser.Enum) {
+func generateEnumTypesCs(sb *strings.Builder, enums []*parser.Enum, prefix string) {
 	for _, e := range enums {
 		if e.Comment != "" {
 			lines := strings.Split(strings.TrimSpace(e.Comment), "\n")
 			for _, line := range lines {
-				fmt.Fprintf(sb, "// %s\n", line)
+				fmt.Fprintf(sb, "%s// %s\n", prefix, line)
 			}
 		}
 		// Use base name only (remove namespace prefix if present)
 		enumName := GetBaseName(e.Name)
-		fmt.Fprintf(sb, "public enum %s\n", enumName)
-		sb.WriteString("{\n")
+		fmt.Fprintf(sb, "%spublic enum %s\n", prefix, enumName)
+		sb.WriteString(prefix + "{\n")
 		for i, val := range e.Values {
 			if i > 0 {
 				sb.WriteString(",\n")
 			}
 			// C# enum values - use the IDL name directly (may be lowercase)
 			// System.Text.Json will serialize these as strings if JsonStringEnumConverter is used
-			fmt.Fprintf(sb, "    %s", val.Name)
+			fmt.Fprintf(sb, "%s    %s", prefix, val.Name)
 		}
 		if len(e.Values) > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString("}\n\n")
+		sb.WriteString(prefix + "}\n\n")
 	}
 }
 
 // generateStructClassesCs generates C# classes for all structs in the namespace
-func generateStructClassesCs(sb *strings.Builder, structs []*parser.Struct, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum) {
+func generateStructClassesCs(sb *strings.Builder, structs []*parser.Struct, structMap map[string]*parser.Struct, enumMap map[string]*parser.Enum, prefix string) {
 	for _, s := range structs {
 		if s.Comment != "" {
 			lines := strings.Split(strings.TrimSpace(s.Comment), "\n")
 			for _, line := range lines {
-				fmt.Fprintf(sb, "// %s\n", line)
+				fmt.Fprintf(sb, "%s// %s\n", prefix, line)
 			}
 		}
 
 		// Use base name only (remove namespace prefix if present)
 		structName := GetBaseName(s.Name)
-		fmt.Fprintf(sb, "public class %s", structName)
+		fmt.Fprintf(sb, "%spublic class %s", prefix, structName)
 
 		// Handle inheritance
 		if s.Extends != "" {
@@ -401,19 +403,19 @@ func generateStructClassesCs(sb *strings.Builder, structs []*parser.Struct, stru
 			fmt.Fprintf(sb, " : %s", parentName)
 		}
 
-		sb.WriteString("\n{\n")
+		sb.WriteString("\n" + prefix + "{\n")
 
 		// Generate properties for each field
 		for _, field := range s.Fields {
 			if field.Comment != "" {
 				lines := strings.Split(strings.TrimSpace(field.Comment), "\n")
 				for _, line := range lines {
-					fmt.Fprintf(sb, "    // %s\n", line)
+					fmt.Fprintf(sb, "%s    // %s\n", prefix, line)
 				}
 			}
 
 			// JSON property name attribute (IDL uses snake_case, C# uses PascalCase)
-			fmt.Fprintf(sb, "    [JsonPropertyName(\"%s\")]\n", field.Name)
+			fmt.Fprintf(sb, "%s    [JsonPropertyName(\"%s\")]\n", prefix, field.Name)
 
 			// Property type
 			csType := mapTypeToCsType(field.Type, structMap, enumMap, field.Optional)
@@ -423,14 +425,14 @@ func generateStructClassesCs(sb *strings.Builder, structs []*parser.Struct, stru
 
 			// Generate property
 			if !field.Optional {
-				sb.WriteString("    public required ")
+				sb.WriteString(prefix + "    public required ")
 			} else {
-				sb.WriteString("    public ")
+				sb.WriteString(prefix + "    public ")
 			}
 			fmt.Fprintf(sb, "%s %s { get; set; }\n\n", csType, propName)
 		}
 
-		sb.WriteString("}\n\n")
+		sb.WriteString(prefix + "}\n\n")
 	}
 }
 
@@ -464,27 +466,29 @@ func generateServerCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	sort.Strings(namespaces)
 
 	for _, ns := range namespaces {
-		// Namespace files define static classes like "conformIdl" in the global namespace
-		// So we just reference them directly
-		sb.WriteString(fmt.Sprintf("using static %sIdl;\n", ns))
+		// Namespace files define static classes like "checkoutIdl" in the "Barrister2" namespace
+		sb.WriteString(fmt.Sprintf("using static Barrister2.%sIdl;\n", ns))
 	}
 	sb.WriteString("\n")
 
-	// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces
-	sb.WriteString("// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
-	sb.WriteString("public static class IdlData\n")
+	sb.WriteString("namespace Barrister2\n")
 	sb.WriteString("{\n")
-	sb.WriteString("    public static Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>();\n")
-	sb.WriteString("    public static Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>();\n")
-	sb.WriteString("    \n")
-	sb.WriteString("    static IdlData()\n")
+
+	// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces
+	sb.WriteString("    // Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
+	sb.WriteString("    public static class IdlData\n")
 	sb.WriteString("    {\n")
+	sb.WriteString("        public static Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>();\n")
+	sb.WriteString("        public static Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>();\n")
+	sb.WriteString("        \n")
+	sb.WriteString("        static IdlData()\n")
+	sb.WriteString("        {\n")
 	for _, ns := range namespaces {
-		sb.WriteString(fmt.Sprintf("        foreach (var kvp in %sIdl.ALL_STRUCTS) ALL_STRUCTS[kvp.Key] = kvp.Value;\n", ns))
-		sb.WriteString(fmt.Sprintf("        foreach (var kvp in %sIdl.ALL_ENUMS) ALL_ENUMS[kvp.Key] = kvp.Value;\n", ns))
+		sb.WriteString(fmt.Sprintf("            foreach (var kvp in %sIdl.ALL_STRUCTS) ALL_STRUCTS[kvp.Key] = kvp.Value;\n", ns))
+		sb.WriteString(fmt.Sprintf("            foreach (var kvp in %sIdl.ALL_ENUMS) ALL_ENUMS[kvp.Key] = kvp.Value;\n", ns))
 	}
-	sb.WriteString("    }\n")
-	sb.WriteString("}\n\n")
+	sb.WriteString("        }\n")
+	sb.WriteString("    }\n\n")
 
 	// Generate interface stub abstract classes
 	for _, iface := range idl.Interfaces {
@@ -493,6 +497,8 @@ func generateServerCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 
 	// Generate BarristerServer class
 	writeBarristerServerCs(&sb, idl)
+
+	sb.WriteString("}\n")
 
 	return sb.String()
 }
@@ -1145,27 +1151,29 @@ func generateClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	sort.Strings(namespaces)
 
 	for _, ns := range namespaces {
-		// Namespace files define static classes like "conformIdl" in the global namespace
-		// So we just reference them directly
-		sb.WriteString(fmt.Sprintf("using static %sIdl;\n", ns))
+		// Namespace files define static classes like "checkoutIdl" in the "Barrister2" namespace
+		sb.WriteString(fmt.Sprintf("using static Barrister2.%sIdl;\n", ns))
 	}
 	sb.WriteString("\n")
 
-	// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces (needed for validation)
-	sb.WriteString("// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
-	sb.WriteString("public static class IdlData\n")
+	sb.WriteString("namespace Barrister2\n")
 	sb.WriteString("{\n")
-	sb.WriteString("    public static Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>();\n")
-	sb.WriteString("    public static Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>();\n")
-	sb.WriteString("    \n")
-	sb.WriteString("    static IdlData()\n")
+
+	// Merge ALL_STRUCTS and ALL_ENUMS from all namespaces (needed for validation)
+	sb.WriteString("    // Merge ALL_STRUCTS and ALL_ENUMS from all namespaces\n")
+	sb.WriteString("    public static class IdlData\n")
 	sb.WriteString("    {\n")
+	sb.WriteString("        public static Dictionary<string, Dictionary<string, object>> ALL_STRUCTS = new Dictionary<string, Dictionary<string, object>>();\n")
+	sb.WriteString("        public static Dictionary<string, Dictionary<string, object>> ALL_ENUMS = new Dictionary<string, Dictionary<string, object>>();\n")
+	sb.WriteString("        \n")
+	sb.WriteString("        static IdlData()\n")
+	sb.WriteString("        {\n")
 	for _, ns := range namespaces {
-		sb.WriteString(fmt.Sprintf("        foreach (var kvp in %sIdl.ALL_STRUCTS) ALL_STRUCTS[kvp.Key] = kvp.Value;\n", ns))
-		sb.WriteString(fmt.Sprintf("        foreach (var kvp in %sIdl.ALL_ENUMS) ALL_ENUMS[kvp.Key] = kvp.Value;\n", ns))
+		sb.WriteString(fmt.Sprintf("            foreach (var kvp in %sIdl.ALL_STRUCTS) ALL_STRUCTS[kvp.Key] = kvp.Value;\n", ns))
+		sb.WriteString(fmt.Sprintf("            foreach (var kvp in %sIdl.ALL_ENUMS) ALL_ENUMS[kvp.Key] = kvp.Value;\n", ns))
 	}
-	sb.WriteString("    }\n")
-	sb.WriteString("}\n\n")
+	sb.WriteString("        }\n")
+	sb.WriteString("    }\n\n")
 
 	// Generate ITransport interface
 	writeITransportCs(&sb)
@@ -1182,6 +1190,8 @@ func generateClientCs(idl *parser.IDL, structMap map[string]*parser.Struct, enum
 	for _, iface := range idl.Interfaces {
 		writeInterfaceClientCs(&sb, iface, structMap, enumMap)
 	}
+
+	sb.WriteString("}\n")
 
 	return sb.String()
 }
