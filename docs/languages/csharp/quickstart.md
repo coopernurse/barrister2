@@ -142,15 +142,22 @@ barrister -plugin csharp-client-server checkout.idl
 ```
 
 This creates:
-- `checkout.cs` - Type definitions (in `checkout` namespace)
-- `barrister2/Server.cs` - RPC server framework (in `Barrister2` namespace)
-- `barrister2/Client.cs` - RPC client framework (in `Barrister2` namespace)
+- `Checkout.cs` - Type definitions (in `checkout` namespace)
+- `Server.cs` - RPC server framework (in `Barrister2` namespace)
+- `Client.cs` - RPC client framework (in `Barrister2` namespace)
+- `Contract.cs` - Shared interfaces and IDL metadata
 - `barrister2/` - Runtime library
-- `idl.json` - IDL metadata (required for `barrister-idl` RPC method)
+
+**Pro tip:** Organize your generated code into a `Shared/` directory to keep things tidy:
+
+```bash
+mkdir Shared TestServer TestClient
+mv Checkout.cs Client.cs Contract.cs Server.cs barrister2/ Shared/
+```
 
 ## 3. Implement the Server (10-15 min)
 
-Create a project file `TestServer.csproj`:
+Create a server project file `TestServer/TestServer.csproj`:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -166,42 +173,56 @@ Create a project file `TestServer.csproj`:
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../Shared/Checkout.cs" />
+    <Compile Include="../Shared/Contract.cs" />
+    <Compile Include="../Shared/Server.cs" />
+    <Compile Include="../Shared/barrister2/*.cs" />
+  </ItemGroup>
+
 </Project>
 ```
 
-Create `MyServer.cs` that implements your service handlers:
+Create `TestServer/MyServer.cs` that implements your service handlers:
 
 ```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Barrister2;
-using Checkout;
+using checkout;
 
-class CatalogServiceImpl : ICatalogService
+public class CatalogServiceImpl : ICatalogService
 {
     private static readonly List<Product> Products = new List<Product>
     {
-        new Product("prod001", "Wireless Mouse", "Ergonomic mouse", 29.99, 50, "https://example.com/mouse.jpg"),
-        new Product("prod002", "Mechanical Keyboard", "RGB keyboard", 89.99, 25, "https://example.com/keyboard.jpg")
+        new Product { ProductId = "prod001", Name = "Wireless Mouse", Description = "Ergonomic mouse", Price = 29.99, Stock = 50, ImageUrl = "https://example.com/mouse.jpg" },
+        new Product { ProductId = "prod002", Name = "Mechanical Keyboard", Description = "RGB keyboard", Price = 89.99, Stock = 25, ImageUrl = "https://example.com/keyboard.jpg" }
     };
 
-    public List<Product> ListProducts()
+    public List<Product> listProducts()
     {
         return Products;
     }
 
-    public Product GetProduct(string productId)
+    public Product? getProduct(string productId)
     {
         return Products.FirstOrDefault(p => p.ProductId == productId);
     }
+
 }
 
-class CartServiceImpl : ICartService
+public class CartServiceImpl : ICartService
 {
-    private readonly Dictionary<string, Cart> _carts = new Dictionary<string, Cart>();
+    internal readonly Dictionary<string, Cart> _carts = new Dictionary<string, Cart>();
+    private readonly CatalogServiceImpl _catalogService;
 
-    public Cart AddToCart(AddToCartRequest request)
+    public CartServiceImpl(CatalogServiceImpl catalogService)
+    {
+        _catalogService = catalogService;
+    }
+
+    public Cart addToCart(AddToCartRequest request)
     {
         var cartId = request.CartId ?? $"cart_{new Random().Next(1000, 9999)}";
 
@@ -211,22 +232,22 @@ class CartServiceImpl : ICartService
             _carts[cartId] = cart;
         }
 
-        var product = Products.FirstOrDefault(p => p.ProductId == request.ProductId);
+        var product = _catalogService.listProducts().FirstOrDefault(p => p.ProductId == request.ProductId);
         if (product == null)
-            throw new RPCException(-32602, "Product not found");
+            throw new RPCError(-32602, "Product not found");
 
-        cart.Items.Add(new CartItem(request.ProductId, request.Quantity, product.Price));
-        cart.Subtotal = cart.Items.Sum(i => i.Price * i.Quantity);
+        cart.Items.Add(new CartItem { ProductId = request.ProductId, Quantity = request.Quantity, Price = (double)product.Price });
+        cart.Subtotal = (double)cart.Items.Sum(i => i.Price * i.Quantity);
 
         return cart;
     }
 
-    public Cart GetCart(string cartId)
+    public Cart? getCart(string cartId)
     {
         return _carts.TryGetValue(cartId, out var cart) ? cart : null;
     }
 
-    public bool ClearCart(string cartId)
+    public bool clearCart(string cartId)
     {
         if (_carts.TryGetValue(cartId, out var cart))
         {
@@ -248,13 +269,13 @@ class OrderServiceImpl : IOrderService
         _carts = carts;
     }
 
-    public CheckoutResponse CreateOrder(CreateOrderRequest request)
+    public CheckoutResponse createOrder(CreateOrderRequest request)
     {
         if (!_carts.TryGetValue(request.CartId, out var cart))
-            throw new RPCException(1001, "CartNotFound: Cart does not exist");
+            throw new RPCError(1001, "CartNotFound: Cart does not exist");
 
         if (cart.Items.Count == 0)
-            throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+            throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
 
         var orderId = $"order_{new Random().Next(10000, 99999)}";
         var order = new Order
@@ -263,16 +284,16 @@ class OrderServiceImpl : IOrderService
             Cart = cart,
             ShippingAddress = request.ShippingAddress,
             PaymentMethod = request.PaymentMethod,
-            Status = OrderStatus.Pending,
-            Total = cart.Subtotal,
-            CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            Status = OrderStatus.pending,
+            Total = (double)cart.Subtotal,
+            CreatedAt = (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
         _orders[orderId] = order;
         return new CheckoutResponse { OrderId = orderId };
     }
 
-    public Order GetOrder(string orderId)
+    public Order? getOrder(string orderId)
     {
         return _orders.TryGetValue(orderId, out var order) ? order : null;
     }
@@ -283,14 +304,15 @@ class Program
     static async Task Main(string[] args)
     {
         var server = new BarristerServer();
-        var cartService = new CartServiceImpl();
+        var catalogService = new CatalogServiceImpl();
+        var cartService = new CartServiceImpl(catalogService);
 
-        server.RegisterCatalogService(new CatalogServiceImpl());
+        server.RegisterCatalogService(catalogService);
         server.RegisterCartService(cartService);
         server.RegisterOrderService(new OrderServiceImpl(cartService._carts));
 
         Console.WriteLine("Server starting on http://localhost:8080");
-        await server.RunAsync("localhost", 8080);
+        await server.RunAsync("0.0.0.0", 8080);
     }
 }
 ```
@@ -298,19 +320,43 @@ class Program
 Start your server:
 
 ```bash
+cd TestServer
 dotnet run
 ```
 
 ## 4. Implement the Client (5-10 min)
 
-Create `MyClient.cs` to call your service:
+Create a client project file `TestClient/TestClient.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Shared/Checkout.cs" />
+    <Compile Include="../Shared/Contract.cs" />
+    <Compile Include="../Shared/Client.cs" />
+    <Compile Include="../Shared/barrister2/*.cs" />
+    <EmbeddedFiles Include="../Shared/idl.json" />
+  </ItemGroup>
+
+</Project>
+```
+
+Create `TestClient/MyClient.cs` to call your service:
 
 ```csharp
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Barrister2;
-using Checkout;
+using checkout;
 
 class Program
 {
@@ -326,7 +372,7 @@ class Program
         ICatalogService catalog = catalogClient;
 
         // List products (sync)
-        var products = catalog.ListProducts();
+        var products = catalog.listProducts();
         Console.WriteLine("=== Products ===");
         foreach (var p in products)
         {
@@ -334,7 +380,7 @@ class Program
         }
 
         // Add to cart (sync)
-        var result = cartClient.AddToCart(new AddToCartRequest
+        var result = cartClient.addToCart(new AddToCartRequest
         {
             ProductId = products[0].ProductId,
             Quantity = 2
@@ -342,7 +388,7 @@ class Program
         Console.WriteLine($"\nCart: {result.CartId}");
 
         // Create order (sync)
-        var response = ordersClient.CreateOrder(new CreateOrderRequest
+        var response = ordersClient.createOrder(new CreateOrderRequest
         {
             CartId = result.CartId,
             ShippingAddress = new Address
@@ -353,7 +399,7 @@ class Program
                 ZipCode = "94105",
                 Country = "USA"
             },
-            PaymentMethod = PaymentMethod.CreditCard
+            PaymentMethod = PaymentMethod.credit_card
         });
         Console.WriteLine($"Order created: {response.OrderId}");
     }
@@ -363,15 +409,16 @@ class Program
 Run your client:
 
 ```bash
+cd TestClient
 dotnet run
 ```
 
 ## Error Codes
 
-Throw `RPCException` with custom error codes:
+Throw `RPCError` with custom error codes:
 
 ```csharp
-throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
 ```
 
 | Code | Name |
