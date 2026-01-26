@@ -1,14 +1,14 @@
-// API client for Barrister RPC calls
+// API client for PulseRPC RPC calls
 
 const PROXY_URL = '/api/proxy';
 
 /**
- * Discover IDL from an endpoint using barrister-idl method
+ * Discover IDL from an endpoint using pulserpc-idl method
  */
 export async function discoverIDL(endpoint, customHeaders) {
     const request = {
         jsonrpc: '2.0',
-        method: 'barrister-idl',
+        method: 'pulserpc-idl',
         id: 1
     };
     
@@ -18,7 +18,7 @@ export async function discoverIDL(endpoint, customHeaders) {
     };
 
     if (customHeaders && Object.keys(customHeaders).length > 0) {
-        headers['X-Barrister-Headers'] = JSON.stringify(customHeaders);
+        headers['X-PulseRPC-Headers'] = JSON.stringify(customHeaders);
     }
     
     try {
@@ -66,7 +66,7 @@ export async function callMethod(endpoint, interfaceName, methodName, params, cu
     };
 
     if (customHeaders && Object.keys(customHeaders).length > 0) {
-        headers['X-Barrister-Headers'] = JSON.stringify(customHeaders);
+        headers['X-PulseRPC-Headers'] = JSON.stringify(customHeaders);
     }
     
     try {

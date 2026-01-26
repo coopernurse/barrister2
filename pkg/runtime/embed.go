@@ -24,7 +24,7 @@ var tsRuntimeFiles embed.FS
 
 // Embed all C# runtime files
 //
-//go:embed all:runtimes/csharp/barrister2
+//go:embed all:runtimes/csharp/PulseRPC
 var csharpRuntimeFiles embed.FS
 
 // Embed all Java runtime files
@@ -146,14 +146,15 @@ func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string
 
 // getRuntimePackageName returns the package/module name for the runtime library
 // This is the directory name where runtime files are placed in the output
-// TODO: This will be updated to pulserpc for C# once the runtime directory is renamed
 func getRuntimePackageName(lang string) string {
 	switch lang {
 	case "go", "python", "ts":
 		return "pulserpc"
 	case "java":
 		return "com/bitmechanic/pulserpc"
+	case "csharp":
+		return "PulseRPC"
 	default:
-		return "barrister2" // C# will be updated in Phase 5
+		return "pulserpc"
 	}
 }

@@ -1,7 +1,7 @@
 {
-  "name": "barrister-webui",
+  "name": "pulserpc-webui",
   "version": "1.0.0",
-  "description": "Barrister IDL Web UI with Playground",
+  "description": "PulseRPC IDL Web UI with Playground",
   "type": "module",
   "scripts": {
     "dev": "vite",

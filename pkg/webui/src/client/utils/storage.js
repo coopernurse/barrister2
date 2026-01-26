@@ -1,6 +1,6 @@
 // LocalStorage wrapper for endpoint management
 
-const STORAGE_KEY = 'barrister_endpoints';
+const STORAGE_KEY = 'pulserpc_endpoints';
 
 export function getEndpoints() {
     try {

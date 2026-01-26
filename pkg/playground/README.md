@@ -1,6 +1,6 @@
 # Playground Package
 
-The playground package provides an in-memory session management system for the Barrister IDL playground web UI. It handles code generation, file storage, and automatic cleanup of temporary sessions.
+The playground package provides an in-memory session management system for the PulseRPC IDL playground web UI. It handles code generation, file storage, and automatic cleanup of temporary sessions.
 
 ## Overview
 
@@ -61,8 +61,8 @@ type Session struct {
 
 ```go
 import (
-    "github.com/coopernurse/barrister2/pkg/generator"
-    "github.com/coopernurse/barrister2/pkg/playground"
+    "github.com/coopernurse/pulserpc/pkg/generator"
+    "github.com/coopernurse/pulserpc/pkg/playground"
 )
 
 func main() {
@@ -180,5 +180,5 @@ See `pkg/webui/server.go` for implementation details.
 ## Dependencies
 
 - `github.com/oklog/ulid/v2`: Unique session identifier generation
-- `github.com/coopernurse/barrister2/pkg/generator`: Code generation plugins
+- `github.com/coopernurse/pulserpc/pkg/generator`: Code generation plugins
 - Standard library: `archive/zip`, `io`, `os`, `path/filepath`, `sync`, `time`

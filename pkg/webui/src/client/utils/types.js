@@ -1,4 +1,4 @@
-// Type resolution utilities for Barrister IDL
+// Type resolution utilities for PulseRPC IDL
 
 /**
  * Build a type registry from IDL

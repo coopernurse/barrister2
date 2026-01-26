@@ -460,10 +460,10 @@ body {
    ======================================== */
 
 :root {
-  --barrister-primary: #0066cc;
-  --barrister-secondary: #6c757d;
-  --barrister-success: #28a745;
-  --barrister-border-radius: 0.5rem;
+  --pulserpc-primary: #0066cc;
+  --pulserpc-secondary: #6c757d;
+  --pulserpc-success: #28a745;
+  --pulserpc-border-radius: 0.5rem;
 }
 
 .container-fluid {
@@ -472,7 +472,7 @@ body {
 }
 
 .card {
-  border-radius: var(--barrister-border-radius);
+  border-radius: var(--pulserpc-border-radius);
   border: 1px solid #dee2e6;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   margin-bottom: 1rem;
@@ -482,7 +482,7 @@ body {
 .card-header {
   background-color: #fff;
   border-bottom: 1px solid #dee2e6;
-  border-radius: var(--barrister-border-radius) var(--barrister-border-radius) 0 0;
+  border-radius: var(--pulserpc-border-radius) var(--pulserpc-border-radius) 0 0;
   padding: 0.75rem 1rem;
   font-weight: 600;
 }
@@ -500,7 +500,7 @@ body {
 }
 
 .form-control:focus, .form-select:focus {
-  border-color: var(--barrister-primary);
+  border-color: var(--pulserpc-primary);
   box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
   outline: 0;
 }
@@ -526,8 +526,8 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--barrister-primary);
-  border-color: var(--barrister-primary);
+  background-color: var(--pulserpc-primary);
+  border-color: var(--pulserpc-primary);
   color: #fff;
 }
 
@@ -580,8 +580,8 @@ body {
 }
 
 .list-group-item.active {
-  background-color: var(--barrister-primary);
-  border-color: var(--barrister-primary);
+  background-color: var(--pulserpc-primary);
+  border-color: var(--pulserpc-primary);
   color: #fff;
 }
 
@@ -675,7 +675,7 @@ body {
 
 .sidebar {
   background-color: #fff;
-  border-radius: var(--barrister-border-radius);
+  border-radius: var(--pulserpc-border-radius);
   padding: 1rem;
   height: calc(100vh - 2rem);
   overflow-y: auto;
@@ -847,7 +847,7 @@ body {
 
 .json-viewer-container {
   background-color: #fff;
-  border-radius: var(--barrister-border-radius);
+  border-radius: var(--pulserpc-border-radius);
   padding: 1rem;
   max-height: 600px;
   overflow-y: auto;
@@ -876,7 +876,7 @@ body {
 }
 
 .nav-tabs .nav-link {
-  border-radius: var(--barrister-border-radius) var(--barrister-border-radius) 0 0;
+  border-radius: var(--pulserpc-border-radius) var(--pulserpc-border-radius) 0 0;
   border: none;
   color: #6c757d;
   padding: 0.5rem 1rem;
@@ -891,8 +891,8 @@ body {
 }
 
 .nav-tabs .nav-link.active {
-  color: var(--barrister-primary);
-  border-bottom: 2px solid var(--barrister-primary);
+  color: var(--pulserpc-primary);
+  border-bottom: 2px solid var(--pulserpc-primary);
   background-color: transparent;
 }
 

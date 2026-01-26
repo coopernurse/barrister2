@@ -22,7 +22,7 @@ describe('storage utilities', () => {
                 { url: 'http://old.com', lastUsed: '2023-01-01T00:00:00.000Z' },
                 { url: 'http://new.com', lastUsed: '2023-12-31T00:00:00.000Z' }
             ];
-            localStorage.setItem('barrister_endpoints', JSON.stringify(endpoints));
+            localStorage.setItem('pulserpc_endpoints', JSON.stringify(endpoints));
 
             const result = getEndpoints();
             expect(result.length).toBe(2);
@@ -31,7 +31,7 @@ describe('storage utilities', () => {
         });
 
         it('should handle corrupted localStorage data gracefully', () => {
-            localStorage.setItem('barrister_endpoints', 'invalid json');
+            localStorage.setItem('pulserpc_endpoints', 'invalid json');
             
             // Should not throw, should return empty array
             const endpoints = getEndpoints();

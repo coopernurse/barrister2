@@ -29,7 +29,7 @@ const runtimes = [
 const Playground = {
   oninit: (_vnode) => {
     // Load IDL from localStorage if available
-    const savedIDL = localStorage.getItem('barrister-idl')
+    const savedIDL = localStorage.getItem('pulserpc-idl')
     if (savedIDL) {
       state.idl = savedIDL
     } else {
@@ -59,7 +59,7 @@ interface UserService {
     }
 
     // Load runtime from localStorage if available
-    const savedRuntime = localStorage.getItem('barrister-runtime')
+    const savedRuntime = localStorage.getItem('pulserpc-runtime')
     if (savedRuntime) {
       state.runtime = savedRuntime
     }
@@ -81,7 +81,7 @@ interface UserService {
           idl: state.idl,
           onChange: (value) => {
             state.idl = value
-            localStorage.setItem('barrister-idl', value)
+            localStorage.setItem('pulserpc-idl', value)
           }
         }),
         m(FileTree, {
@@ -131,7 +131,7 @@ async function generateCode() {
     state.fileContent = null
 
     // Save runtime to localStorage
-    localStorage.setItem('barrister-runtime', state.runtime)
+    localStorage.setItem('pulserpc-runtime', state.runtime)
   } catch (error) {
     state.error = error.message
     state.sessionId = null

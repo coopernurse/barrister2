@@ -39,7 +39,7 @@ func (m *Manager) CreateZip(sessionID string) ([]byte, error) {
 	// Create a buffer to write the zip to
 	var buf []byte
 	// Use a temporary file to create the zip
-	tmpFile, err := os.CreateTemp("", "barrister-playground-*.zip")
+	tmpFile, err := os.CreateTemp("", "pulserpc-playground-*.zip")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
@@ -97,10 +97,10 @@ func (m *Manager) CreateZip(sessionID string) ([]byte, error) {
 
 // GetZipFilename returns the suggested filename for a session's ZIP archive
 func (s *Session) GetZipFilename() string {
-	// Format: barrister-<runtime>-<timestamp>.zip
+	// Format: pulserpc-<runtime>-<timestamp>.zip
 	timestamp := s.Created.Format("20060102-150405")
 	safeRuntime := strings.ReplaceAll(s.Runtime, "/", "-")
-	return fmt.Sprintf("barrister-%s-%s.zip", safeRuntime, timestamp)
+	return fmt.Sprintf("pulserpc-%s-%s.zip", safeRuntime, timestamp)
 }
 
 // Delete deletes a session and its files

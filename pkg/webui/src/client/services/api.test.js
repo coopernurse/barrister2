@@ -36,7 +36,7 @@ describe('API Service', () => {
                         'Content-Type': 'application/json',
                         'X-Target-Endpoint': 'http://example.com'
                     }),
-                    body: expect.stringContaining('barrister-idl')
+                    body: expect.stringContaining('pulserpc-idl')
                 })
             );
 

@@ -23,8 +23,8 @@ const AppState = {
     responseJson: null,
     loading: false,
     error: null,
-    sidebarWidth: parseInt(localStorage.getItem('barrister-sidebar-width')) || 300,
-    sidebarSplitterPosition: parseFloat(localStorage.getItem('barrister-sidebar-splitter-position')) || 0.4,
+    sidebarWidth: parseInt(localStorage.getItem('pulserpc-sidebar-width')) || 300,
+    sidebarSplitterPosition: parseFloat(localStorage.getItem('pulserpc-sidebar-splitter-position')) || 0.4,
     draggingHorizontal: false,
     draggingVertical: false
 };
@@ -44,7 +44,7 @@ const Splitter = {
         if (!AppState.draggingHorizontal) return;
         const newWidth = Math.max(200, Math.min(600, e.clientX));
         AppState.sidebarWidth = newWidth;
-        localStorage.setItem('barrister-sidebar-width', newWidth.toString());
+        localStorage.setItem('pulserpc-sidebar-width', newWidth.toString());
         m.redraw();
     },
     
@@ -74,7 +74,7 @@ const Splitter = {
         const sidebarHeight = sidebarRect.height;
         const newPosition = Math.max(0.2, Math.min(0.8, relativeY / sidebarHeight));
         AppState.sidebarSplitterPosition = newPosition;
-        localStorage.setItem('barrister-sidebar-splitter-position', newPosition.toString());
+        localStorage.setItem('pulserpc-sidebar-splitter-position', newPosition.toString());
         m.redraw();
     },
     

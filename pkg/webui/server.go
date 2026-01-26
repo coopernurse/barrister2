@@ -23,7 +23,7 @@ type Server struct {
 // NewServer creates a new web UI server
 func NewServer(port int) *Server {
 	// Create playground manager with temp directory
-	tempDir := filepath.Join(os.TempDir(), "barrister-playground")
+	tempDir := filepath.Join(os.TempDir(), "pulserpc-playground")
 	plugins := []generator.Plugin{
 		generator.NewGoClientServer(),
 		generator.NewJavaClientServer(),
@@ -61,7 +61,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/playground/zip/", s.handlePlaygroundZip)
 
 	addr := fmt.Sprintf(":%d", s.port)
-	log.Printf("Barrister Web UI server starting on http://localhost%s", addr)
+	log.Printf("PulseRPC Web UI server starting on http://localhost%s", addr)
 	log.Printf("Open http://localhost%s in your browser", addr)
 
 	return http.ListenAndServe(addr, mux)
@@ -166,15 +166,15 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	// Copy relevant headers
 	proxyReq.Header.Set("Content-Type", "application/json")
 	for key, values := range r.Header {
-		if strings.HasPrefix(strings.ToLower(key), "x-") && key != "X-Target-Endpoint" && key != "X-Barrister-Headers" {
+		if strings.HasPrefix(strings.ToLower(key), "x-") && key != "X-Target-Endpoint" && key != "X-PulseRPC-Headers" {
 			for _, value := range values {
 				proxyReq.Header.Add(key, value)
 			}
 		}
 	}
 
-	// Add custom headers from X-Barrister-Headers
-	if hJson := r.Header.Get("X-Barrister-Headers"); hJson != "" {
+	// Add custom headers from X-PulseRPC-Headers
+	if hJson := r.Header.Get("X-PulseRPC-Headers"); hJson != "" {
 		var customHeaders map[string]string
 		if err := json.Unmarshal([]byte(hJson), &customHeaders); err == nil {
 			for k, v := range customHeaders {
