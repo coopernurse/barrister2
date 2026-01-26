@@ -1,19 +1,19 @@
-# Barrister TypeScript Runtime
+# PulseRPC TypeScript Runtime
 
-This directory contains the TypeScript runtime library for Barrister-generated code.
+This directory contains the TypeScript runtime library for PulseRPC-generated code.
 
 ## Overview
 
 The TypeScript runtime provides:
-- Type validation functions for all Barrister types
+- Type validation functions for all PulseRPC types
 - RPC error handling (`RPCError` class)
 - Type helper functions for working with structs and enums
 
 ## Type Mappings
 
-Barrister IDL types map to TypeScript as follows:
+PulseRPC IDL types map to TypeScript as follows:
 
-| Barrister Type | TypeScript Type |
+| PulseRPC Type | TypeScript Type |
 |----------------|-----------------|
 | `string`       | `string`        |
 | `int`          | `number`        |
@@ -38,7 +38,7 @@ class RPCError extends Error {
   code: number;
   message: string;
   data?: any;
-  
+
   constructor(code: number, message: string, data?: any);
 }
 ```
@@ -66,14 +66,14 @@ class RPCError extends Error {
 The runtime library is automatically included when you generate TypeScript code from an IDL using the `ts-client-server` plugin:
 
 ```bash
-barrister -plugin ts-client-server -dir output examples/book.idl
+pulserpc -plugin ts-client-server -dir output examples/book.idl
 ```
 
 This generates:
 - `idl.ts` - IDL-specific type definitions
 - `server.ts` - HTTP server with interface stubs
 - `client.ts` - Client classes with transport abstraction
-- `barrister2/` - Runtime library (copied from this directory)
+- `pulserpc/` - Runtime library (copied from this directory)
 
 ## Testing
 

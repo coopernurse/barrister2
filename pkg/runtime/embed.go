@@ -19,7 +19,7 @@ var pythonRuntimeFiles embed.FS
 
 // Embed all TypeScript runtime files
 //
-//go:embed all:runtimes/ts/barrister2
+//go:embed all:runtimes/ts/pulserpc
 var tsRuntimeFiles embed.FS
 
 // Embed all C# runtime files
@@ -149,9 +149,9 @@ func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string
 // TODO: This will be updated to pulserpc for all languages once runtime directories are renamed
 func getRuntimePackageName(lang string) string {
 	switch lang {
-	case "go", "python":
+	case "go", "python", "ts":
 		return "pulserpc"
 	default:
-		return "barrister2" // Will be updated in phases 2-5
+		return "barrister2" // Will be updated in phases 4-5
 	}
 }

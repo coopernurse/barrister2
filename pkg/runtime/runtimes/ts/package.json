@@ -1,7 +1,7 @@
 {
-  "name": "barrister2-ts-runtime",
+  "name": "pulserpc-ts-runtime",
   "version": "1.0.0",
-  "description": "TypeScript runtime for Barrister2",
+  "description": "TypeScript runtime for PulseRPC",
   "type": "commonjs",
   "devDependencies": {
     "@types/node": "^18.0.0",
