@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coopernurse/barrister2/pkg/generator"
+	"github.com/coopernurse/pulserpc/pkg/generator"
 )
 
 // TestSessionPersistence tests that sessions persist across Manager instances

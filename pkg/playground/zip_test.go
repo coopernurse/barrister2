@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/coopernurse/barrister2/pkg/generator"
-	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/generator"
+	"github.com/coopernurse/pulserpc/pkg/parser"
 )
 
 func TestCreateZip(t *testing.T) {

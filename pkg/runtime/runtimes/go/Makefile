@@ -19,7 +19,7 @@ test-docker:
 	@echo "Testing Go runtime in Docker..."
 	@docker run --rm -v $(PWD):/workspace -w /workspace \
 		$(GO_IMAGE) \
-		sh -c "echo 'module barrister2-go-runtime' > go.mod && echo 'go 1.21.13' >> go.mod && echo 'replace barrister2-go-runtime/barrister2 => ./barrister2' >> go.mod && cd tests && go test -v; TEST_RESULT=\$$?; cd .. && rm -f go.mod; exit \$$TEST_RESULT"
+		sh -c "echo 'module pulserpc-go-runtime' > go.mod && echo 'go 1.21.13' >> go.mod && echo 'replace pulserpc-go-runtime/pulserpc => ./pulserpc' >> go.mod && cd tests && go test -v; TEST_RESULT=\$$?; cd .. && rm -f go.mod; exit \$$TEST_RESULT"
 
 # Test generator integration (requires Docker)
 test-integration:

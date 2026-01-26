@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/coopernurse/barrister2/pkg/parser"
-	"github.com/coopernurse/barrister2/pkg/runtime"
+	"github.com/coopernurse/pulserpc/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/runtime"
 )
 
 // GoClientServer is a plugin that generates Go HTTP server and client code from IDL
@@ -171,7 +171,7 @@ func (p *GoClientServer) copyRuntimeFiles(outputDir string, packageName string) 
 	for filename, data := range files {
 		content := string(data)
 		// Update package name in runtime files
-		content = strings.Replace(content, "package barrister2", "package "+packageName, 1)
+		content = strings.Replace(content, "package pulserpc", "package "+packageName, 1)
 
 		dstPath := filepath.Join(outputDir, filename)
 		if err := os.WriteFile(dstPath, []byte(content), 0644); err != nil {

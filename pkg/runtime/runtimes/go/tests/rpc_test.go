@@ -3,11 +3,11 @@ package main
 import (
 	"testing"
 
-	"barrister2-go-runtime/barrister2"
+	"pulserpc-go-runtime/pulserpc"
 )
 
 func TestRPCError(t *testing.T) {
-	err := &barrister2.RPCError{
+	err := &pulserpc.RPCError{
 		Code:    -32603,
 		Message: "Internal error",
 		Data:    nil,
@@ -26,7 +26,7 @@ func TestRPCError(t *testing.T) {
 	}
 
 	// Test with data
-	errWithData := &barrister2.RPCError{
+	errWithData := &pulserpc.RPCError{
 		Code:    -32602,
 		Message: "Invalid params",
 		Data:    "test data",

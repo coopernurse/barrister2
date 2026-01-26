@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coopernurse/barrister2/pkg/generator"
-	"github.com/coopernurse/barrister2/pkg/playground"
+	"github.com/coopernurse/pulserpc/pkg/generator"
+	"github.com/coopernurse/pulserpc/pkg/playground"
 )
 
 // Server represents the web UI HTTP server

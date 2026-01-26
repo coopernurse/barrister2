@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coopernurse/barrister2/pkg/generator"
-	"github.com/coopernurse/barrister2/pkg/playground"
+	"github.com/coopernurse/pulserpc/pkg/generator"
+	"github.com/coopernurse/pulserpc/pkg/playground"
 )
 
 func TestHandlePlaygroundGenerate(t *testing.T) {

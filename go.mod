@@ -1,4 +1,4 @@
-module github.com/coopernurse/barrister2
+module github.com/coopernurse/pulserpc
 
 go 1.25.4
 

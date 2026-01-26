@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coopernurse/barrister2/pkg/generator"
-	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/generator"
+	"github.com/coopernurse/pulserpc/pkg/parser"
 )
 
 // mockPlugin is a mock generator plugin for testing

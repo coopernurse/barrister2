@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/coopernurse/barrister2/pkg/parser"
-	"github.com/coopernurse/barrister2/pkg/runtime"
+	"github.com/coopernurse/pulserpc/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/runtime"
 )
 
 // PythonClientServer is a plugin that generates Python HTTP server and client code from IDL

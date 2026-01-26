@@ -3,7 +3,7 @@ package generator
 import (
 	"strings"
 
-	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/parser"
 )
 
 // NamespaceTypes groups all types (structs, enums, interfaces) for a single namespace

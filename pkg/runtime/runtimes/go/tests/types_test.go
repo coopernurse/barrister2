@@ -3,12 +3,12 @@ package main
 import (
 	"testing"
 
-	"barrister2-go-runtime/barrister2"
+	"pulserpc-go-runtime/pulserpc"
 )
 
 func TestFindStruct(t *testing.T) {
-	allStructs := barrister2.StructMap{
-		"TestStruct": barrister2.StructDef{
+	allStructs := pulserpc.StructMap{
+		"TestStruct": pulserpc.StructDef{
 			"fields": []interface{}{
 				map[string]interface{}{
 					"name": "field1",
@@ -18,20 +18,20 @@ func TestFindStruct(t *testing.T) {
 		},
 	}
 
-	structDef := barrister2.FindStruct("TestStruct", allStructs)
+	structDef := pulserpc.FindStruct("TestStruct", allStructs)
 	if structDef == nil {
 		t.Error("Expected to find TestStruct")
 	}
 
-	notFound := barrister2.FindStruct("NotFound", allStructs)
+	notFound := pulserpc.FindStruct("NotFound", allStructs)
 	if notFound != nil {
 		t.Error("Expected NotFound to return nil")
 	}
 }
 
 func TestFindEnum(t *testing.T) {
-	allEnums := barrister2.EnumMap{
-		"TestEnum": barrister2.EnumDef{
+	allEnums := pulserpc.EnumMap{
+		"TestEnum": pulserpc.EnumDef{
 			"values": []interface{}{
 				map[string]interface{}{"name": "VALUE1"},
 				map[string]interface{}{"name": "VALUE2"},
@@ -39,26 +39,26 @@ func TestFindEnum(t *testing.T) {
 		},
 	}
 
-	enumDef := barrister2.FindEnum("TestEnum", allEnums)
+	enumDef := pulserpc.FindEnum("TestEnum", allEnums)
 	if enumDef == nil {
 		t.Error("Expected to find TestEnum")
 	}
 
 	// Test qualified name
-	enumDef2 := barrister2.FindEnum("ns.TestEnum", allEnums)
+	enumDef2 := pulserpc.FindEnum("ns.TestEnum", allEnums)
 	if enumDef2 == nil {
 		t.Error("Expected to find TestEnum via qualified name")
 	}
 
-	notFound := barrister2.FindEnum("NotFound", allEnums)
+	notFound := pulserpc.FindEnum("NotFound", allEnums)
 	if notFound != nil {
 		t.Error("Expected NotFound to return nil")
 	}
 }
 
 func TestGetStructFields(t *testing.T) {
-	allStructs := barrister2.StructMap{
-		"Parent": barrister2.StructDef{
+	allStructs := pulserpc.StructMap{
+		"Parent": pulserpc.StructDef{
 			"fields": []interface{}{
 				map[string]interface{}{
 					"name": "parentField",
@@ -66,7 +66,7 @@ func TestGetStructFields(t *testing.T) {
 				},
 			},
 		},
-		"Child": barrister2.StructDef{
+		"Child": pulserpc.StructDef{
 			"extends": "Parent",
 			"fields": []interface{}{
 				map[string]interface{}{
@@ -77,7 +77,7 @@ func TestGetStructFields(t *testing.T) {
 		},
 	}
 
-	fields := barrister2.GetStructFields("Child", allStructs)
+	fields := pulserpc.GetStructFields("Child", allStructs)
 	if len(fields) != 2 {
 		t.Errorf("Expected 2 fields (parent + child), got %d", len(fields))
 	}

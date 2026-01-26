@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/coopernurse/barrister2/pkg/parser"
-	"github.com/coopernurse/barrister2/pkg/runtime"
+	"github.com/coopernurse/pulserpc/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/runtime"
 )
 
 // JavaClientServer is a plugin that generates Java HTTP server and client code from IDL

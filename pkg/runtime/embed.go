@@ -34,7 +34,7 @@ var javaRuntimeFiles embed.FS
 
 // Embed all Go runtime files
 //
-//go:embed all:runtimes/go/barrister2
+//go:embed all:runtimes/go/pulserpc
 var goRuntimeFiles embed.FS
 
 // runtimeMap maps language names to their embedded file systems
@@ -65,8 +65,8 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 	files := make(map[string][]byte)
 
 	// The embed path includes the directory structure, so we need to walk it
-	// For Python, files are at: runtimes/python/barrister2/*.py
-	basePath := fmt.Sprintf("runtimes/%s/barrister2", lang)
+	// For Python, files are at: runtimes/python/pulserpc/*.py
+	basePath := fmt.Sprintf("runtimes/%s/pulserpc", lang)
 
 	entries, err := fs.ReadDir(basePath)
 	if err != nil {
@@ -146,11 +146,12 @@ func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string
 
 // getRuntimePackageName returns the package/module name for the runtime library
 // This is the directory name where runtime files are placed in the output
+// TODO: This will be updated to pulserpc for all languages once runtime directories are renamed
 func getRuntimePackageName(lang string) string {
 	switch lang {
-	case "java":
-		return "com/bitmechanic/barrister2"
+	case "go":
+		return "pulserpc"
 	default:
-		return "barrister2"
+		return "barrister2" // Will be updated in phases 2-5
 	}
 }

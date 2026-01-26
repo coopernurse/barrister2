@@ -1,4 +1,4 @@
-package barrister2
+package pulserpc
 
 // StructDef represents a struct definition
 type StructDef map[string]interface{}

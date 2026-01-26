@@ -1,10 +1,10 @@
 .PHONY: build build-linux test cover lint quality clean install-tools test-runtime-python test-runtime-ts test-runtime-csharp test-runtime-java test-runtimes test-generator-python test-generator-ts test-generator-csharp test-generator-java test-generators build-webui lint-webui test-webui start-test-servers stop-test-servers status-test-servers docs-build docs-serve docs-clean
 
 # Variables
-BINARY_NAME=barrister
+BINARY_NAME=pulserpc
 TARGET_DIR=target
 BINARY_PATH=$(TARGET_DIR)/$(BINARY_NAME)
-BINARY_PATH_LINUX=$(TARGET_DIR)/barrister-amd64
+BINARY_PATH_LINUX=$(TARGET_DIR)/pulserpc-amd64
 COVERAGE_FILE=$(TARGET_DIR)/coverage.out
 COVERAGE_HTML=$(TARGET_DIR)/coverage.html
 
@@ -18,11 +18,11 @@ build-webui:
 
 # Build the binary
 build: build-webui
-	go build -o $(BINARY_PATH) cmd/barrister/barrister.go
+	go build -o $(BINARY_PATH) cmd/pulse/pulse.go
 	@echo "Built successfully at $(BINARY_PATH)"
 	@echo "Building Linux binary for Docker containers..."
 	@mkdir -p $(TARGET_DIR)
-	GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/barrister/barrister.go
+	GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/pulse/pulse.go
 	@echo "Built Linux binary successfully at $(BINARY_PATH_LINUX)"
 
 # Build Linux binary for Docker containers (cross-compile) - only if it doesn't exist
@@ -33,7 +33,7 @@ build-linux:
 		$(MAKE) build-webui; \
 		echo "Building Linux binary for Docker containers..."; \
 		mkdir -p $(TARGET_DIR); \
-		GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/barrister/barrister.go; \
+		GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH_LINUX) cmd/pulse/pulse.go; \
 		echo "Built Linux binary successfully at $(BINARY_PATH_LINUX)"; \
 	fi
 

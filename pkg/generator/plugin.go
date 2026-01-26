@@ -3,7 +3,7 @@ package generator
 import (
 	"flag"
 
-	"github.com/coopernurse/barrister2/pkg/parser"
+	"github.com/coopernurse/pulserpc/pkg/parser"
 )
 
 // Plugin defines the interface that all code generation plugins must implement
