@@ -68,7 +68,7 @@ if product.get("imageUrl"):
 Throw `RPCError` with custom codes:
 
 ```python
-from barrister2 import RPCError
+from pulserpc import RPCError
 
 # Standard JSON-RPC errors
 throw RPCError(-32602, "Invalid params")
@@ -91,7 +91,7 @@ Common error codes:
 Extend generated service classes:
 
 ```python
-from server import BarristerServer, CatalogService
+from server import PulseRPCServer, CatalogService
 
 class CatalogServiceImpl(CatalogService):
     def listProducts(self):
@@ -109,7 +109,7 @@ class CatalogServiceImpl(CatalogService):
         return None
 
 # Start server
-server = BarristerServer(host="0.0.0.0", port=8080)
+server = PulseRPCServer(host="0.0.0.0", port=8080)
 server.register("CatalogService", CatalogServiceImpl())
 server.serve_forever()
 ```
@@ -135,7 +135,7 @@ if product:
 
 ## Validation
 
-Barrister automatically validates:
+PulseRPC automatically validates:
 - Required fields are present
 - Types match IDL definition
 - Enum values are valid

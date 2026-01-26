@@ -89,17 +89,17 @@ if (order.Status == OrderStatus.Pending) {
 
 ## Error Handling
 
-Throw `RPCException` with custom codes:
+Throw `RPCError` with custom codes:
 
 ```csharp
-using Barrister2;
+using PulseRPC;
 
 // Standard JSON-RPC errors
-throw new RPCException(-32602, "Invalid params");
+throw new RPCError(-32602, "Invalid params");
 
 // Custom application errors (use codes >= 1000)
-throw new RPCException(1001, "CartNotFound: Cart does not exist");
-throw new RPCException(1002, "CartEmpty: Cannot create order from empty cart");
+throw new RPCError(1001, "CartNotFound: Cart does not exist");
+throw new RPCError(1002, "CartEmpty: Cannot create order from empty cart");
 ```
 
 Common error codes:
@@ -115,7 +115,7 @@ Common error codes:
 Implement generated interfaces:
 
 ```csharp
-using Barrister2;
+using PulseRPC;
 using Checkout;
 
 class CatalogServiceImpl : ICatalogService {
@@ -136,7 +136,7 @@ class CatalogServiceImpl : ICatalogService {
 // Start server
 class Program {
     static async Task Main(string[] args) {
-        var server = new BarristerServer();
+        var server = new PulseRPCServer();
         server.RegisterCatalogService(new CatalogServiceImpl());
         await server.RunAsync("localhost", 8080);
     }
@@ -146,7 +146,7 @@ class Program {
 ## Client Usage
 
 ```csharp
-using Barrister2;
+using PulseRPC;
 using Checkout;
 
 var transport = new HttpTransport("http://localhost:8080");
@@ -189,7 +189,7 @@ class OrderServiceImpl : IOrderService {
 
 ## Validation
 
-Barrister automatically validates:
+PulseRPC automatically validates:
 - Required fields are present
 - Types match IDL definition
 - Enum values are valid

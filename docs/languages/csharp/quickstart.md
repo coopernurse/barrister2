@@ -5,12 +5,12 @@ layout: default
 
 # C# Quickstart
 
-Build a complete Barrister2 RPC service in C# with our e-commerce checkout example.
+Build a complete PulseRPC service in C# with our e-commerce checkout example.
 
 ## Prerequisites
 
 - .NET 8.0 or later
-- Barrister CLI installed ([Installation Guide](../../get-started/installation))
+- PulseRPC CLI installed ([Installation Guide](../../get-started/installation))
 
 ## 1. Define the Service (2 min)
 
@@ -138,21 +138,21 @@ interface OrderService {
 Generate the C# code from your IDL:
 
 ```bash
-barrister -plugin csharp-client-server checkout.idl
+pulserpc -plugin csharp-client-server checkout.idl
 ```
 
 This creates:
 - `Checkout.cs` - Type definitions (in `checkout` namespace)
-- `Server.cs` - RPC server framework (in `Barrister2` namespace)
-- `Client.cs` - RPC client framework (in `Barrister2` namespace)
+- `Server.cs` - RPC server framework (in `PulseRPC` namespace)
+- `Client.cs` - RPC client framework (in `PulseRPC` namespace)
 - `Contract.cs` - Shared interfaces and IDL metadata
-- `barrister2/` - Runtime library
+- `PulseRPC/` - Runtime library
 
 **Pro tip:** Organize your generated code into a `Shared/` directory to keep things tidy:
 
 ```bash
 mkdir Shared TestServer TestClient
-mv Checkout.cs Client.cs Contract.cs Server.cs barrister2/ Shared/
+mv Checkout.cs Client.cs Contract.cs Server.cs PulseRPC/ Shared/
 ```
 
 ## 3. Implement the Server (10-15 min)
@@ -189,7 +189,7 @@ Create `TestServer/MyServer.cs` that implements your service handlers:
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Barrister2;
+using PulseRPC;
 using checkout;
 
 public class CatalogServiceImpl : ICatalogService
@@ -354,7 +354,7 @@ Create `TestClient/MyClient.cs` to call your service:
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Barrister2;
+using PulseRPC;
 using checkout;
 
 class Program

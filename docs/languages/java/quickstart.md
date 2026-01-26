@@ -5,13 +5,13 @@ layout: default
 
 # Java Quickstart
 
-Build a complete Barrister2 RPC service in Java with our e-commerce checkout example.
+Build a complete PulseRPC service in Java with our e-commerce checkout example.
 
 ## Prerequisites
 
 - Java 11 or later
 - Maven 3.6 or later
-- Barrister CLI installed ([Installation Guide](../../get-started/installation))
+- PulseRPC CLI installed ([Installation Guide](../../get-started/installation))
 
 ## 1. Define the Service (2 min)
 
@@ -139,13 +139,13 @@ interface OrderService {
 Generate the Java code from your IDL:
 
 ```bash
-barrister -plugin java-client-server -base-package com.example.myapp checkout.idl
+pulserpc -plugin java-client-server -base-package com.example.myapp checkout.idl
 ```
 
 This creates:
 - `src/main/java/com/example/myapp/` - Type definitions and Server/Client frameworks
 - `src/main/resources/idl.json` - IDL metadata
-- `src/main/java/com/bitmechanic/barrister2/` - Runtime library
+- `src/main/java/com/bitmechanic/pulserpc/` - Runtime library
 - `pom.xml` - Maven configuration
 
 ## 3. Implement the Server (10-15 min)
@@ -156,7 +156,7 @@ Create `src/main/java/com/example/myapp/MyServer.java` that implements your serv
 package com.example.myapp;
 
 import com.example.myapp.checkout.*;
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 import java.util.*;
 
 public class MyServer {
@@ -300,7 +300,7 @@ Create `src/main/java/com/example/myapp/MyClient.java` to call your service:
 package com.example.myapp;
 
 import com.example.myapp.checkout.*;
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 import java.util.*;
 
 public class MyClient {

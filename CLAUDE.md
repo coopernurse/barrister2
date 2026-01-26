@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Barrister2** is a JSON-RPC 2.0 Remote Procedure Call (RPC) system with IDL (Interface Definition Language)-based type definitions, validation, and multi-language code generation.
+**PulseRPC** is a JSON-RPC 2.0 Remote Procedure Call (RPC) system with IDL (Interface Definition Language)-based type definitions, validation, and multi-language code generation.
 
 **Core Architecture:**
 ```
@@ -17,7 +17,7 @@ IDL File → Go Parser → Plugin System → Generated Code (client.*, server.*,
 
 ```bash
 # Build
-make build                    # Build binary + webui → target/barrister
+make build                    # Build binary + webui → target/pulserpc
 make build-linux              # Cross-compile for Docker (AMD64)
 
 # Testing
@@ -49,7 +49,7 @@ npm run lint                  # ESLint
 
 **Start Web UI:**
 ```bash
-./target/barrister -ui -ui-port 8080
+./target/pulserpc -ui -ui-port 8080
 # Open http://localhost:8080
 ```
 
@@ -63,12 +63,12 @@ npm run lint                  # ESLint
 
 ### Plugin System (`pkg/generator/`)
 - Each language has a plugin implementing `Plugin` interface ([plugin.go](pkg/generator/plugin.go))
-- Plugins register via `generator.Register()` in [cmd/barrister/barrister.go](cmd/barrister/barrister.go)
+- Plugins register via `generator.Register()` in [cmd/pulse/pulse.go](cmd/pulse/pulse.go)
 - Generates 3 files + copies embedded runtime:
   - `idl.{ext}` - Type definitions
   - `server.{ext}` - HTTP server with interface stubs
   - `client.{ext}` - Client with transport abstraction
-  - Runtime from `pkg/runtime/runtimes/{lang}/barrister2/`
+  - Runtime from `pkg/runtime/runtimes/{lang}/pulserpc/`
 
 ### Runtime Libraries (`pkg/runtime/runtimes/`)
 - Embedded at compile time via Go `embed` directive ([pkg/runtime/embed.go](pkg/runtime/embed.go))
@@ -90,7 +90,7 @@ npm run lint                  # ESLint
 ## Critical Conventions
 
 1. **Makefile delegation:** Root Makefile delegates to runtime-specific Makefiles via `cd pkg/runtime/runtimes/{lang} && $(MAKE)`
-2. **CLI structure:** `barrister [flags] <idl-file>` or `barrister -ui` for web mode
+2. **CLI structure:** `pulserpc [flags] <idl-file>` or `pulserpc -ui` for web mode
 3. **Optional fields:** Marked with `[optional]` in IDL; validated to allow null
 4. **Struct inheritance:** `extends` keyword requires validating parent type exists and is a struct
 5. **Integration tests need Docker** - use language-specific images
@@ -99,7 +99,7 @@ npm run lint                  # ESLint
 
 - **Namespace declarations required** - validator enforces this for non-empty IDL files
 - **Embed directives are finicky** - paths in `//go:embed` must be relative to the .go file
-- **Generated code imports runtime** - ensure relative paths match (e.g., `from barrister2 import ...`)
+- **Generated code imports runtime** - ensure relative paths match (e.g., `from pulserpc import ...`)
 - **Web UI requires build** - changes to `webui/src/` need `cd webui && make build` before `make build`
 
 ## Integration Test Flow
@@ -111,10 +111,10 @@ npm run lint                  # ESLint
 
 ## Adding New Language Support
 
-1. Create runtime library in `pkg/runtime/runtimes/{lang}/barrister2/`
+1. Create runtime library in `pkg/runtime/runtimes/{lang}/pulserpc/`
 2. Add embed directive in `pkg/runtime/embed.go`
 3. Implement plugin in `pkg/generator/{lang}_client_server.go`
-4. Register plugin in `cmd/barrister/barrister.go`
+4. Register plugin in `cmd/pulse/pulse.go`
 5. Add integration tests in `tests/integration/test_generator_{lang}.sh`
 6. Add to `RUNTIMES` array in `scripts/test-servers.sh`
 

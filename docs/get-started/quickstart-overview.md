@@ -7,7 +7,7 @@ layout: default
 
 # Quickstart Overview
 
-In this quickstart, you'll build a working **e-commerce checkout API** using Barrister.
+In this quickstart, you'll build a working **e-commerce checkout API** using PulseRPC.
 
 ## What You'll Build
 
@@ -18,7 +18,7 @@ A complete RPC service with:
 
 ## What You'll Learn
 
-1. **IDL syntax** - Define your service interface with the Barrister IDL
+1. **IDL syntax** - Define your service interface with the PulseRPC IDL
 2. **Code generation** - Generate type-safe client and server code
 3. **Server implementation** - Implement service handlers with error handling
 4. **Client usage** - Call RPC methods from a client application

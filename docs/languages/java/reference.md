@@ -97,7 +97,7 @@ if (order.getStatus() == OrderStatus.PENDING) {
 Throw `RPCError` with custom codes:
 
 ```java
-import com.bitmechanic.barrister2.RPCError;
+import com.bitmechanic.pulserpc.RPCError;
 
 // Standard JSON-RPC errors
 throw new RPCError(-32602, "Invalid params");
@@ -121,7 +121,7 @@ Implement generated interfaces:
 
 ```java
 import checkout.*;
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 
 class CatalogServiceImpl implements CatalogService {
     private List<Product> products = Arrays.asList(
@@ -153,7 +153,7 @@ public static void main(String[] args) throws Exception {
 
 ```java
 import checkout.*;
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 
 JsonParser jsonParser = new JacksonJsonParser();
 Transport transport = new HTTPTransport("http://localhost:8080", jsonParser);
@@ -170,7 +170,7 @@ for (Product p : products) {
 
 ```java
 import checkout.*;
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 
 Transport transport = new HTTPTransport("http://localhost:8080");
 CatalogServiceClient catalog = new CatalogServiceClient(transport);
@@ -190,7 +190,7 @@ result.ifPresent(product -> {
 
 ## JSON Library Support
 
-Barrister supports both Jackson and Gson. Configure in `pom.xml`:
+PulseRPC supports both Jackson and Gson. Configure in `pom.xml`:
 
 ```xml
 <!-- Jackson (default) -->
@@ -210,7 +210,7 @@ Barrister supports both Jackson and Gson. Configure in `pom.xml`:
 
 ## Validation
 
-Barrister automatically validates:
+PulseRPC automatically validates:
 - Required fields are present
 - Types match IDL definition
 - Enum values are valid

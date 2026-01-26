@@ -5,9 +5,9 @@ nav_order: 1
 layout: default
 ---
 
-# Barrister IDL Syntax
+# PulseRPC IDL Syntax
 
-The Barrister Interface Definition Language (IDL) lets you define your service contract in a language-agnostic way.
+The PulseRPC Interface Definition Language (IDL) lets you define your service contract in a language-agnostic way.
 
 ## Namespaces
 

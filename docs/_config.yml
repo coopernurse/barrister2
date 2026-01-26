@@ -1,7 +1,7 @@
-title: Barrister2 RPC
+title: PulseRPC
 description: IDL-based JSON-RPC code generation
 lang: en
-baseurl: /barrister2
+baseurl: /pulserpc
 
 # Performance optimizations
 # dns_prefetch: Pre-resolve DNS for external origins
@@ -34,12 +34,12 @@ search:
   rel_url: true
   button: true
 aux_links:
-  "GitHub Repository": "https://github.com/coopernurse/barrister2"
+  "GitHub Repository": "https://github.com/coopernurse/pulserpc"
 
-github_repo: "https://github.com/coopernurse/barrister2"
+github_repo: "https://github.com/coopernurse/pulserpc"
 
 # Footer content
-footer_content: "Copyright &copy; 2026 Barrister2. Distributed by <a href=\"https://github.com/coopernurse/barrister2/blob/main/LICENSE\">MIT license</a>."
+footer_content: "Copyright &copy; 2026 PulseRPC. Distributed by <a href=\"https://github.com/coopernurse/pulserpc/blob/main/LICENSE\">MIT license</a>."
 
 markdown: kramdown
 highlighter: rouge

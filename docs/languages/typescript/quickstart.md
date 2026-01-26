@@ -5,13 +5,13 @@ layout: default
 
 # TypeScript Quickstart
 
-Build a complete Barrister2 RPC service in TypeScript with our e-commerce checkout example.
+Build a complete PulseRPC service in TypeScript with our e-commerce checkout example.
 
 ## Prerequisites
 
 - Node.js 18 or later
 - TypeScript 5.0 or later
-- Barrister CLI installed ([Installation Guide](../../get-started/installation))
+- PulseRPC CLI installed ([Installation Guide](../../get-started/installation))
 
 ## 1. Define the Service (2 min)
 
@@ -139,14 +139,14 @@ interface OrderService {
 Generate the TypeScript code from your IDL:
 
 ```bash
-barrister -plugin ts-client-server checkout.idl
+pulserpc -plugin ts-client-server checkout.idl
 ```
 
 This creates:
 - `checkout.ts` - Type definitions
-- `server.ts` - Barrister server framework
+- `server.ts` - PulseRPC server framework
 - `client.ts` - HTTP client framework
-- `barrister2/` - Runtime library
+- `pulserpc/` - Runtime library
 - `idl.json` - IDL metadata
 
 ## 3. Implement the Server (10-15 min)
@@ -154,8 +154,8 @@ This creates:
 Create `my_server.ts` that implements your service handlers:
 
 ```typescript
-import { BarristerServer, CatalogService, CartService, OrderService } from './server';
-import { RPCError } from './barrister2/rpc';
+import { PulseRPCServer, CatalogService, CartService, OrderService } from './server';
+import { RPCError } from './pulserpc/rpc';
 
 const products = [
   {
@@ -264,7 +264,7 @@ class OrderServiceImpl extends OrderService {
   }
 }
 
-const server = new BarristerServer('0.0.0.0', 8080);
+const server = new PulseRPCServer('0.0.0.0', 8080);
 server.register('CatalogService', new CatalogServiceImpl());
 server.register('CartService', new CartServiceImpl());
 server.register('OrderService', new OrderServiceImpl());
@@ -283,7 +283,7 @@ Create a `package.json` file in the same directory:
     "start": "node dist/my_server.js"
   },
   "dependencies": {
-    "barrister2-ts-runtime": "file:./barrister2"
+    "pulserpc-ts-runtime": "file:./pulserpc"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

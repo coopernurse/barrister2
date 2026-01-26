@@ -1,6 +1,6 @@
 # Theming Guide
 
-This guide explains how to customize the appearance and behavior of the Barrister2 documentation site.
+This guide explains how to customize the appearance and behavior of the PulseRPC documentation site.
 
 ## Overview
 
@@ -435,7 +435,7 @@ After making changes:
    ```
 
 3. **View in browser:**
-   Open http://localhost:4000/barrister2/
+   Open http://localhost:4000/pulserpc/
 
 4. **Test on multiple devices:** Use browser DevTools to test responsive breakpoints
 

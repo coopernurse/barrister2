@@ -5,7 +5,7 @@ layout: default
 
 # IDL Types & Fields
 
-Barrister supports a rich type system for defining your service contracts.
+PulseRPC supports a rich type system for defining your service contracts.
 
 ## Built-in Types
 
@@ -129,7 +129,7 @@ struct User {
 
 ## Type Validation
 
-Barrister runtimes automatically validate:
+PulseRPC runtimes automatically validate:
 - **Required fields** are present
 - **Types match** (string, int, float, bool)
 - **Arrays** contain correct element types

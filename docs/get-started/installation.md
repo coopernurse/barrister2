@@ -5,21 +5,21 @@ nav_order: 1
 layout: default
 ---
 
-# Installing Barrister
+# Installing PulseRPC
 
-Barrister can be installed in several ways depending on your workflow.
+PulseRPC can be installed in several ways depending on your workflow.
 
 ## Installation Methods
 
 ### Method 1: Download Pre-built Binary
 
-Download the latest release from the [GitHub Releases page](https://github.com/coopernurse/barrister2/releases).
+Download the latest release from the [GitHub Releases page](https://github.com/coopernurse/pulserpc/releases).
 
 ```bash
 # Example for Linux AMD64
-wget https://github.com/coopernurse/barrister2/releases/latest/download/barrister-linux-amd64 -O barrister
-chmod +x barrister
-mv barrister /usr/local/bin/
+wget https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-linux-amd64 -O pulserpc
+chmod +x pulserpc
+mv pulserpc /usr/local/bin/
 ```
 
 ### Method 2: Docker
@@ -27,13 +27,13 @@ mv barrister /usr/local/bin/
 Pull the latest Docker image:
 
 ```bash
-docker pull ghcr.io/coopernurse/barrister2:latest
+docker pull ghcr.io/coopernurse/pulserpc:latest
 ```
 
-Run Barrister via Docker:
+Run PulseRPC via Docker:
 
 ```bash
-docker run --rm -v $(pwd):/work ghcr.io/coopernurse/barrister2:latest barrister --help
+docker run --rm -v $(pwd):/work ghcr.io/coopernurse/pulserpc:latest pulserpc --help
 ```
 
 ### Method 3: Build from Source
@@ -41,28 +41,28 @@ docker run --rm -v $(pwd):/work ghcr.io/coopernurse/barrister2:latest barrister 
 Clone and build:
 
 ```bash
-git clone https://github.com/coopernurse/barrister2.git
-cd barrister2
+git clone https://github.com/coopernurse/pulserpc.git
+cd pulserpc
 make build
 ```
 
-The binary will be created at `./target/barrister`.
+The binary will be created at `./target/pulserpc`.
 
 ## Verify Installation
 
 ```bash
-barrister -h
+pulserpc -h
 ```
 
 You should see usage output that documents the supported command line flags.
 
 ## Troubleshooting
 
-> **Need Help?** If you encounter issues not covered here, please [open an issue on GitHub](https://github.com/coopernurse/barrister2/issues).
+> **Need Help?** If you encounter issues not covered here, please [open an issue on GitHub](https://github.com/coopernurse/pulserpc/issues).
 
 ### Command not found
 
-If you get `barrister: command not found`:
+If you get `pulserpc: command not found`:
 
 1. Check your PATH: `echo $PATH`
 2. Add Go bin to PATH (if using Go install):
@@ -73,7 +73,7 @@ If you get `barrister: command not found`:
 
 ### Wrong Go version
 
-Barrister requires Go 1.21 or later. Check your version:
+PulseRPC requires Go 1.21 or later. Check your version:
 
 ```bash
 go version

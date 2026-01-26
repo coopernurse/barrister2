@@ -78,7 +78,7 @@ Each runtime generates:
 - `idl.{ext}` - Type definitions
 - `server.{ext}` - HTTP server with interface stubs
 - `client.{ext}` - Client with transport abstraction
-- `barrister2/` directory - Runtime library (embedded)
+- `pulserpc/` directory - Runtime library (embedded)
 
 ### 4. View Generated Code
 
@@ -129,13 +129,13 @@ service Calculator {
 }
 ```
 
-### Learning Barrister
+### Learning PulseRPC
 
 Experiment with IDL syntax and see how it translates to code in different languages.
 
 ### Code Generation Without Installation
 
-Generate Barrister code even when you don't have the CLI installed locally.
+Generate PulseRPC code even when you don't have the CLI installed locally.
 
 ### Sharing Examples
 

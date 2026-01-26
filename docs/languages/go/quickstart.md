@@ -8,7 +8,7 @@ layout: default
 
 # Go Quickstart
 
-Build a complete Barrister2 RPC service in Go with our e-commerce checkout example.
+Build a complete PulseRPC service in Go with our e-commerce checkout example.
 
 > **Time Estimate**: 25-30 minutes
 > This quickstart takes about 30 minutes to complete and covers all the essentials.
@@ -16,7 +16,7 @@ Build a complete Barrister2 RPC service in Go with our e-commerce checkout examp
 ## Prerequisites
 
 - Go 1.21 or later
-- Barrister CLI installed ([Installation Guide](../../get-started/installation))
+- PulseRPC CLI installed ([Installation Guide](../../get-started/installation))
 
 > **Note**: Make sure your Go version is 1.21 or later. Check with `go version`.
 
@@ -152,12 +152,12 @@ Generate the Go code from your IDL:
 
 ```bash
 mkdir -p pkg/checkout
-barrister -plugin go-client-server -dir pkg/checkout checkout.idl
+pulserpc -plugin go-client-server -dir pkg/checkout checkout.idl
 ```
 
 This creates:
 - `pkg/checkout/checkout.go` - Type definitions
-- `pkg/checkout/server.go` - Barrister server framework
+- `pkg/checkout/server.go` - PulseRPC server framework
 - `pkg/checkout/client.go` - HTTP client framework
 - `pkg/checkout/rpc.go`, `types.go`, `validation.go` - Merged runtime
 - `pkg/checkout/idl.json` - IDL metadata

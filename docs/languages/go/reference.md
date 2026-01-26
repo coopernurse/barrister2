@@ -95,17 +95,17 @@ if order.Status == checkout.OrderStatusPending {
 
 ## Error Handling
 
-Return errors using `barrister2.NewRPCError()`:
+Return errors using `checkout.NewRPCError()`:
 
 ```go
-import "barrister2"
+import "checkout"
 
 // Standard JSON-RPC errors
-return nil, barrister2.NewRPCError(-32602, "Invalid params")
+return nil, checkout.NewRPCError(-32602, "Invalid params")
 
 // Custom application errors (use codes >= 1000)
-return nil, barrister2.NewRPCError(1001, "CartNotFound: Cart does not exist")
-return nil, barrister2.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
+return nil, checkout.NewRPCError(1001, "CartNotFound: Cart does not exist")
+return nil, checkout.NewRPCError(1002, "CartEmpty: Cannot create order from empty cart")
 ```
 
 Common error codes:
@@ -122,7 +122,6 @@ Implement interface methods:
 
 ```go
 import (
-    "barrister2"
     "checkout"
 )
 
@@ -146,7 +145,7 @@ func (s *CatalogService) GetProduct(productId string) (*checkout.Product, error)
 
 // Start server
 func main() {
-    server := barrister2.NewServer("0.0.0.0", 8080)
+    server := checkout.NewServer("0.0.0.0", 8080)
     server.Register("CatalogService", &CatalogService{})
     server.ServeForever()
 }
@@ -156,11 +155,10 @@ func main() {
 
 ```go
 import (
-    "barrister2"
     "checkout"
 )
 
-transport := barrister2.NewHTTPTransport("http://localhost:8080")
+transport := checkout.NewHTTPTransport("http://localhost:8080")
 catalog := checkout.NewCatalogServiceClient(transport)
 
 // Method calls return structs or nil
@@ -185,7 +183,7 @@ if product != nil {
 
 ## Validation
 
-Barrister automatically validates:
+PulseRPC automatically validates:
 - Required fields are present
 - Types match IDL definition
 - Enum values are valid

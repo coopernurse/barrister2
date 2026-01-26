@@ -5,12 +5,12 @@ layout: default
 
 # Python Quickstart
 
-Build a complete Barrister2 RPC service in Python with our e-commerce checkout example.
+Build a complete PulseRPC service in Python with our e-commerce checkout example.
 
 ## Prerequisites
 
 - Python 3.8 or later
-- Barrister CLI installed ([Installation Guide](../../get-started/installation))
+- PulseRPC CLI installed ([Installation Guide](../../get-started/installation))
 
 ## 1. Define the Service (2 min)
 
@@ -144,14 +144,14 @@ This IDL defines:
 Generate the Python code from your IDL:
 
 ```bash
-barrister -plugin python-client-server checkout.idl
+pulserpc -plugin python-client-server checkout.idl
 ```
 
 This creates:
 - `checkout.py` - IDL metadata and helpers (structs are dicts, enums are strings)
-- `server.py` - BarristerServer framework with abstract service classes
+- `server.py` - PulseRPCServer framework with abstract service classes
 - `client.py` - HTTPTransport and service client classes
-- `barrister2/` - Runtime library (RPCError, validation, types)
+- `pulserpc/` - Runtime library (RPCError, validation, types)
 - `idl.json` - IDL metadata for introspection
 
 Note: the Python generator only creates classes for interfaces (service stubs). Structs are plain dicts and enums are strings, so use maps and lists directly in your handlers and client code.
@@ -162,8 +162,8 @@ Create a file `my_server.py` that implements your service handlers:
 
 ```python
 #!/usr/bin/env python3
-from server import BarristerServer, CatalogService, CartService, OrderService
-from barrister2 import RPCError
+from server import PulseRPCServer, CatalogService, CartService, OrderService
+from pulserpc import RPCError
 import random
 import time
 
@@ -298,7 +298,7 @@ class OrderServiceImpl(OrderService):
 
 # Start server
 if __name__ == "__main__":
-    server = BarristerServer(host="0.0.0.0", port=8080)
+    server = PulseRPCServer(host="0.0.0.0", port=8080)
     server.register("CatalogService", CatalogServiceImpl())
     server.register("CartService", CartServiceImpl())
     server.register("OrderService", OrderServiceImpl())
@@ -320,7 +320,7 @@ Create `my_client.py` to call your service:
 ```python
 #!/usr/bin/env python3
 from client import HTTPTransport, CatalogServiceClient, CartServiceClient, OrderServiceClient
-from barrister2 import RPCError
+from pulserpc import RPCError
 
 # Connect to server
 transport = HTTPTransport("http://localhost:8080")

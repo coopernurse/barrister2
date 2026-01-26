@@ -1,10 +1,10 @@
-# Barrister RPC
+# PulseRPC
 
-Barrister is a remote procedure call system similar to gRPC that uses JSON-RPC encoded messages but
+PulseRPC is a remote procedure call system similar to gRPC that uses JSON-RPC encoded messages but
 adds an interface definition system so that the message payloads can be easily documented (for humans)
 and validated (by computers).
 
-To use Barrister you author an IDL file that describes the services you wish to expose along with the
+To use PulseRPC you author an IDL file that describes the services you wish to expose along with the
 input and output types related to the service calls.
 
 Here's a simple example:
@@ -35,16 +35,16 @@ enum UserRole {
 
 ## Web UI and Playground
 
-Barrister includes a web UI with an interactive playground that allows you to experiment with IDL definitions and generate code for multiple languages directly in your browser.
+PulseRPC includes a web UI with an interactive playground that allows you to experiment with IDL definitions and generate code for multiple languages directly in your browser.
 
-<img src="docs/assets/images/webui/homepage.png" alt="Barrister Web UI" width="700">
+<img src="docs/assets/images/webui/homepage.png" alt="PulseRPC Web UI" width="700">
 
 ### Starting the Web UI
 
 To start the web UI server:
 
 ```bash
-./target/barrister -ui -ui-port 8080
+./target/pulserpc -ui -ui-port 8080
 ```
 
 Then open your browser to `http://localhost:8080`
@@ -87,7 +87,7 @@ The playground also exposes REST API endpoints for programmatic access:
 
 ## Documentation
 
-Comprehensive documentation is available at **[https://bitmechanic.github.io/barrister2/](https://bitmechanic.github.io/barrister2/)** (or build locally with `make docs-build`).
+Comprehensive documentation is available at **[https://bitmechanic.github.io/pulserpc/](https://bitmechanic.github.io/pulserpc/)** (or build locally with `make docs-build`).
 
 The documentation includes:
 

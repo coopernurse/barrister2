@@ -1,10 +1,10 @@
-# Barrister Go Runtime
+# PulseRPC Go Runtime
 
-This directory contains the Go runtime library for Barrister-generated code.
+This directory contains the Go runtime library for PulseRPC-generated code.
 
 ## Structure
 
-- `barrister2/` - Main runtime library package
+- `pulserpc/` - Main runtime library package
   - `rpc.go` - RPC error handling
   - `validation.go` - Type validation functions
   - `types.go` - Type helper functions
@@ -26,7 +26,7 @@ make test-docker
 
 Generated code imports from this library:
 ```go
-import "github.com/coopernurse/barrister2/pkg/runtime/runtimes/go/barrister2"
+import "github.com/coopernurse/pulserpc/pkg/runtime/runtimes/go/pulserpc"
 ```
 
 The runtime library provides:
@@ -47,7 +47,7 @@ The Go generator creates:
 2. **`server.go`**:
    - HTTP server using `net/http`
    - Interface stubs as Go interfaces
-   - `BarristerServer` struct with `Register()` method
+   - `Server` struct with `Register()` method
    - Request handling (JSON-RPC 2.0, batch requests, notifications)
 
 3. **`client.go`**:
@@ -59,7 +59,7 @@ The Go generator creates:
 
 ```go
 // Server
-server := NewBarristerServer("localhost", 8080)
+server := NewServer("localhost", 8080)
 server.Register("MyInterface", &MyInterfaceImpl{})
 server.ServeForever()
 

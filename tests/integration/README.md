@@ -1,4 +1,4 @@
-# Barrister Generator Integration Testing
+# PulseRPC Generator Integration Testing
 
 This directory contains integration tests that verify generator plugins can produce working client and server code that interoperate correctly.
 
@@ -86,7 +86,7 @@ Test program that exercises all client methods:
 ### Prerequisites
 
 - Docker installed and running
-- Barrister binary built (`make build`)
+- PulseRPC binary built (`make build`)
 
 ### Run Python Generator Tests
 
@@ -130,7 +130,7 @@ docker run --rm \
 
 The `test_generator.sh` script:
 
-1. **Builds barrister binary** (if needed)
+1. **Builds pulserpc binary** (if needed)
 2. **Generates code** with `-test-server` flag
 3. **Starts test server** in background
 4. **Waits for server** to be ready (polls with timeout)
@@ -138,7 +138,7 @@ The `test_generator.sh` script:
 6. **Cleans up** server process and temp files
 
 The script uses:
-- Temporary directory: `/tmp/barrister_test_$$`
+- Temporary directory: `/tmp/pulserpc_test_$$`
 - Server port: `8080`
 - Timeout: `30` seconds
 

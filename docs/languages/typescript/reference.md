@@ -90,17 +90,17 @@ if (order.status === checkout.OrderStatus.pending) {
 
 ## Error Handling
 
-Throw `RPCException` with custom codes:
+Throw `RPCError` with custom codes:
 
 ```typescript
-import { RPCException } from './barrister2/rpc';
+import { RPCError } from './pulserpc/rpc';
 
 // Standard JSON-RPC errors
-throw new RPCException(-32602, 'Invalid params');
+throw new RPCError(-32602, 'Invalid params');
 
 // Custom application errors (use codes >= 1000)
-throw new RPCException(1001, 'CartNotFound: Cart does not exist');
-throw new RPCException(1002, 'CartEmpty: Cannot create order from empty cart');
+throw new RPCError(1001, 'CartNotFound: Cart does not exist');
+throw new RPCError(1002, 'CartEmpty: Cannot create order from empty cart');
 ```
 
 Common error codes:
@@ -116,7 +116,7 @@ Common error codes:
 Extend generated service classes:
 
 ```typescript
-import { BarristerServer, CatalogService } from './server';
+import { PulseRPCServer, CatalogService } from './server';
 import * as checkout from './checkout';
 
 class CatalogServiceImpl extends CatalogService {
@@ -140,7 +140,7 @@ class CatalogServiceImpl extends CatalogService {
 }
 
 // Start server
-const server = new BarristerServer(8080);
+const server = new PulseRPCServer(8080);
 server.registerCatalogService(new CatalogServiceImpl());
 server.start();
 ```
@@ -190,7 +190,7 @@ class OrderServiceImpl extends OrderService {
 
 ## Validation
 
-Barrister automatically validates:
+PulseRPC automatically validates:
 - Required fields are present
 - Types match IDL definition
 - Enum values are valid

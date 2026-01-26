@@ -5,7 +5,7 @@ layout: default
 
 # Runtime Validation
 
-Barrister runtimes automatically validate request and response data against your IDL definitions.
+PulseRPC runtimes automatically validate request and response data against your IDL definitions.
 
 ## When Validation Happens
 
@@ -112,7 +112,7 @@ Validates `Cart` and `User` structures recursively.
 
 ## Validation Errors
 
-When validation fails, Barrister returns an RPC error:
+When validation fails, PulseRPC returns an RPC error:
 
 ```json
 {
