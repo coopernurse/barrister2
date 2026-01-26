@@ -99,15 +99,15 @@ REQUIRED_FILES=(
     "src/test/java/com/example/server/TestClient.java"
     "src/main/resources/idl.json"
     "pom.xml"
-    "src/main/java/com/bitmechanic/barrister2/RPCError.java"
-    "src/main/java/com/bitmechanic/barrister2/Validation.java"
-    "src/main/java/com/bitmechanic/barrister2/Types.java"
-    "src/main/java/com/bitmechanic/barrister2/JsonParser.java"
-    "src/main/java/com/bitmechanic/barrister2/JacksonJsonParser.java"
-    "src/main/java/com/bitmechanic/barrister2/Transport.java"
-    "src/main/java/com/bitmechanic/barrister2/Request.java"
-    "src/main/java/com/bitmechanic/barrister2/Response.java"
-    "src/main/java/com/bitmechanic/barrister2/HTTPTransport.java"
+    "src/main/java/com/bitmechanic/pulserpc/RPCError.java"
+    "src/main/java/com/bitmechanic/pulserpc/Validation.java"
+    "src/main/java/com/bitmechanic/pulserpc/Types.java"
+    "src/main/java/com/bitmechanic/pulserpc/JsonParser.java"
+    "src/main/java/com/bitmechanic/pulserpc/JacksonJsonParser.java"
+    "src/main/java/com/bitmechanic/pulserpc/Transport.java"
+    "src/main/java/com/bitmechanic/pulserpc/Request.java"
+    "src/main/java/com/bitmechanic/pulserpc/Response.java"
+    "src/main/java/com/bitmechanic/pulserpc/HTTPTransport.java"
 )
 
 for file in "${REQUIRED_FILES[@]}"; do
@@ -119,7 +119,7 @@ for file in "${REQUIRED_FILES[@]}"; do
 done
 
 # Verify GSON parser is NOT included (only Jackson should be)
-if [ -f "$OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
+if [ -f "$OUTPUT_DIR/src/main/java/com/bitmechanic/pulserpc/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java should not be generated when using Jackson${NC}"
     exit 1
 fi
@@ -213,12 +213,12 @@ mkdir -p "$GSON_OUTPUT_DIR"
 "$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -generate-test-files -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
 
 # Verify GSON files
-if [ ! -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/GsonJsonParser.java" ]; then
+if [ ! -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/pulserpc/GsonJsonParser.java" ]; then
     echo -e "${RED}ERROR: GsonJsonParser.java not found when using GSON${NC}"
     exit 1
 fi
 
-if [ -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/barrister2/JacksonJsonParser.java" ]; then
+if [ -f "$GSON_OUTPUT_DIR/src/main/java/com/bitmechanic/pulserpc/JacksonJsonParser.java" ]; then
     echo -e "${RED}ERROR: JacksonJsonParser.java should not be generated when using GSON${NC}"
     exit 1
 fi

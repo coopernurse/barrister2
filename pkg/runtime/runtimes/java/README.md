@@ -1,13 +1,13 @@
-# Barrister Java Runtime
+# PulseRPC Java Runtime
 
-This directory contains the Java runtime library for Barrister, providing validation, type utilities, and JSON parsing abstractions.
+This directory contains the Java runtime library for PulseRPC, providing validation, type utilities, and JSON parsing abstractions.
 
 ## Components
 
 ### Core Classes
 
 - **RPCError.java**: Exception class for JSON-RPC 2.0 errors
-- **Validation.java**: Static validation methods for all Barrister types
+- **Validation.java**: Static validation methods for all PulseRPC types
 - **Types.java**: Helper methods for type operations and inheritance resolution
 
 ### JSON Parser Abstraction

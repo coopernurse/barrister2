@@ -1,4 +1,4 @@
-package com.bitmechanic.barrister2;
+package com.bitmechanic.pulserpc;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;

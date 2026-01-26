@@ -1,4 +1,4 @@
-import com.bitmechanic.barrister2.*;
+import com.bitmechanic.pulserpc.*;
 import org.junit.Test;
 import org.junit.Assert;
 import java.util.*;

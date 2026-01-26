@@ -29,7 +29,7 @@ var csharpRuntimeFiles embed.FS
 
 // Embed all Java runtime files
 //
-//go:embed all:runtimes/java/barrister2
+//go:embed all:runtimes/java/pulserpc
 var javaRuntimeFiles embed.FS
 
 // Embed all Go runtime files
@@ -146,12 +146,14 @@ func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string
 
 // getRuntimePackageName returns the package/module name for the runtime library
 // This is the directory name where runtime files are placed in the output
-// TODO: This will be updated to pulserpc for all languages once runtime directories are renamed
+// TODO: This will be updated to pulserpc for C# once the runtime directory is renamed
 func getRuntimePackageName(lang string) string {
 	switch lang {
 	case "go", "python", "ts":
 		return "pulserpc"
+	case "java":
+		return "com/bitmechanic/pulserpc"
 	default:
-		return "barrister2" // Will be updated in phases 4-5
+		return "barrister2" // C# will be updated in Phase 5
 	}
 }
