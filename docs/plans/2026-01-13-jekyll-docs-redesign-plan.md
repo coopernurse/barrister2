@@ -6,7 +6,7 @@
 
 ## Overview
 
-Modernize the PulseRPC2 documentation site by implementing the "Just the Docs" Jekyll theme with custom purple/indigo branding, improved typography, sidebar navigation, and a redesigned homepage.
+Modernize the PulseRPC documentation site by implementing the "Just the Docs" Jekyll theme with custom purple/indigo branding, improved typography, sidebar navigation, and a redesigned homepage.
 
 ## Tasks
 

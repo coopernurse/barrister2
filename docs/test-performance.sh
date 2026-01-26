@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Performance Testing Script for PulseRPC2 Documentation
+# Performance Testing Script for PulseRPC Documentation
 # This script helps verify performance optimizations
 
 set -e
 
 echo "=================================="
-echo "PulseRPC2 Performance Test Script"
+echo "PulseRPC Performance Test Script"
 echo "=================================="
 echo ""
 

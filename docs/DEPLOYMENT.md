@@ -1,6 +1,6 @@
-# Deploying PulseRPC2 Documentation to GitHub Pages
+# Deploying PulseRPC Documentation to GitHub Pages
 
-This guide covers deploying the PulseRPC2 documentation to GitHub Pages.
+This guide covers deploying the PulseRPC documentation to GitHub Pages.
 
 ## Prerequisites
 

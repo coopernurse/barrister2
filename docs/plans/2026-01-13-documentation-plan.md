@@ -1,4 +1,4 @@
-# PulseRPC2 Documentation Implementation Plan
+# PulseRPC Documentation Implementation Plan
 
 **Date:** 2026-01-13
 **Based on:** [2026-01-13-documentation-design.md](./2026-01-13-documentation-design.md)
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This plan breaks down the implementation of the PulseRPC2 documentation site into concrete, executable tasks. Work proceeds in phases: foundation, content, examples, and polish.
+This plan breaks down the implementation of the PulseRPC documentation site into concrete, executable tasks. Work proceeds in phases: foundation, content, examples, and polish.
 
 ## Phase 1: Jekyll Foundation (4 tasks)
 

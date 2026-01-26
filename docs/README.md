@@ -1,6 +1,6 @@
-# PulseRPC2 Documentation
+# PulseRPC Documentation
 
-This directory contains the PulseRPC2 documentation site, built with [Jekyll](https://jekyllrb.com/) using the [Just the Docs](https://just-the-docs.github.io/just-the-docs/) theme.
+This directory contains the PulseRPC documentation site, built with [Jekyll](https://jekyllrb.com/) using the [Just the Docs](https://just-the-docs.github.io/just-the-docs/) theme.
 
 ## Quick Start
 
@@ -105,7 +105,7 @@ docs/
 Key settings in `_config.yml`:
 
 ```yaml
-title: PulseRPC2 RPC
+title: PulseRPC RPC
 description: IDL-based JSON-RPC code generation
 baseurl: /pulserpc
 theme: just-the-docs
@@ -115,7 +115,7 @@ search_enabled: true
 heading_anchors: true
 
 # Footer
-footer_content: "Copyright © 2026 PulseRPC2"
+footer_content: "Copyright © 2026 PulseRPC"
 ```
 
 ### Theme Customization
@@ -151,7 +151,7 @@ Use fenced code blocks with syntax highlighting:
 ````markdown
 \```python
 def hello_world():
-    print("Hello, PulseRPC2!")
+    print("Hello, PulseRPC!")
 \```
 ````
 

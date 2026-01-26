@@ -1,11 +1,11 @@
-# PulseRPC2 Documentation Design
+# PulseRPC Documentation Design
 
 **Date:** 2026-01-13
 **Status:** Approved
 
 ## Overview
 
-Create comprehensive documentation for PulseRPC2 hosted on GitHub Pages using Jekyll with Lunr.js search. The documentation will include installation instructions and language-specific quickstart guides demonstrating how to write clients and servers in all supported languages (Go, Java, Python, TypeScript, C#).
+Create comprehensive documentation for PulseRPC hosted on GitHub Pages using Jekyll with Lunr.js search. The documentation will include installation instructions and language-specific quickstart guides demonstrating how to write clients and servers in all supported languages (Go, Java, Python, TypeScript, C#).
 
 ## Goals
 
@@ -367,7 +367,7 @@ Each language has an `install.md` covering:
 ### `_config.yml`
 
 ```yaml
-title: PulseRPC2 RPC
+title: PulseRPC RPC
 description: IDL-based JSON-RPC code generation
 lang: en
 baseurl: /pulserpc

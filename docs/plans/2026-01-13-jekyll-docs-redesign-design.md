@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-13
 **Status:** Approved
-**Goal:** Modernize PulseRPC2 documentation with clean, Stripe/Vercel-inspired aesthetic
+**Goal:** Modernize PulseRPC documentation with clean, Stripe/Vercel-inspired aesthetic
 
 ## Overview
 
