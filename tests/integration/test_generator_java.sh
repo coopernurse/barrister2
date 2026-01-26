@@ -14,14 +14,14 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
-OUTPUT_DIR="/tmp/barrister_test_java_$$"
-NATIVE_BINARY="$PROJECT_ROOT/target/barrister"
-LINUX_BINARY="$PROJECT_ROOT/target/barrister-amd64"
+OUTPUT_DIR="/tmp/pulserpc_test_java_$$"
+NATIVE_BINARY="$PROJECT_ROOT/target/pulserpc"
+LINUX_BINARY="$PROJECT_ROOT/target/pulserpc-amd64"
 SERVER_PORT=8080
 SERVER_URL="http://localhost:$SERVER_PORT"
 TIMEOUT=30
 DOCKER_IMAGE="maven:3.9-eclipse-temurin-17"
-CONTAINER_NAME="barrister-test-java-$$"
+CONTAINER_NAME="pulserpc-test-java-$$"
 M2_CACHE_DIR="$PROJECT_ROOT/.m2-cache"
 
 # Check if Docker is available
@@ -41,7 +41,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-echo -e "${GREEN}=== Barrister Java Generator Integration Test ===${NC}"
+echo -e "${GREEN}=== PulseRPC Java Generator Integration Test ===${NC}"
 echo ""
 
 check_docker
@@ -54,30 +54,30 @@ mkdir -p "$M2_CACHE_DIR"
 BINARY_PATH=""
 if [ -f "$NATIVE_BINARY" ] && [ -x "$NATIVE_BINARY" ]; then
     BINARY_PATH="$NATIVE_BINARY"
-    echo -e "${GREEN}Using native barrister binary at $BINARY_PATH${NC}"
+    echo -e "${GREEN}Using native pulserpc binary at $BINARY_PATH${NC}"
 elif [ -f "$LINUX_BINARY" ] && [ -x "$LINUX_BINARY" ]; then
     BINARY_PATH="$LINUX_BINARY"
-    echo -e "${GREEN}Using Linux barrister binary at $BINARY_PATH${NC}"
+    echo -e "${GREEN}Using Linux pulserpc binary at $BINARY_PATH${NC}"
 elif command -v go >/dev/null 2>&1; then
     # Build the native binary
-    echo -e "${YELLOW}Building barrister binary...${NC}"
+    echo -e "${YELLOW}Building pulserpc binary...${NC}"
     cd "$PROJECT_ROOT"
-    go build -o "$NATIVE_BINARY" cmd/barrister/barrister.go
+    go build -o "$NATIVE_BINARY" cmd/pulserpc/pulserpc.go
     if [ -f "$NATIVE_BINARY" ] && [ -x "$NATIVE_BINARY" ]; then
         BINARY_PATH="$NATIVE_BINARY"
-        echo -e "${GREEN}Built native barrister binary at $BINARY_PATH${NC}"
+        echo -e "${GREEN}Built native pulserpc binary at $BINARY_PATH${NC}"
     else
-        echo -e "${RED}ERROR: Failed to build barrister binary${NC}"
+        echo -e "${RED}ERROR: Failed to build pulserpc binary${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}ERROR: Neither barrister binary nor Go compiler found${NC}"
+    echo -e "${RED}ERROR: Neither pulserpc binary nor Go compiler found${NC}"
     echo -e "${RED}Please build the binary first with 'make build' or ensure Go is installed${NC}"
     exit 1
 fi
 
 if [ -z "$BINARY_PATH" ] || [ ! -f "$BINARY_PATH" ]; then
-    echo -e "${RED}ERROR: Barrister binary not found${NC}"
+    echo -e "${RED}ERROR: PulseRPC binary not found${NC}"
     exit 1
 fi
 
@@ -208,7 +208,7 @@ echo -e "${GREEN}✓ Test client executed successfully${NC}"
 # Step 8: Test with GSON instead of Jackson
 echo -e "${YELLOW}Testing GSON code generation...${NC}"
 cd "$PROJECT_ROOT"
-GSON_OUTPUT_DIR="/tmp/barrister_test_java_gson_$$"
+GSON_OUTPUT_DIR="/tmp/pulserpc_test_java_gson_$$"
 mkdir -p "$GSON_OUTPUT_DIR"
 "$BINARY_PATH" -plugin java-client-server -base-package com.example.server -json-lib gson -generate-test-files -dir "$GSON_OUTPUT_DIR" "$TEST_IDL"
 

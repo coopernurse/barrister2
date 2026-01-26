@@ -1,5 +1,5 @@
 #!/bin/bash
-# HTTP API integration test suite for Barrister servers
+# HTTP API integration test suite for PulseRPC servers
 # Tests all conform.idl methods via raw JSON-RPC requests
 # Can be run against any runtime implementation (Python, TypeScript, C#)
 

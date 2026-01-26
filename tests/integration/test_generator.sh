@@ -15,8 +15,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
 TEST_IDL_INC="$PROJECT_ROOT/examples/conform-inc.idl"
-OUTPUT_DIR="/tmp/barrister_test_$$"
-BINARY_PATH="$PROJECT_ROOT/target/barrister-amd64"
+OUTPUT_DIR="/tmp/pulserpc_test_$$"
+BINARY_PATH="$PROJECT_ROOT/target/pulserpc-amd64"
 SERVER_PORT=8080
 SERVER_URL="http://localhost:$SERVER_PORT"
 TIMEOUT=30
@@ -33,25 +33,25 @@ cleanup() {
 
 trap cleanup EXIT
 
-echo -e "${GREEN}=== Barrister Generator Integration Test ===${NC}"
+echo -e "${GREEN}=== PulseRPC Generator Integration Test ===${NC}"
 echo ""
 
-# Step 1: Build the barrister binary (if needed)
+# Step 1: Build the pulserpc binary (if needed)
 # Prefer using pre-built binary if it exists, otherwise build it
 if [ -f "$BINARY_PATH" ] && [ -x "$BINARY_PATH" ]; then
-    echo -e "${GREEN}Using pre-built barrister binary at $BINARY_PATH${NC}"
+    echo -e "${GREEN}Using pre-built pulserpc binary at $BINARY_PATH${NC}"
 elif command -v go >/dev/null 2>&1; then
     # We're in a container with Go - build the binary
-    echo -e "${YELLOW}Building barrister binary in container...${NC}"
+    echo -e "${YELLOW}Building pulserpc binary in container...${NC}"
     cd "$PROJECT_ROOT"
-    go build -o "$BINARY_PATH" cmd/barrister/barrister.go
+    go build -o "$BINARY_PATH" cmd/pulserpc/pulserpc.go
     if [ ! -f "$BINARY_PATH" ]; then
-        echo -e "${RED}ERROR: Failed to build barrister binary${NC}"
+        echo -e "${RED}ERROR: Failed to build pulserpc binary${NC}"
         exit 1
     fi
 elif [ ! -f "$BINARY_PATH" ]; then
     # No Go and no binary - try to build on host (for local testing)
-    echo -e "${YELLOW}Building barrister binary on host...${NC}"
+    echo -e "${YELLOW}Building pulserpc binary on host...${NC}"
     cd "$PROJECT_ROOT"
     if command -v make >/dev/null 2>&1; then
         make build-linux
@@ -62,7 +62,7 @@ elif [ ! -f "$BINARY_PATH" ]; then
 fi
 
 if [ ! -f "$BINARY_PATH" ]; then
-    echo -e "${RED}ERROR: Barrister binary not found at $BINARY_PATH${NC}"
+    echo -e "${RED}ERROR: PulseRPC binary not found at $BINARY_PATH${NC}"
     exit 1
 fi
 

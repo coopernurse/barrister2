@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test Server Management Script
-# Manages Docker containers running test servers for all Barrister runtimes
+# Manages Docker containers running test servers for all PulseRPC runtimes
 
 set -e
 
@@ -15,8 +15,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
-BINARY_PATH="$PROJECT_ROOT/target/barrister"
-CONTAINER_PREFIX="barrister-test"
+BINARY_PATH="$PROJECT_ROOT/target/pulserpc"
+CONTAINER_PREFIX="pulserpc-test"
 TIMEOUT=30
 
 # Runtime configuration: name:plugin:image:port:start_command
@@ -76,13 +76,13 @@ check_docker() {
     fi
 }
 
-# Build barrister binary if needed
+# Build pulserpc binary if needed
 build_binary() {
     if [ ! -f "$BINARY_PATH" ]; then
-        echo -e "${YELLOW}Building barrister binary...${NC}"
+        echo -e "${YELLOW}Building pulserpc binary...${NC}"
         cd "$PROJECT_ROOT"
         if ! make build; then
-            echo -e "${RED}ERROR: Failed to build barrister binary${NC}"
+            echo -e "${RED}ERROR: Failed to build pulserpc binary${NC}"
             exit 1
         fi
     fi
@@ -98,7 +98,7 @@ generate_code() {
     echo -e "${YELLOW}Generating $name code...${NC}"
     # For Java code generation, the generator requires a base-package flag.
     if [ "$plugin" = "java-client-server" ]; then
-        JAVA_BASE_PACKAGE="com.barrister.test"
+        JAVA_BASE_PACKAGE="com.pulserpc.test"
         if ! "$BINARY_PATH" -plugin "$plugin" -base-package "$JAVA_BASE_PACKAGE" -generate-test-files -dir "$output_dir" "$TEST_IDL"; then
             echo -e "${RED}ERROR: Code generation failed for $name${NC}"
             return 1
@@ -192,7 +192,7 @@ start_runtime() {
     
     IFS='|' read -r name plugin image port start_cmd <<< "$(parse_runtime "$runtime_config")"
     local container_name="${CONTAINER_PREFIX}-${name}"
-    local output_dir="/tmp/barrister_test_${name}_$$"
+    local output_dir="/tmp/pulserpc_test_${name}_$$"
     
     # Check if container already exists
     if docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
@@ -277,7 +277,7 @@ start_runtime() {
 
 # Start all test servers
 start_all() {
-    echo -e "${GREEN}=== Starting Barrister Test Servers ===${NC}"
+    echo -e "${GREEN}=== Starting PulseRPC Test Servers ===${NC}"
     echo ""
     
     check_docker
@@ -322,7 +322,7 @@ start_all() {
 
 # Stop all test servers
 stop_all() {
-    echo -e "${YELLOW}=== Stopping Barrister Test Servers ===${NC}"
+    echo -e "${YELLOW}=== Stopping PulseRPC Test Servers ===${NC}"
     echo ""
     
     check_docker
