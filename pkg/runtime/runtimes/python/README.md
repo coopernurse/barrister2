@@ -1,10 +1,10 @@
-# Barrister Python Runtime
+# PulseRPC Python Runtime
 
-This directory contains the Python runtime library for Barrister-generated code.
+This directory contains the Python runtime library for PulseRPC-generated code.
 
 ## Structure
 
-- `barrister2/` - Main runtime library package
+- `pulserpc/` - Main runtime library package
   - `__init__.py` - Package exports
   - `rpc.py` - RPC error handling
   - `validation.py` - Type validation functions
@@ -39,8 +39,8 @@ make test-docker
 
 Generated code imports from this library:
 ```python
-from barrister2 import RPCError, validate_type
-from barrister import ALL_STRUCTS, ALL_ENUMS
+from pulserpc import RPCError, validate_type
+from pulserpc import ALL_STRUCTS, ALL_ENUMS
 ```
 
 The runtime library provides:

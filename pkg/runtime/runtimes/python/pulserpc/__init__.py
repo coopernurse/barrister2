@@ -1,7 +1,7 @@
 """
-Barrister Python Runtime Library
+PulseRPC Python Runtime Library
 
-This library provides validation and RPC functionality for Barrister-generated code.
+This library provides validation and RPC functionality for PulseRPC-generated code.
 """
 
 from .rpc import RPCError

@@ -1,6 +1,6 @@
 """Tests for type helper functions"""
 
-from barrister2 import find_struct, find_enum, get_struct_fields
+from pulserpc import find_struct, find_enum, get_struct_fields
 
 
 def test_find_struct():

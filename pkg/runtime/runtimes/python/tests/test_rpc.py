@@ -1,7 +1,7 @@
 """Tests for RPC error handling"""
 
 import pytest
-from barrister2 import RPCError
+from pulserpc import RPCError
 
 
 def test_rpc_error_creation():

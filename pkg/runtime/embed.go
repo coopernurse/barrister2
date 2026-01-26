@@ -14,7 +14,7 @@ import (
 // pkg/runtime/runtimes/ to enable embedding. This allows the binary to be
 // self-contained without requiring the source tree at runtime.
 //
-//go:embed all:runtimes/python/barrister2
+//go:embed all:runtimes/python/pulserpc
 var pythonRuntimeFiles embed.FS
 
 // Embed all TypeScript runtime files
@@ -149,7 +149,7 @@ func CopyRuntimeFilesToPackage(lang string, outputDir string, packageName string
 // TODO: This will be updated to pulserpc for all languages once runtime directories are renamed
 func getRuntimePackageName(lang string) string {
 	switch lang {
-	case "go":
+	case "go", "python":
 		return "pulserpc"
 	default:
 		return "barrister2" // Will be updated in phases 2-5

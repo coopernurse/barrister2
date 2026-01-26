@@ -1,7 +1,7 @@
 """Tests for validation functions"""
 
 import pytest
-from barrister2 import (
+from pulserpc import (
     validate_string,
     validate_int,
     validate_float,

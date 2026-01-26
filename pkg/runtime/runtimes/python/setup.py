@@ -1,12 +1,12 @@
-"""Setup configuration for barrister Python runtime"""
+"""Setup configuration for pulserpc Python runtime"""
 
 from setuptools import setup, find_packages
 
 setup(
-    name="barrister2",
+    name="pulserpc",
     version="0.1.0",
-    description="Barrister Python Runtime Library",
-    author="Barrister",
+    description="PulseRPC Python Runtime Library",
+    author="PulseRPC",
     packages=find_packages(),
     python_requires=">=3.7",
     classifiers=[
