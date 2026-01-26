@@ -85,7 +85,7 @@ for runtime in python ts csharp; do
     MAX_WAIT=30
     while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
         if curl -s -X POST "$url" -H "Content-Type: application/json" \
-            -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' > /dev/null 2>&1; then
+            -d '{"jsonrpc":"2.0","method":"pulserpc-idl","id":1}' > /dev/null 2>&1; then
             echo -e "${GREEN}$runtime server is ready${NC}"
             break
         fi

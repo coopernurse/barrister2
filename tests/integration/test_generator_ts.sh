@@ -125,7 +125,7 @@ SERVER_PID=$!
 echo -e "${YELLOW}Waiting for server to be ready...${NC}"
 WAIT_COUNT=0
 while [ $WAIT_COUNT -lt $TIMEOUT ]; do
-    if curl -s -X POST "$SERVER_URL" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' > /dev/null 2>&1; then
+    if curl -s -X POST "$SERVER_URL" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"pulserpc-idl","id":1}' > /dev/null 2>&1; then
         echo -e "${GREEN}Server is ready${NC}"
         break
     fi

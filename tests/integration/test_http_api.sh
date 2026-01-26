@@ -145,7 +145,7 @@ test_validation_error() {
 # Wait for server to be ready
 echo -e "${YELLOW}Checking if server is ready...${NC}"
 if ! curl -s -X POST "$SERVER_URL" -H "Content-Type: application/json" \
-    -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' > /dev/null 2>&1; then
+    -d '{"jsonrpc":"2.0","method":"pulserpc-idl","id":1}' > /dev/null 2>&1; then
     echo -e "${RED}ERROR: Server at $SERVER_URL is not responding${NC}"
     exit 1
 fi
