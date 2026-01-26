@@ -1,5 +1,5 @@
 /**
- * Validation functions for Barrister types
+ * Validation functions for PulseRPC types
  */
 
 import { findStruct, findEnum, getStructFields, TypeDef, StructMap, EnumMap, StructDef } from "./types";

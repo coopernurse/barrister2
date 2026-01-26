@@ -1,6 +1,6 @@
-# Barrister2 Documentation
+# PulseRPC2 Documentation
 
-This directory contains the Barrister2 documentation site, built with [Jekyll](https://jekyllrb.com/) using the [Just the Docs](https://just-the-docs.github.io/just-the-docs/) theme.
+This directory contains the PulseRPC2 documentation site, built with [Jekyll](https://jekyllrb.com/) using the [Just the Docs](https://just-the-docs.github.io/just-the-docs/) theme.
 
 ## Quick Start
 
@@ -24,7 +24,7 @@ This directory contains the Barrister2 documentation site, built with [Jekyll](h
    ```
 
 3. **Open in browser:**
-   Navigate to http://localhost:4000/barrister2/
+   Navigate to http://localhost:4000/pulserpc/
 
 ## Development Workflow
 
@@ -37,7 +37,7 @@ cd /workspace/docs
 bundle exec jekyll serve
 ```
 
-The site will be available at http://localhost:4000/barrister2/
+The site will be available at http://localhost:4000/pulserpc/
 
 **Options:**
 - `--host 0.0.0.0` - Serve on all network interfaces (useful for Docker)
@@ -105,9 +105,9 @@ docs/
 Key settings in `_config.yml`:
 
 ```yaml
-title: Barrister2 RPC
+title: PulseRPC2 RPC
 description: IDL-based JSON-RPC code generation
-baseurl: /barrister2
+baseurl: /pulserpc
 theme: just-the-docs
 
 # Search
@@ -115,7 +115,7 @@ search_enabled: true
 heading_anchors: true
 
 # Footer
-footer_content: "Copyright © 2026 Barrister2"
+footer_content: "Copyright © 2026 PulseRPC2"
 ```
 
 ### Theme Customization
@@ -151,7 +151,7 @@ Use fenced code blocks with syntax highlighting:
 ````markdown
 \```python
 def hello_world():
-    print("Hello, Barrister2!")
+    print("Hello, PulseRPC2!")
 \```
 ````
 
@@ -179,10 +179,10 @@ See [CALLOUTS.md](CALLOUTS.md) for detailed examples.
 Place images in `assets/images/` and reference them:
 
 ```markdown
-![Alt text](/barrister2/assets/images/screenshot.png)
+![Alt text](/pulserpc/assets/images/screenshot.png)
 ```
 
-**Note:** Replace `screenshot.png` with your actual image filename. Include `/barrister2/` prefix due to `baseurl` setting.
+**Note:** Replace `screenshot.png` with your actual image filename. Include `/pulserpc/` prefix due to `baseurl` setting.
 
 ## Deployment
 
@@ -243,14 +243,14 @@ bundle add webrick
 
 **Problem:** Links don't work on GitHub Pages
 
-**Solution:** Ensure all links use `{{ site.baseurl }}` or include `/barrister2/` prefix:
+**Solution:** Ensure all links use `{{ site.baseurl }}` or include `/pulserpc/` prefix:
 ```html
 <a href="{{ site.baseurl }}/get-started/installation/">Installation</a>
 ```
 
 Or in Markdown:
 ```markdown
-[Installation](/barrister2/get-started/installation/)
+[Installation](/pulserpc/get-started/installation/)
 ```
 
 ### Search Not Working
@@ -373,15 +373,15 @@ When contributing documentation:
 - [Just the Docs Documentation](https://just-the-docs.github.io/just-the-docs/)
 - [Jekyll Documentation](https://jekyllrb.com/docs/)
 - [Markdown Guide](https://www.markdownguide.org/)
-- [Theming Guide](/barrister2/advanced/theming.md) - Customizing appearance
-- [Deployment Guide](/barrister2/DEPLOYMENT.md) - Deployment instructions
-- [Callout Syntax](/barrister2/CALLOUTS.md) - Using callout components
+- [Theming Guide](/pulserpc/advanced/theming.md) - Customizing appearance
+- [Deployment Guide](/pulserpc/DEPLOYMENT.md) - Deployment instructions
+- [Callout Syntax](/pulserpc/CALLOUTS.md) - Using callout components
 
 ## Support
 
 For issues or questions about the documentation:
 
-1. Check existing [GitHub Issues](https://github.com/coopernurse/barrister2/issues)
+1. Check existing [GitHub Issues](https://github.com/coopernurse/pulserpc/issues)
 2. Review the [troubleshooting section](#troubleshooting) above
 3. Consult [Just the Docs documentation](https://just-the-docs.github.io/just-the-docs/docs/)
 4. Open a new issue with the "documentation" label

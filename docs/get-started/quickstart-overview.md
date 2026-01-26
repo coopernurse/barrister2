@@ -79,7 +79,7 @@ Each language quickstart follows the same structure:
 
 1. **Prerequisites & Setup** (5 min) - Install dependencies
 2. **Define the Service** (2 min) - Write the IDL file
-3. **Generate Code** (1 min) - Run the Barrister generator
+3. **Generate Code** (1 min) - Run the PulseRPC generator
 4. **Implement the Server** (10-15 min) - Write service handlers
 5. **Implement the Client** (5-10 min) - Call your service
 6. **Run It** (2 min) - Start server and client

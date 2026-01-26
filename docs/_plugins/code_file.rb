@@ -8,8 +8,8 @@ module Jekyll
     def render(context)
       site = context.registers[:site]
       
-      # site.source points to /Users/james/src/barrister2/docs
-      # workspace_root is /Users/james/src/barrister2
+      # site.source points to /Users/james/src/pulserpc/docs
+      # workspace_root is /Users/james/src/pulserpc
       # The path ../../examples/checkout.idl is a relative path from workspace root
       # - ../../ means go up from /Users/james/src to /Users/james
       # - BUT we want it relative to docs, so ../examples is the correct interpretation

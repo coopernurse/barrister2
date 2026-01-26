@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * Helper methods for Barrister type operations
+ * Helper methods for PulseRPC type operations
  */
 public class Types {
 

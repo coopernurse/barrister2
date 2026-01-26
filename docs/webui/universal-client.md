@@ -25,7 +25,7 @@ The Universal Client provides:
 ### 1. Start the Web UI
 
 ```bash
-./target/barrister -ui -ui-port 8080
+./target/pulserpc -ui -ui-port 8080
 ```
 
 Open your browser to `http://localhost:8080` and click the **Client** button.

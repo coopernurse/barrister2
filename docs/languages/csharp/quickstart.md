@@ -177,7 +177,7 @@ Create a server project file `TestServer/TestServer.csproj`:
     <Compile Include="../Shared/Checkout.cs" />
     <Compile Include="../Shared/Contract.cs" />
     <Compile Include="../Shared/Server.cs" />
-    <Compile Include="../Shared/barrister2/*.cs" />
+    <Compile Include="../Shared/pulserpc/*.cs" />
   </ItemGroup>
 
 </Project>
@@ -303,7 +303,7 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        var server = new BarristerServer();
+        var server = new PulseRPCServer();
         var catalogService = new CatalogServiceImpl();
         var cartService = new CartServiceImpl(catalogService);
 
@@ -342,7 +342,7 @@ Create a client project file `TestClient/TestClient.csproj`:
     <Compile Include="../Shared/Checkout.cs" />
     <Compile Include="../Shared/Contract.cs" />
     <Compile Include="../Shared/Client.cs" />
-    <Compile Include="../Shared/barrister2/*.cs" />
+    <Compile Include="../Shared/pulserpc/*.cs" />
   </ItemGroup>
 
 </Project>

@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Performance Testing Script for Barrister2 Documentation
+# Performance Testing Script for PulseRPC2 Documentation
 # This script helps verify performance optimizations
 
 set -e
 
 echo "=================================="
-echo "Barrister2 Performance Test Script"
+echo "PulseRPC2 Performance Test Script"
 echo "=================================="
 echo ""
 
@@ -43,7 +43,7 @@ echo "Waiting for server to start..."
 sleep 5
 
 # Check if server is running
-if ! curl -s http://localhost:4000/barrister2/ > /dev/null; then
+if ! curl -s http://localhost:4000/pulserpc/ > /dev/null; then
     echo "❌ Failed to start Jekyll server. Check /tmp/jekyll.log for details."
     kill $JEKYLL_PID 2>/dev/null || true
     exit 1
@@ -56,7 +56,7 @@ echo ""
 if [ "$LIGHTHOUSE_AVAILABLE" = true ]; then
     echo "Step 3: Running Lighthouse audit..."
     echo "-----------------------------------"
-    lighthouse http://localhost:4000/barrister2/ \
+    lighthouse http://localhost:4000/pulserpc/ \
         --only-categories=performance \
         --output=html \
         --output=json \
@@ -98,7 +98,7 @@ else
     echo "Step 3: Manual Testing Required"
     echo "--------------------------------"
     echo "Open Chrome DevTools and run Lighthouse manually:"
-    echo "  1. Navigate to: http://localhost:4000/barrister2/"
+    echo "  1. Navigate to: http://localhost:4000/pulserpc/"
     echo "  2. Open DevTools (F12)"
     echo "  3. Go to Lighthouse tab"
     echo "  4. Run Performance audit"
@@ -112,7 +112,7 @@ echo ""
 echo "Press Ctrl+C to stop the server, or run:"
 echo "  kill $JEKYLL_PID"
 echo ""
-echo "Server running at: http://localhost:4000/barrister2/"
+echo "Server running at: http://localhost:4000/pulserpc/"
 
 # Keep script running
 wait $JEKYLL_PID

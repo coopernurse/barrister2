@@ -1,6 +1,6 @@
-# Deploying Barrister2 Documentation to GitHub Pages
+# Deploying PulseRPC2 Documentation to GitHub Pages
 
-This guide covers deploying the Barrister2 documentation to GitHub Pages.
+This guide covers deploying the PulseRPC2 documentation to GitHub Pages.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ git push origin main
 ### Step 3: View Your Site
 
 - Check the **Actions** tab to see the deployment progress
-- Once complete, your site will be at: `https://<username>.github.io/barrister2/`
+- Once complete, your site will be at: `https://<username>.github.io/pulserpc/`
 
 ## How It Works
 
@@ -87,10 +87,10 @@ make docs-clean
 
 ### Base URL
 
-The documentation is configured for GitHub Pages at `/barrister2` in `docs/_config.yml`:
+The documentation is configured for GitHub Pages at `/pulserpc` in `docs/_config.yml`:
 
 ```yaml
-baseurl: /barrister2
+baseurl: /pulserpc
 ```
 
 ### Custom Domain (Optional)

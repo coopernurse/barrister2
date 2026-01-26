@@ -11,7 +11,7 @@ import (
 
 // TestSessionPersistence tests that sessions persist across Manager instances
 func TestSessionPersistence(t *testing.T) {
-	tempDir, err := newTempDir("barrister-test-persist-*")
+	tempDir, err := newTempDir("pulserpc-test-persist-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -79,7 +79,7 @@ struct User {
 
 // TestSessionExpirationCleanup tests the cleanup mechanism
 func TestSessionExpirationCleanup(t *testing.T) {
-	tempDir, err := newTempDir("barrister-test-cleanup-*")
+	tempDir, err := newTempDir("pulserpc-test-cleanup-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -159,7 +159,7 @@ struct User {
 
 // TestMultipleRuntimesParallel tests generating code for multiple runtimes in parallel
 func TestMultipleRuntimesParallel(t *testing.T) {
-	tempDir, err := newTempDir("barrister-test-parallel-*")
+	tempDir, err := newTempDir("pulserpc-test-parallel-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -258,7 +258,7 @@ struct User {
 
 // TestConcurrentAccess tests thread safety of session operations
 func TestConcurrentAccess(t *testing.T) {
-	tempDir, err := newTempDir("barrister-test-concurrent-*")
+	tempDir, err := newTempDir("pulserpc-test-concurrent-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

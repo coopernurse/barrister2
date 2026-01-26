@@ -15,7 +15,7 @@ import (
 
 func TestCreateZip(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestCreateZip(t *testing.T) {
 
 func TestCreateZipNonExistentSession(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

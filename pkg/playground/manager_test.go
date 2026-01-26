@@ -34,7 +34,7 @@ func (m *mockPlugin) Generate(idl *parser.IDL, fs *flag.FlagSet) error {
 
 func TestNewManager(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestNewManager(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestGenerate(t *testing.T) {
 
 func TestGenerateInvalidIDL(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestGenerateInvalidIDL(t *testing.T) {
 
 func TestSessionCleanup(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestSessionCleanup(t *testing.T) {
 
 func TestIsExpired(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -287,7 +287,7 @@ func TestIsExpired(t *testing.T) {
 
 func TestGetSessionCount(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -338,7 +338,7 @@ func TestGetSessionCount(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -396,7 +396,7 @@ func TestDelete(t *testing.T) {
 
 func TestGetFile(t *testing.T) {
 	// Create temp directory for tests
-	tempDir, err := os.MkdirTemp("", "barrister-test-")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

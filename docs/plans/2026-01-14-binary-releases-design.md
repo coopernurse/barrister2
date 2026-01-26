@@ -33,11 +33,11 @@ on:
 
 | Binary Name | GOOS | GOARCH |
 |-------------|------|--------|
-| barrister-linux-amd64 | linux | amd64 |
-| barrister-linux-arm64 | linux | arm64 |
-| barrister-darwin-amd64 | darwin | amd64 |
-| barrister-darwin-arm64 | darwin | arm64 |
-| barrister-windows-amd64 | windows | amd64 |
+| pulserpc-linux-amd64 | linux | amd64 |
+| pulserpc-linux-arm64 | linux | arm64 |
+| pulserpc-darwin-amd64 | darwin | amd64 |
+| pulserpc-darwin-arm64 | darwin | arm64 |
+| pulserpc-windows-amd64 | windows | amd64 |
 
 ### Workflow Jobs
 
@@ -50,18 +50,18 @@ on:
 
 2. **assemble**: Runs after all builds complete
    - Downloads all binaries
-   - Computes SHA256 checksums into `barrister_checksums.txt`
+   - Computes SHA256 checksums into `pulserpc_checksums.txt`
    - Uses `softprops/action-gh-release` to attach artifacts to release
 
 ## Download URLs
 
 After implementation, users can download from:
 ```
-https://github.com/coopernurse/barrister2/releases/latest/download/barrister-linux-amd64
-https://github.com/coopernurse/barrister2/releases/latest/download/barrister-linux-arm64
-https://github.com/coopernurse/barrister2/releases/latest/download/barrister-darwin-amd64
-https://github.com/coopernurse/barrister2/releases/latest/download/barrister-darwin-arm64
-https://github.com/coopernurse/barrister2/releases/latest/download/barrister-windows-amd64
+https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-linux-amd64
+https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-linux-arm64
+https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-darwin-amd64
+https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-darwin-arm64
+https://github.com/coopernurse/pulserpc/releases/latest/download/pulserpc-windows-amd64
 ```
 
 ## Files Created

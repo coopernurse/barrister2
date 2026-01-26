@@ -86,7 +86,7 @@ go version
 If you get permission errors, make the binary executable:
 
 ```bash
-chmod +x barrister
+chmod +x pulserpc
 ```
 
 ### macOS "developer cannot be verified"
@@ -94,7 +94,7 @@ chmod +x barrister
 On macOS, downloaded binaries may be blocked by Gatekeeper with the error "developer cannot be verified". To allow the binary to run:
 
 ```bash
-xattr -cr /path/to/barrister-darwin-amd64
+xattr -cr /path/to/pulserpc-darwin-amd64
 # Or right-click the file and select "Open Anyway" in System Settings
 ```
 

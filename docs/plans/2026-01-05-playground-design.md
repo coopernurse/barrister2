@@ -1,13 +1,13 @@
-# Barrister Playground Design
+# PulseRPC Playground Design
 
 ## Overview
 
-Add an interactive playground mode to Barrister's web UI that allows users to edit/paste IDL, generate code for different language runtimes, view the generated files with syntax highlighting, and download the results as a ZIP archive.
+Add an interactive playground mode to PulseRPC's web UI that allows users to edit/paste IDL, generate code for different language runtimes, view the generated files with syntax highlighting, and download the results as a ZIP archive.
 
 ## Requirements
 
 - **Integrated feature**: Add as a second mode to the existing web UI, accessible via navigation menu (Client/Playground)
-- **Multi-language support**: Support all current Barrister runtimes (Go, Java, Python, TypeScript, C#)
+- **Multi-language support**: Support all current PulseRPC runtimes (Go, Java, Python, TypeScript, C#)
 - **Real-time validation**: Strict IDL validation with clear error messages
 - **Session persistence**: Remember user's IDL between sessions via localStorage
 - **Clean resource management**: Time-based cleanup of generated files (2-hour max age)
@@ -42,7 +42,7 @@ type Session struct {
 
 **Key Responsibilities:**
 - Generate ULID for each session (using github.com/oklog/ulid)
-- Create temp directory: `$TEMP/barrister-playground/<ULID>/`
+- Create temp directory: `$TEMP/pulserpc-playground/<ULID>/`
 - Parse IDL with strict validation (fail fast on errors)
 - Call appropriate plugin's `Generate()` method with custom FlagSet
 - Collect all generated file paths (walk directory tree)
@@ -63,7 +63,7 @@ type Session struct {
 **GET /api/playground/zip/:id**
 - Returns ZIP archive of all files in a session
 - Preserves directory structure
-- Filename: `barrister-<runtime>-<timestamp>.zip`
+- Filename: `pulserpc-<runtime>-<timestamp>.zip`
 
 ### Frontend Components
 
@@ -139,7 +139,7 @@ build-webui:
 	cd pkg/webui && npm install && npm run build
 
 build: build-webui
-	go build ./cmd/barrister
+	go build ./cmd/pulserpc
 ```
 
 ### Testing Strategy
@@ -173,8 +173,8 @@ build: build-webui
 make test-e2e
 
 # Or via Docker
-docker build -f pkg/webui/tests/Dockerfile -t barrister-e2e .
-docker run barrister-e2e
+docker build -f pkg/webui/tests/Dockerfile -t pulserpc-e2e .
+docker run pulserpc-e2e
 ```
 
 ## User Flow

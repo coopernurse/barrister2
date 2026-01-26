@@ -16,7 +16,7 @@ layout: default
       <a href="{{ '/idl-guide/syntax' | relative_url }}" class="btn btn-secondary btn-large">
         View IDL Guide
       </a>
-      <a href="https://github.com/coopernurse/barrister2" class="btn btn-secondary btn-large">
+      <a href="https://github.com/coopernurse/pulserpc" class="btn btn-secondary btn-large">
         GitHub
       </a>
     </div>
@@ -25,7 +25,7 @@ layout: default
 
 <!-- Feature Highlights -->
 <section class="features-section" aria-labelledby="features-title">
-  <h2 id="features-title" class="section-title">Why Barrister2?</h2>
+  <h2 id="features-title" class="section-title">Why PulseRPC2?</h2>
   <div class="features-grid">
     <div class="feature-card">
       <h3>IDL-Based Code Generation</h3>
@@ -63,7 +63,7 @@ layout: default
 <section class="code-example-section" aria-labelledby="code-example-title">
   <h2 id="code-example-title" class="section-title">Quick Look</h2>
   <p class="section-description">
-    Define your service interface in a simple IDL file, and Barrister2 generates type-safe code for you.
+    Define your service interface in a simple IDL file, and PulseRPC2 generates type-safe code for you.
   </p>
 
   <div class="code-example-container">
@@ -98,7 +98,7 @@ package main
 
 import (
     "context"
-    "github.com/coopernurse/barrister2-go"
+    "github.com/coopernurse/pulserpc-go"
 )
 
 type CatalogServer struct {
@@ -126,10 +126,10 @@ func (s *CatalogServer) GetProduct(ctx context.Context, productId string) (*Prod
 
       <div class="code-pane" id="pane-python" role="tabpanel" aria-labelledby="tab-python" tabindex="0">
 {% highlight python %}
-import barrister2
+import pulserpc
 
 # Create a client
-client = barrister2.Client("http://localhost:8080/rpc")
+client = pulserpc.Client("http://localhost:8080/rpc")
 service = client.checkout_CatalogService()
 
 # Call remote methods with type safety
@@ -180,7 +180,7 @@ if product:
     <p>Get started in minutes with our quickstart guide, or explore the IDL reference to learn more.</p>
     <div class="cta-actions">
       <a href="{{ '/get-started/installation' | relative_url }}" class="btn btn-primary btn-large">
-        Install Barrister2
+        Install PulseRPC2
       </a>
       <a href="{{ '/get-started/quickstart-overview' | relative_url }}" class="btn btn-secondary btn-large">
         Quickstart Guide

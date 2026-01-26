@@ -328,7 +328,7 @@ func (s *OrderService) GetOrder(orderId string) (*checkout.Order, error) {
 }
 
 func main() {
-    server := checkout.NewBarristerServer("0.0.0.0", 8080)
+    server := checkout.NewPulseRPCServer("0.0.0.0", 8080)
     cartSvc := NewCartService()
 
     server.Register("CatalogService", &CatalogService{})

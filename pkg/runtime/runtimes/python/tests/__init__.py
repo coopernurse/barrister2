@@ -1,3 +1,3 @@
-"""Tests for Barrister Python runtime"""
+"""Tests for PulseRPC Python runtime"""
 
 

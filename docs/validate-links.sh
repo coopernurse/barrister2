@@ -118,8 +118,8 @@ if [[ -f "$TEMP_DIR/all_links.txt" ]]; then
         # Skip links with anchors (we'll handle the path part)
         clean_link="${target_link%%#*}"
 
-        # Remove /barrister2/ prefix if present (it's the baseurl)
-        clean_link="${clean_link#/barrister2/}"
+        # Remove /pulserpc/ prefix if present (it's the baseurl)
+        clean_link="${clean_link#/pulserpc/}"
 
         # Handle absolute paths (starting with /)
         if [[ "$clean_link" =~ ^/ ]]; then

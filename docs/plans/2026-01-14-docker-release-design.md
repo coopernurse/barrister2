@@ -19,8 +19,8 @@ Extend the existing GitHub Actions workflow to build and publish Docker images t
 ### Tags
 
 On version tag `v1.0.0`:
-- `ghcr.io/coopernurse/barrister2:v1.0.0` - Version-specific tag
-- `ghcr.io/coopernurse/barrister2:latest` - Always points to latest release
+- `ghcr.io/coopernurse/pulserpc:v1.0.0` - Version-specific tag
+- `ghcr.io/coopernurse/pulserpc:latest` - Always points to latest release
 
 ### Dockerfile
 
@@ -32,12 +32,12 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" \
-    -o /barrister ./cmd/barrister/barrister.go
+    -o /pulserpc ./cmd/pulserpc/pulserpc.go
 
 FROM scratch
-COPY --from=builder /barrister /barrister
+COPY --from=builder /pulserpc /pulserpc
 EXPOSE 8080
-ENTRYPOINT ["/barrister"]
+ENTRYPOINT ["/pulserpc"]
 ```
 
 ### Workflow Integration

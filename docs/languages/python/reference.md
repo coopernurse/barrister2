@@ -153,7 +153,7 @@ cart = cart.addToCart({
 1. **Use dicts for struct values**: All struct values should be dictionaries
 2. **Handle None for optionals**: Always check if optional return values are None
 3. **Use descriptive error codes**: Custom errors should have codes >= 1000
-4. **Validate early**: Let Barrister validate input, validate business logic in handlers
+4. **Validate early**: Let PulseRPC validate input, validate business logic in handlers
 5. **Keep state in handlers**: Store in-memory state in service implementation classes
 
 ## Working with Nested Structs

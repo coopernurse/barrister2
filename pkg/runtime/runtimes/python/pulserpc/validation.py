@@ -1,4 +1,4 @@
-"""Validation functions for Barrister types"""
+"""Validation functions for PulseRPC types"""
 
 from typing import Any, Callable, Dict, List
 

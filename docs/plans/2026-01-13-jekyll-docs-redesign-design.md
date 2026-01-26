@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-13
 **Status:** Approved
-**Goal:** Modernize Barrister2 documentation with clean, Stripe/Vercel-inspired aesthetic
+**Goal:** Modernize PulseRPC2 documentation with clean, Stripe/Vercel-inspired aesthetic
 
 ## Overview
 
@@ -173,7 +173,7 @@ $base-font-family: 'Inter', system-ui, sans-serif;
 cd docs
 bundle install
 bundle exec jekyll serve --livereload
-# http://localhost:4000/barrister2/
+# http://localhost:4000/pulserpc/
 ```
 
 ## Testing Checklist

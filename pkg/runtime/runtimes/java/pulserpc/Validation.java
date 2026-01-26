@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.lang.reflect.Array;
 
 /**
- * Validation functions for Barrister types
+ * Validation functions for PulseRPC types
  */
 public class Validation {
 

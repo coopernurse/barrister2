@@ -1,4 +1,4 @@
-# Barrister2 Documentation Implementation Plan
+# PulseRPC2 Documentation Implementation Plan
 
 **Date:** 2026-01-13
 **Based on:** [2026-01-13-documentation-design.md](./2026-01-13-documentation-design.md)
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This plan breaks down the implementation of the Barrister2 documentation site into concrete, executable tasks. Work proceeds in phases: foundation, content, examples, and polish.
+This plan breaks down the implementation of the PulseRPC2 documentation site into concrete, executable tasks. Work proceeds in phases: foundation, content, examples, and polish.
 
 ## Phase 1: Jekyll Foundation (4 tasks)
 
@@ -120,7 +120,7 @@ Liquid::Template.register_tag('code_file', Jekyll::CodeFile)
 - Error codes: 1001-1005 documented
 
 **Expected:**
-- IDL compiles successfully with `./target/barrister checkout.idl`
+- IDL compiles successfully with `./target/pulserpc checkout.idl`
 - Covers all IDL features: namespace, interface, struct, enum, optional fields, arrays, extends (if any)
 
 ---
@@ -132,11 +132,11 @@ Generate code for all supported languages from checkout.idl
 
 **Commands to run:**
 ```bash
-./target/barrister -runtime go-client-server examples/checkout.idl
-./target/barrister -runtime java-client-server examples/checkout.idl
-./target/barrister -runtime python-client-server examples/checkout.idl
-./target/barrister -runtime ts-client-server examples/checkout.idl
-./target/barrister -runtime csharp-client-server examples/checkout.idl
+./target/pulserpc -runtime go-client-server examples/checkout.idl
+./target/pulserpc -runtime java-client-server examples/checkout.idl
+./target/pulserpc -runtime python-client-server examples/checkout.idl
+./target/pulserpc -runtime ts-client-server examples/checkout.idl
+./target/pulserpc -runtime csharp-client-server examples/checkout.idl
 ```
 
 **Expected:**
@@ -193,7 +193,7 @@ Generate code for all supported languages from checkout.idl
 - `README.md`
 
 **Implementation approach:**
-- Generate code with barrister CLI
+- Generate code with pulserpc CLI
 - Implement server handlers for all interfaces
 - In-memory storage using maps with sync.Mutex
 - Client demonstrates all service calls
@@ -272,15 +272,15 @@ Generate code for all supported languages from checkout.idl
 **Content to include:**
 1. Prerequisites (Go 1.21+, or pre-built binary)
 2. Four installation methods:
-   - Go install: `go install github.com/coopernurse/barrister2@latest`
+   - Go install: `go install github.com/coopernurse/pulserpc@latest`
    - Download binary from Releases
-   - Docker: `docker pull ghcr.io/coopernurse/barrister2:latest`
+   - Docker: `docker pull ghcr.io/coopernurse/pulserpc:latest`
    - Build from source: `make build`
-3. Verification: `barrister --version`
+3. Verification: `pulserpc --version`
 4. Troubleshooting section
 
 **Expected:**
-- User can install Barrister using any of the 4 methods
+- User can install PulseRPC using any of the 4 methods
 - Instructions are clear and copy-pasteable
 - Troubleshooting covers common issues (PATH, Go version, permissions)
 
@@ -558,7 +558,7 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Install Barrister
+      - name: Install PulseRPC
         run: make build
 
       - name: Test Python docs
@@ -614,7 +614,7 @@ jobs:
 
 **Expected:**
 - GitHub Pages is configured
-- After workflow runs, site is accessible at `https://bitmechanic.github.io/barrister2/`
+- After workflow runs, site is accessible at `https://bitmechanic.github.io/pulserpc/`
 
 ---
 

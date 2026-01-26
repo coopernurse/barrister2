@@ -43,16 +43,16 @@
         console.log('Using fallback page list');
         // Fallback: manually define pages with baseUrl
         pages.push(
-          { id: baseUrl + '/get-started/installation.html', title: 'Installation', content: 'Install Barrister CLI using Go, Docker, or from source' },
-          { id: baseUrl + '/get-started/quickstart-overview.html', title: 'Quickstart Overview', content: 'Build an e-commerce checkout API with Barrister' },
-          { id: baseUrl + '/idl-guide/syntax.html', title: 'IDL Syntax', content: 'Learn the Barrister Interface Definition Language syntax' },
+          { id: baseUrl + '/get-started/installation.html', title: 'Installation', content: 'Install PulseRPC CLI using Go, Docker, or from source' },
+          { id: baseUrl + '/get-started/quickstart-overview.html', title: 'Quickstart Overview', content: 'Build an e-commerce checkout API with PulseRPC' },
+          { id: baseUrl + '/idl-guide/syntax.html', title: 'IDL Syntax', content: 'Learn the PulseRPC Interface Definition Language syntax' },
           { id: baseUrl + '/idl-guide/types.html', title: 'IDL Types', content: 'Built-in types, arrays, maps, optional fields' },
-          { id: baseUrl + '/idl-guide/validation.html', title: 'Validation', content: 'Runtime validation in Barrister' },
-          { id: baseUrl + '/languages/go/quickstart.html', title: 'Go Quickstart', content: 'Build a Barrister service in Go' },
-          { id: baseUrl + '/languages/java/quickstart.html', title: 'Java Quickstart', content: 'Build a Barrister service in Java' },
-          { id: baseUrl + '/languages/python/quickstart.html', title: 'Python Quickstart', content: 'Build a Barrister service in Python' },
-          { id: baseUrl + '/languages/typescript/quickstart.html', title: 'TypeScript Quickstart', content: 'Build a Barrister service in TypeScript' },
-          { id: baseUrl + '/languages/csharp/quickstart.html', title: 'C# Quickstart', content: 'Build a Barrister service in C#' }
+          { id: baseUrl + '/idl-guide/validation.html', title: 'Validation', content: 'Runtime validation in PulseRPC' },
+          { id: baseUrl + '/languages/go/quickstart.html', title: 'Go Quickstart', content: 'Build a PulseRPC service in Go' },
+          { id: baseUrl + '/languages/java/quickstart.html', title: 'Java Quickstart', content: 'Build a PulseRPC service in Java' },
+          { id: baseUrl + '/languages/python/quickstart.html', title: 'Python Quickstart', content: 'Build a PulseRPC service in Python' },
+          { id: baseUrl + '/languages/typescript/quickstart.html', title: 'TypeScript Quickstart', content: 'Build a PulseRPC service in TypeScript' },
+          { id: baseUrl + '/languages/csharp/quickstart.html', title: 'C# Quickstart', content: 'Build a PulseRPC service in C#' }
         );
         initIndex();
       });

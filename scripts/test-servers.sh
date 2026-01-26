@@ -174,7 +174,7 @@ wait_for_server() {
     while [ $wait_count -lt $TIMEOUT ]; do
         if curl -s -X POST "$url" \
             -H "Content-Type: application/json" \
-            -d '{"jsonrpc":"2.0","method":"barrister-idl","id":1}' > /dev/null 2>&1; then
+            -d '{"jsonrpc":"2.0","method":"pulserpc-idl","id":1}' > /dev/null 2>&1; then
             echo -e "${GREEN}$name server is ready${NC}"
             return 0
         fi

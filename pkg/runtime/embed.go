@@ -66,7 +66,7 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 
 	// The embed path includes the directory structure, so we need to walk it
 	// For Python, files are at: runtimes/python/pulserpc/*.py
-	basePath := fmt.Sprintf("runtimes/%s/pulserpc", lang)
+	basePath := getRuntimeEmbedPath(lang)
 
 	entries, err := fs.ReadDir(basePath)
 	if err != nil {
@@ -110,7 +110,7 @@ func GetRuntimeFiles(lang string) (map[string][]byte, error) {
 
 // CopyRuntimeFiles copies all runtime files for the specified language to the output directory
 // The files are copied to outputDir/{runtimePackageName}/ where runtimePackageName is typically
-// "barrister2" for Python, but may vary by language.
+// "pulserpc" for most languages, "PulseRPC" for C#, "com/bitmechanic/pulserpc" for Java
 func CopyRuntimeFiles(lang string, outputDir string) error {
 	return CopyRuntimeFilesToPackage(lang, outputDir, getRuntimePackageName(lang))
 }
@@ -156,5 +156,18 @@ func getRuntimePackageName(lang string) string {
 		return "PulseRPC"
 	default:
 		return "pulserpc"
+	}
+}
+
+// getRuntimeEmbedPath returns the embed filesystem path for the runtime library
+// This is the path used in //go:embed directives and must match the actual directory structure
+func getRuntimeEmbedPath(lang string) string {
+	switch lang {
+	case "go", "python", "ts", "java":
+		return fmt.Sprintf("runtimes/%s/pulserpc", lang)
+	case "csharp":
+		return "runtimes/csharp/PulseRPC"
+	default:
+		return fmt.Sprintf("runtimes/%s/pulserpc", lang)
 	}
 }

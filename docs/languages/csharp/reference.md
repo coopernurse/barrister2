@@ -167,7 +167,7 @@ if (product != null) {
 
 ## Async/Await Pattern
 
-Barrister C# supports async/await:
+PulseRPC C# supports async/await:
 
 ```csharp
 using System.Threading.Tasks;
@@ -320,7 +320,7 @@ Add to `appsettings.json`:
 
 ```json
 {
-  "Barrister": {
+  "PulseRPC": {
     "ServerUrl": "http://localhost:8080",
     "Timeout": 30000
   }
@@ -334,7 +334,7 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
-var serverUrl = config["Barrister:ServerUrl"];
+var serverUrl = config["PulseRPC:ServerUrl"];
 ```
 
 ## Exception Handling
@@ -356,7 +356,7 @@ catch (Exception ex) {
 
 ## Serialization
 
-Barrister C# uses System.Text.Json or Newtonsoft.Json:
+PulseRPC C# uses System.Text.Json or Newtonsoft.Json:
 
 ```csharp
 using System.Text.Json;

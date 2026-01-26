@@ -1,8 +1,8 @@
-# Barrister RPC - AI Coding Guide
+# PulseRPC RPC - AI Coding Guide
 
 ## Project Overview
 
-Barrister is a JSON-RPC 2.0 system with IDL-based type definitions, validation, and multi-language code generation. The codebase comprises a Go CLI that parses `.idl` files and generates client/server code for Python, TypeScript, C#, Java, and Go.
+PulseRPC is a JSON-RPC 2.0 system with IDL-based type definitions, validation, and multi-language code generation. The codebase comprises a Go CLI that parses `.idl` files and generates client/server code for Python, TypeScript, C#, Java, and Go.
 
 **Core Architecture:**
 ```
@@ -22,12 +22,12 @@ IDL File → Go Parser → Plugin System → Generated Code (client.*, server.*,
 
 ### 2. Plugin System (`pkg/generator/`)
 - Each language has a plugin implementing the `Plugin` interface ([plugin.go](pkg/generator/plugin.go))
-- Plugins register via `generator.Register()` in `cmd/barrister/barrister.go`
+- Plugins register via `generator.Register()` in `cmd/pulserpc/pulserpc.go`
 - **Key pattern:** Plugins generate 3 files + copy embedded runtime:
   - `idl.{ext}` - Type definitions as data structures
   - `server.{ext}` - HTTP server with interface stubs
   - `client.{ext}` - Client with transport abstraction
-  - Runtime library copied from `pkg/runtime/runtimes/{lang}/barrister2/`
+  - Runtime library copied from `pkg/runtime/runtimes/{lang}/pulserpc/`
 
 ### 3. Runtime Libraries (`pkg/runtime/runtimes/`)
 - **Embedded at compile time** via Go `embed` directive in [pkg/runtime/embed.go](pkg/runtime/embed.go)
@@ -42,13 +42,13 @@ IDL File → Go Parser → Plugin System → Generated Code (client.*, server.*,
 - Mithril.js SPA for testing RPC services
 - Build with `cd webui && make build` (creates `dist/` for embedding)
 - Embedded into Go binary via [pkg/webui/embed.go](pkg/webui/embed.go)
-- Launch with `barrister -ui -ui-port 8080`
+- Launch with `pulserpc -ui -ui-port 8080`
 
 ## Key Development Workflows
 
 ### Building
 ```bash
-make build                    # Build binary + webui → target/barrister
+make build                    # Build binary + webui → target/pulserpc
 make build-linux              # Cross-compile for Docker (AMD64)
 ```
 
@@ -78,7 +78,7 @@ make start-test-servers
 make status-test-servers
 
 # Then launch UI
-target/barrister -ui -ui-port 8080
+target/pulserpc -ui -ui-port 8080
 # Open http://localhost:8080
 
 # Clean up
@@ -107,7 +107,7 @@ When `-test-server` flag is set:
 
 1. **Makefile delegation:** Root [Makefile](Makefile) delegates to runtime-specific Makefiles via `cd pkg/runtime/runtimes/{lang} && $(MAKE)`
 2. **Output directory:** `-dir` flag controls where generated code goes (defaults to `./generated`)
-3. **CLI structure:** `barrister [flags] <idl-file>` or `barrister -ui` for web mode
+3. **CLI structure:** `pulserpc [flags] <idl-file>` or `pulserpc -ui` for web mode
 4. **Error handling:** Parser uses `ValidationErrors` to collect multiple errors before failing
 5. **Optional fields:** Marked with `[optional]` in IDL, validated to allow null/None/nil
 6. **Struct inheritance:** `extends` keyword requires validating parent type exists and is a struct
@@ -117,15 +117,15 @@ When `-test-server` flag is set:
 - **Don't forget namespace declarations** - validator enforces this for non-empty IDL files
 - **Embed directives are finicky** - paths in `//go:embed` must be relative to the .go file
 - **Integration tests need Docker** - they use language-specific images (python:3.11-slim, node:18-slim, etc.)
-- **Generated code imports runtime** - ensure relative paths match (e.g., `from barrister2 import ...`)
+- **Generated code imports runtime** - ensure relative paths match (e.g., `from pulserpc import ...`)
 - **Web UI requires build** - changes to `webui/src/` need `cd webui && make build` before `make build`
 
 ## Adding New Language Support
 
-1. Create runtime library in `pkg/runtime/runtimes/{lang}/barrister2/`
+1. Create runtime library in `pkg/runtime/runtimes/{lang}/pulserpc/`
 2. Add embed directive in [pkg/runtime/embed.go](pkg/runtime/embed.go)
 3. Implement plugin in `pkg/generator/{lang}_client_server.go`
-4. Register plugin in [cmd/barrister/barrister.go](cmd/barrister/barrister.go)
+4. Register plugin in [cmd/pulserpc/pulserpc.go](cmd/pulserpc/pulserpc.go)
 5. Add integration tests in `tests/integration/test_generator_{lang}.sh`
 6. Add to `RUNTIMES` array in [scripts/test-servers.sh](scripts/test-servers.sh)
 

@@ -170,7 +170,7 @@ if (product !== null) {
 
 ## Async/Await Pattern
 
-Barrister TypeScript can use async/await:
+PulseRPC TypeScript can use async/await:
 
 ```typescript
 class OrderServiceImpl extends OrderService {
@@ -279,16 +279,16 @@ Add to `package.json`:
 
 ```typescript
 import express from 'express';
-import { BarristerServer } from './server';
+import { PulseRPCServer } from './server';
 
 const app = express();
 app.use(express.json());
 
-const barrister = new BarristerServer(8080);
+const pulserpc = new PulseRPCServer(8080);
 
-// Mount Barrister server on Express
+// Mount PulseRPC server on Express
 app.use('/rpc', (req, res) => {
-  // Forward Express requests to Barrister
+  // Forward Express requests to PulseRPC
 });
 
 app.listen(3000);

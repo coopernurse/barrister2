@@ -10,7 +10,7 @@ import (
 )
 
 func TestJavaGeneratorBasicFiles(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "barrister-java-gen-")
+	tmpDir, err := os.MkdirTemp("", "pulserpc-java-gen-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestJavaGeneratorBasicFiles(t *testing.T) {
 }
 
 func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "barrister-java-gen-")
+	tmpDir, err := os.MkdirTemp("", "pulserpc-java-gen-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestJavaGeneratorTestFilesWithFlag(t *testing.T) {
 }
 
 func TestJavaGeneratorTestFilesDisabled(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "barrister-java-gen-")
+	tmpDir, err := os.MkdirTemp("", "pulserpc-java-gen-")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

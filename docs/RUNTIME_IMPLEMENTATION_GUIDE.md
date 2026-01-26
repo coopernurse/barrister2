@@ -1,6 +1,6 @@
-# Barrister Runtime Implementation Guide
+# PulseRPC Runtime Implementation Guide
 
-This document describes how to implement a new language runtime for Barrister. It is based on the Python implementation and provides a comprehensive guide for creating runtimes for other languages.
+This document describes how to implement a new language runtime for PulseRPC. It is based on the Python implementation and provides a comprehensive guide for creating runtimes for other languages.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ This document describes how to implement a new language runtime for Barrister. I
 
 ## Architecture Overview
 
-The Barrister code generation system consists of two main components:
+The PulseRPC code generation system consists of two main components:
 
 1. **Code Generator Plugin** (Go): Generates language-specific code from IDL
 2. **Runtime Library** (Target Language): Provides validation, RPC handling, and type utilities
@@ -47,7 +47,7 @@ The Barrister code generation system consists of two main components:
 
 ### Runtime Library vs Generated Code
 
-**Runtime Library** (`pkg/runtime/runtimes/{lang}/barrister2/`):
+**Runtime Library** (`pkg/runtime/runtimes/{lang}/pulserpc/`):
 - **Purpose**: Reusable library code that is copied into the output directory
 - **Contents**:
   - Type validation functions (struct, enum, built-in types, arrays, maps)
@@ -61,7 +61,7 @@ The Barrister code generation system consists of two main components:
   - `idl.{ext}` - IDL-specific type definitions (structs, enums) as data structures
   - `server.{ext}` - HTTP server with interface stubs and request handling
   - `client.{ext}` - Client classes with transport abstraction
-  - `idl.json` - JSON representation of the IDL (for `barrister-idl` RPC method)
+  - `idl.json` - JSON representation of the IDL (for `pulserpc-idl` RPC method)
 
 ### Runtime Directory Structure
 
@@ -69,7 +69,7 @@ For a language `{lang}`, the runtime should be organized as:
 
 ```
 pkg/runtime/runtimes/{lang}/
-├── barrister2/              # Runtime library package/module
+├── pulserpc/              # Runtime library package/module
 │   ├── __init__.{ext}       # Package exports (if applicable)
 │   ├── rpc.{ext}            # RPC error handling
 │   ├── validation.{ext}     # Type validation functions
@@ -106,7 +106,7 @@ class RPCError(Exception):
 
 #### 2. Type Validation (`validation.{ext}`)
 
-Must provide validation functions for all Barrister types:
+Must provide validation functions for all PulseRPC types:
 
 - **Built-in types**: `string`, `int`, `float`, `bool`
 - **Arrays**: `[]Type` - validate array structure and element types
@@ -180,7 +180,7 @@ type Plugin interface {
 
 ### Plugin Registration
 
-Plugins are registered in `cmd/barrister/barrister.go`:
+Plugins are registered in `cmd/pulserpc/pulserpc.go`:
 
 ```go
 func registerPlugins() {
@@ -196,7 +196,7 @@ func registerPlugins() {
    - `Name()`: Return plugin identifier (e.g., "java-client-server")
    - `RegisterFlags()`: Register any language-specific flags
    - `Generate()`: Main code generation logic
-3. **Register plugin**: Add to `registerPlugins()` in `cmd/barrister/barrister.go`
+3. **Register plugin**: Add to `registerPlugins()` in `cmd/pulserpc/pulserpc.go`
 
 ### Generate() Method Responsibilities
 
@@ -208,16 +208,16 @@ The `Generate()` method must:
 4. **Generate IDL-specific file**: Create `idl.{ext}` with type definitions
 5. **Generate server file**: Create `server.{ext}` with HTTP server and interface stubs
 6. **Generate client file**: Create `client.{ext}` with client classes and transport
-7. **Generate IDL JSON**: Create `idl.json` for `barrister-idl` RPC method
+7. **Generate IDL JSON**: Create `idl.json` for `pulserpc-idl` RPC method
 
 ### Runtime File Copying
 
-Runtime files are embedded directly into the barrister binary using Go's `embed` package. This allows the binary to be self-contained and work without requiring the source tree at runtime.
+Runtime files are embedded directly into the pulserpc binary using Go's `embed` package. This allows the binary to be self-contained and work without requiring the source tree at runtime.
 
 Plugins should use the `runtime` package to copy embedded runtime files:
 
 ```go
-import "github.com/coopernurse/barrister2/pkg/runtime"
+import "github.com/coopernurse/pulserpc/pkg/runtime"
 
 func (p *PythonClientServer) copyRuntimeFiles(outputDir string) error {
     return runtime.CopyRuntimeFiles("python", outputDir)
@@ -226,7 +226,7 @@ func (p *PythonClientServer) copyRuntimeFiles(outputDir string) error {
 
 The `runtime.CopyRuntimeFiles()` function:
 - Extracts embedded runtime files from the binary
-- Copies them to `outputDir/{runtimePackageName}/` (e.g., `outputDir/barrister2/` for Python)
+- Copies them to `outputDir/{runtimePackageName}/` (e.g., `outputDir/pulserpc/` for Python)
 - Handles directory creation and file permissions automatically
 
 **Adding a New Runtime**:
@@ -235,7 +235,7 @@ To add runtime files for a new language, you must:
 
 1. **Add embed directive**: In `pkg/runtime/embed.go`, add a new embed variable:
    ```go
-   //go:embed all:runtimes/java/barrister2
+   //go:embed all:runtimes/java/pulserpc
    var javaRuntimeFiles embed.FS
    ```
 
@@ -294,7 +294,7 @@ To add runtime files for a new language, you must:
 
 **Example structure**:
 ```python
-from barrister2 import validate_type, validate_struct, validate_enum, ...
+from pulserpc import validate_type, validate_struct, validate_enum, ...
 
 ALL_STRUCTS = {
     'User': {
@@ -361,7 +361,7 @@ ALL_ENUMS = {
      - Handle `RPCError` exceptions from handlers
      - Handle validation errors
      - Handle internal errors
-   - **Special Method**: `barrister-idl`
+   - **Special Method**: `pulserpc-idl`
      - Returns the IDL JSON document (read from `idl.json`)
      - Allows clients to introspect the IDL
 
@@ -372,7 +372,7 @@ ALL_ENUMS = {
 
 **Example Server Structure**:
 ```python
-class BarristerServer:
+class PulseRPCServer:
     def __init__(self, host='localhost', port=8080):
         self.handlers = {}
     
@@ -381,7 +381,7 @@ class BarristerServer:
     
     def handle_request(self, request_json):
         # Validate JSON-RPC structure
-        # Handle barrister-idl
+        # Handle pulserpc-idl
         # Route to handler
         # Validate params
         # Call handler method
@@ -451,11 +451,11 @@ class BookServiceClient:
 
 ### 4. IDL JSON File (`idl.json`)
 
-**Purpose**: JSON representation of the IDL for the `barrister-idl` RPC method
+**Purpose**: JSON representation of the IDL for the `pulserpc-idl` RPC method
 
 **Format**: JSON-serialized `parser.IDL` structure
 
-**Usage**: Server reads this file when handling `barrister-idl` requests
+**Usage**: Server reads this file when handling `pulserpc-idl` requests
 
 ### Static vs Dynamic Type Generation
 
@@ -649,7 +649,7 @@ Both server and client must fully comply with JSON-RPC 2.0 specification:
 ### 8. Comments
 
 - **IDL comments**: Preserve and include in generated code where appropriate
-- **Generated code comments**: Mark generated code clearly ("Generated by barrister - do not edit")
+- **Generated code comments**: Mark generated code clearly ("Generated by pulserpc - do not edit")
 
 ### 9. Code Style
 
@@ -753,7 +753,7 @@ class AImpl:
     # ... other methods
 
 if __name__ == "__main__":
-    server = BarristerServer(host="0.0.0.0", port=8080)
+    server = PulseRPCServer(host="0.0.0.0", port=8080)
     server.register("A", AImpl())
     server.serve_forever()
 ```
@@ -795,7 +795,7 @@ def main():
 
 A test harness script (`tests/integration/test_generator.sh`) should:
 
-1. **Build the barrister binary** (if needed)
+1. **Build the pulserpc binary** (if needed)
 2. **Generate code** from `examples/conform.idl` with `-test-server` flag
 3. **Start the test server** in background
 4. **Wait for server to be ready** (poll or timeout)
@@ -907,10 +907,10 @@ Ports are assigned starting at 9000 and incrementing for each runtime:
 
 #### Container Naming
 
-Containers are named using the pattern `barrister-test-{name}`:
-- `barrister-test-python`
-- `barrister-test-ts`
-- `barrister-test-java` (if added)
+Containers are named using the pattern `pulserpc-test-{name}`:
+- `pulserpc-test-python`
+- `pulserpc-test-ts`
+- `pulserpc-test-java` (if added)
 
 This naming convention allows the script to easily find and manage all test server containers.
 
@@ -925,7 +925,7 @@ Each container:
 
 #### Health Checks
 
-The script performs health checks by calling the `barrister-idl` RPC method on each server. Servers must respond to this method within 30 seconds to be considered ready.
+The script performs health checks by calling the `pulserpc-idl` RPC method on each server. Servers must respond to this method within 30 seconds to be considered ready.
 
 #### Makefile Integration
 
@@ -962,7 +962,7 @@ When implementing a new runtime, ensure:
 - [ ] `idl.{ext}` generated with type definitions
 - [ ] `server.{ext}` generated with HTTP server
 - [ ] `client.{ext}` generated with transport abstraction
-- [ ] `idl.json` generated for `barrister-idl` method
+- [ ] `idl.json` generated for `pulserpc-idl` method
 - [ ] Runtime validation functions implemented
 - [ ] RPC error class implemented
 - [ ] Type helper functions implemented
@@ -970,7 +970,7 @@ When implementing a new runtime, ensure:
 - [ ] Server validates requests and responses
 - [ ] Client validates parameters and responses
 - [ ] HTTP transport supports custom headers
-- [ ] Server handles `barrister-idl` method
+- [ ] Server handles `pulserpc-idl` method
 - [ ] Server handles batch requests
 - [ ] Server handles notifications
 - [ ] Makefile targets for testing
@@ -990,7 +990,7 @@ To illustrate the concepts, here's how a Java runtime might be structured:
 **Runtime Structure**:
 ```
 pkg/runtime/runtimes/java/
-├── barrister2/
+├── pulserpc/
 │   ├── RPCError.java
 │   ├── Validation.java
 │   └── Types.java

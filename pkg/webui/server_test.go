@@ -438,7 +438,7 @@ struct User {
 // Helper functions
 
 func createTestServer(t *testing.T) *Server {
-	tempDir, err := os.MkdirTemp("", "barrister-test-server-*")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-server-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
@@ -466,7 +466,7 @@ func createTestServer(t *testing.T) *Server {
 }
 
 func createTestServerWithShortMaxAge(t *testing.T) *Server {
-	tempDir, err := os.MkdirTemp("", "barrister-test-server-*")
+	tempDir, err := os.MkdirTemp("", "pulserpc-test-server-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

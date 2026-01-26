@@ -1,11 +1,11 @@
-# Barrister2 Documentation Design
+# PulseRPC2 Documentation Design
 
 **Date:** 2026-01-13
 **Status:** Approved
 
 ## Overview
 
-Create comprehensive documentation for Barrister2 hosted on GitHub Pages using Jekyll with Lunr.js search. The documentation will include installation instructions and language-specific quickstart guides demonstrating how to write clients and servers in all supported languages (Go, Java, Python, TypeScript, C#).
+Create comprehensive documentation for PulseRPC2 hosted on GitHub Pages using Jekyll with Lunr.js search. The documentation will include installation instructions and language-specific quickstart guides demonstrating how to write clients and servers in all supported languages (Go, Java, Python, TypeScript, C#).
 
 ## Goals
 
@@ -191,7 +191,7 @@ interface OrderService {
 
 ### Error Handling
 
-The quickstart demonstrates Barrister's error handling mechanism:
+The quickstart demonstrates PulseRPC's error handling mechanism:
 
 ```json
 // Example payment failure
@@ -216,7 +216,7 @@ Each language quickstart (`/languages/{lang}/quickstart.md`) follows a consisten
 
 ### 1. Prerequisites & Setup (5 min)
 - Language/version requirements
-- Install Barrister CLI
+- Install PulseRPC CLI
 - Install language dependencies
 - Initialize project
 
@@ -227,9 +227,9 @@ Each language quickstart (`/languages/{lang}/quickstart.md`) follows a consisten
 
 ### 3. Generate Code (1 min)
 ```bash
-barrister -package checkout -runtime python-client-server checkout.idl
+pulserpc -package checkout -runtime python-client-server checkout.idl
 ```
-- Explain generated files (`idl.{ext}`, `server.{ext}`, `client.{ext}`, `barrister2/`)
+- Explain generated files (`idl.{ext}`, `server.{ext}`, `client.{ext}`, `pulserpc/`)
 
 ### 4. Implement the Server (10-15 min)
 - Complete working server implementation
@@ -350,9 +350,9 @@ CI runs these tests on every PR. If tests fail, docs don't deploy.
 
 | Method | Steps | Best For |
 |--------|-------|----------|
-| **Go Install** | `go install github.com/coopernurse/barrister2@latest` | Go developers, want latest |
+| **Go Install** | `go install github.com/coopernurse/pulserpc@latest` | Go developers, want latest |
 | **Download Binary** | Download from Releases, add to PATH | Quick setup, no Go needed |
-| **Docker** | `docker pull ghcr.io/coopernurse/barrister2:latest` | Containerized workflows |
+| **Docker** | `docker pull ghcr.io/coopernurse/pulserpc:latest` | Containerized workflows |
 | **Build from Source** | `git clone && make build` | Contributing, custom builds |
 
 ### Language-Specific Prerequisites
@@ -367,10 +367,10 @@ Each language has an `install.md` covering:
 ### `_config.yml`
 
 ```yaml
-title: Barrister2 RPC
+title: PulseRPC2 RPC
 description: IDL-based JSON-RPC code generation
 lang: en
-baseurl: /barrister2
+baseurl: /pulserpc
 
 markdown: kramdown
 highlighter: rouge
@@ -422,7 +422,7 @@ jobs:
 
 ## Success Criteria
 
-1. ✅ New users can install Barrister in <5 minutes
+1. ✅ New users can install PulseRPC in <5 minutes
 2. ✅ Developers can build a working RPC service in their language in <35 minutes
 3. ✅ All code examples are tested and guaranteed to work
 4. ✅ Documentation is searchable via Lunr.js
