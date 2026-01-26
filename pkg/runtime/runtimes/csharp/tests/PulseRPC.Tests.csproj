@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\barrister2.csproj" />
+    <ProjectReference Include="..\PulseRPC.csproj" />
   </ItemGroup>
 
 </Project>

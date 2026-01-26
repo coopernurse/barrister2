@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Barrister2
+namespace PulseRPC
 {
     /// <summary>
     /// Helper functions for working with type definitions

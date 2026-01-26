@@ -3,10 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Barrister2
+namespace PulseRPC
 {
     /// <summary>
-    /// Validation functions for Barrister types
+    /// Validation functions for PulseRPC types
     /// </summary>
     public static class Validation
     {

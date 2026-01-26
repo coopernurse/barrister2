@@ -1,6 +1,6 @@
 using System;
 
-namespace Barrister2
+namespace PulseRPC
 {
     /// <summary>
     /// Exception class for JSON-RPC 2.0 errors

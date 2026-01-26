@@ -1,6 +1,6 @@
-# Barrister C# Runtime
+# PulseRPC C# Runtime
 
-This directory contains the C# runtime library for Barrister, targeting .NET 8.0.
+This directory contains the C# runtime library for PulseRPC, targeting .NET 8.0.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ This directory contains the C# runtime library for Barrister, targeting .NET 8.0
 
 ```
 csharp/
-├── barrister2/          # Runtime library source files
+├── PulseRPC/          # Runtime library source files
 │   ├── RPCError.cs      # JSON-RPC error exception class
 │   ├── Validation.cs    # Type validation functions
 │   └── Types.cs         # Type helper utilities
@@ -18,7 +18,7 @@ csharp/
 │   ├── ValidationTests.cs
 │   ├── TypesTests.cs
 │   └── RPCTests.cs
-└── barrister2.csproj    # Project file for runtime library
+└── PulseRPC.csproj    # Project file for runtime library
 ```
 
 ## Building and Testing
@@ -46,7 +46,7 @@ This uses the official Microsoft .NET SDK 8.0 Docker image (`mcr.microsoft.com/d
 The runtime library provides:
 
 - **RPCError**: Exception class for JSON-RPC 2.0 errors
-- **Validation**: Type validation functions for all Barrister types (built-ins, arrays, maps, enums, structs)
+- **Validation**: Type validation functions for all PulseRPC types (built-ins, arrays, maps, enums, structs)
 - **Types**: Helper functions for working with type definitions (finding structs/enums, resolving inheritance)
 
 ## Generated Code
@@ -65,7 +65,7 @@ When you generate C# code from an IDL, the generator creates:
 ```csharp
 using Server;
 
-var server = new BarristerServer();
+var server = new PulseRPCServer();
 server.Register("MyInterface", new MyInterfaceImpl());
 await server.RunAsync("localhost", 8080);
 ```

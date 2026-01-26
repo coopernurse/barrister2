@@ -11,7 +11,7 @@ ifeq ($(DOCKER_AVAILABLE),yes)
 	@$(MAKE) test-docker
 else
 	@echo "Using local .NET for testing..."
-	@dotnet test tests/barrister2.Tests.csproj
+	@dotnet test tests/PulseRPC.Tests.csproj
 endif
 
 # Test using Docker
@@ -19,7 +19,7 @@ test-docker:
 	@echo "Testing C# runtime in Docker..."
 	@docker run --rm -v $(PWD):/workspace -w /workspace \
 		$(CSHARP_IMAGE) \
-		/bin/bash -c "dotnet test tests/barrister2.Tests.csproj"
+		/bin/bash -c "dotnet test tests/PulseRPC.Tests.csproj"
 
 # Test generator integration (requires Docker)
 test-integration:

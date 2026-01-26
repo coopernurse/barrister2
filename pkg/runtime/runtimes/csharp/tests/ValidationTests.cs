@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Xunit;
-using Barrister2;
+using PulseRPC;
 
-namespace Barrister2.Tests
+namespace PulseRPC.Tests
 {
     public class BuiltInTypesTests
     {
