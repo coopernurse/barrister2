@@ -1,4 +1,9 @@
 <aside class="sidebar" id="sidebar">
+  <nav class="sidebar__mobile-nav" aria-label="Mobile navigation">
+    <a href="{{ '/get-started/installation.html' | relative_url }}">Get Started</a>
+    <a href="{{ site.github_repo | default: '#' }}" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+
   {% for section in site.data.navigation %}
     <div class="sidebar__section">
       {% if section.title %}

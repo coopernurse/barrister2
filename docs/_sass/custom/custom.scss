@@ -1017,6 +1017,7 @@ header nav a {
   .header__nav {
     order: 4;
     width: 100%;
+    display: none;
   }
 
   header h1 {
@@ -1148,10 +1149,47 @@ body.mobile-menu-open header nav {
     word-wrap: break-word;
   }
 
+  html,
+  body {
+    width: 100%;
+  }
+
+  .layout {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .header {
+    flex-wrap: nowrap;
+    gap: var(--spacing-sm);
+  }
+
+  .mobile-menu-toggle {
+    flex: 0 0 auto;
+  }
+
+  .header__logo {
+    min-width: 0;
+  }
+
+  .header__logo-text {
+    max-width: 65vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   // Improve readability
   main {
     font-size: 16px; // Ensure readable font size
     line-height: 1.6;
+  }
+
+  .main,
+  .footer {
+    max-width: 100%;
+    min-width: 0;
   }
 
   h1 {
@@ -1188,6 +1226,14 @@ body.mobile-menu-open header nav {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+  }
+
+  img,
+  svg,
+  video,
+  iframe {
+    max-width: 100%;
+    height: auto;
   }
 
   // Breadcrumb improvements
