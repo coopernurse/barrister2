@@ -3,12 +3,20 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
 
+# Install Node.js for building web UI
+RUN apk add --no-cache nodejs npm
+
 # Optimize layer caching - copy deps first
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source and build
 COPY . .
+
+# Build web UI (required for embed)
+RUN cd pkg/webui && npm ci && npm run build
+
+# Build Go binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" \
     -o /pulserpc ./cmd/pulse/pulse.go
 
