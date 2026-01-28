@@ -15,7 +15,7 @@ Build a complete PulseRPC service in TypeScript with our e-commerce checkout exa
 
 ## 1. Define the Service (2 min)
 
-Create `checkout.idl` with your service definition:
+Create `checkout.pulse` with your service definition:
 
 ```idl
 namespace checkout
@@ -139,7 +139,7 @@ interface OrderService {
 Generate the TypeScript code from your IDL:
 
 ```bash
-pulserpc -plugin ts-client-server checkout.idl
+pulserpc -plugin ts-client-server checkout.pulse
 ```
 
 This creates:

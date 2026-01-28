@@ -14,7 +14,7 @@ Build a complete PulseRPC service in C# with our e-commerce checkout example.
 
 ## 1. Define the Service (2 min)
 
-Create `checkout.idl` with your service definition:
+Create `checkout.pulse` with your service definition:
 
 ```idl
 namespace checkout
@@ -138,7 +138,7 @@ interface OrderService {
 Generate the C# code from your IDL:
 
 ```bash
-pulserpc -plugin csharp-client-server checkout.idl
+pulserpc -plugin csharp-client-server checkout.pulse
 ```
 
 This creates:

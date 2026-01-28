@@ -27,7 +27,7 @@ mkdir checkout-service && cd checkout-service
 go mod init checkout-service
 ```
 
-Create `checkout.idl` with your service definition:
+Create `checkout.pulse` with your service definition:
 
 ```idl
 namespace checkout
@@ -152,7 +152,7 @@ Generate the Go code from your IDL:
 
 ```bash
 mkdir -p pkg/checkout
-pulserpc -plugin go-client-server -dir pkg/checkout checkout.idl
+pulserpc -plugin go-client-server -dir pkg/checkout checkout.pulse
 ```
 
 This creates:
@@ -171,7 +171,7 @@ Your directory should look like this:
 ```
 checkout-service/
 ├── go.mod
-├── checkout.idl
+├── checkout.pulse
 └── pkg/
     └── checkout/
         ├── checkout.go
@@ -434,7 +434,7 @@ return nil, checkout.NewRPCError(1002, "CartEmpty: Cannot create order from empt
 ```
 checkout-service/
 ├── go.mod                 # Your module file
-├── checkout.idl           # Your IDL
+├── checkout.pulse           # Your IDL
 └── pkg/
     └── checkout/
         ├── checkout.go    # Generated types

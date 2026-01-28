@@ -15,7 +15,7 @@ Build a complete PulseRPC service in Java with our e-commerce checkout example.
 
 ## 1. Define the Service (2 min)
 
-Create `checkout.idl` with your service definition:
+Create `checkout.pulse` with your service definition:
 
 ```idl
 namespace checkout
@@ -139,7 +139,7 @@ interface OrderService {
 Generate the Java code from your IDL:
 
 ```bash
-pulserpc -plugin java-client-server -base-package com.example.myapp checkout.idl
+pulserpc -plugin java-client-server -base-package com.example.myapp checkout.pulse
 ```
 
 This creates:

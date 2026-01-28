@@ -66,7 +66,7 @@ class RPCError extends Error {
 The runtime library is automatically included when you generate TypeScript code from an IDL using the `ts-client-server` plugin:
 
 ```bash
-pulserpc -plugin ts-client-server -dir output examples/book.idl
+pulserpc -plugin ts-client-server -dir output examples/book.pulse
 ```
 
 This generates:

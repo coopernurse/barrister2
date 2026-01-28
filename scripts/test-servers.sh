@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
+TEST_IDL="$PROJECT_ROOT/examples/conform.pulse"
 BINARY_PATH="$PROJECT_ROOT/target/pulserpc"
 CONTAINER_PREFIX="pulserpc-test"
 TIMEOUT=30

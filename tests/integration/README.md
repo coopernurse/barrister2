@@ -17,9 +17,9 @@ This ensures that:
 - Type validation works end-to-end
 - All IDL features are properly supported
 
-## Test IDL: `conform.idl`
+## Test IDL: `conform.pulse`
 
-The test uses `examples/conform.idl` which is designed to exercise all IDL features:
+The test uses `examples/conform.pulse` which is designed to exercise all IDL features:
 
 ### Built-in Types
 - `string` - Used in various methods
@@ -29,7 +29,7 @@ The test uses `examples/conform.idl` which is designed to exercise all IDL featu
 
 ### Complex Types
 - **Arrays**: `[]string`, `[]int`, `[]float` - Tested in `repeat()`, `repeat_num()`, `calc()`
-- **Maps**: Not currently in conform.idl, but supported by the framework
+- **Maps**: Not currently in conform.pulse, but supported by the framework
 
 ### User-Defined Types
 - **Structs**: `RepeatRequest`, `RepeatResponse`, `HiResponse`, `Person`

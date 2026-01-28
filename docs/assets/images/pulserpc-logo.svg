@@ -1,0 +1,22 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PulseRPC logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2B1055"/>
+      <stop offset="1" stop-color="#12082F"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="40" y1="40" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF2FD2"/>
+      <stop offset="0.5" stop-color="#7B5CFF"/>
+      <stop offset="1" stop-color="#5CE1FF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(120 120) rotate(90) scale(90)">
+      <stop offset="0" stop-color="#5CE1FF" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#12082F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="120" cy="120" r="110" fill="url(#bg)" stroke="url(#neon)" stroke-width="6"/>
+  <circle cx="120" cy="120" r="92" fill="url(#glow)"/>
+  <path d="M40 126H78L92 92L114 156L132 110L146 126H200" stroke="url(#neon)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="78" cy="126" r="6" fill="#5CE1FF"/>
+  <circle cx="200" cy="126" r="6" fill="#FF2FD2"/>
+</svg>

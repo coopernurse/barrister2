@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TEST_IDL="$PROJECT_ROOT/examples/conform.idl"
+TEST_IDL="$PROJECT_ROOT/examples/conform.pulse"
 OUTPUT_DIR="/tmp/pulserpc_test_java_$$"
 NATIVE_BINARY="$PROJECT_ROOT/target/pulserpc"
 LINUX_BINARY="$PROJECT_ROOT/target/pulserpc-amd64"

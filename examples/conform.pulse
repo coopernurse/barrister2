@@ -6,7 +6,7 @@
 
 namespace conform
 
-import "conform-inc.idl"
+import "conform-inc.pulse"
 
 // testing struct inheritance
 struct RepeatResponse extends inc.Response {

@@ -122,7 +122,7 @@ interface UserService {
 Import other IDL files:
 
 ```idl
-import "common.idl"
+import "common.pulse"
 ```
 
 ## Complete Example

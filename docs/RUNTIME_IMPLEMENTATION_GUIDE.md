@@ -796,7 +796,7 @@ def main():
 A test harness script (`tests/integration/test_generator.sh`) should:
 
 1. **Build the pulserpc binary** (if needed)
-2. **Generate code** from `examples/conform.idl` with `-test-server` flag
+2. **Generate code** from `examples/conform.pulse` with `-test-server` flag
 3. **Start the test server** in background
 4. **Wait for server to be ready** (poll or timeout)
 5. **Run the test client** program
@@ -840,7 +840,7 @@ test-generators: test-generator-python test-generator-{lang}
 
 #### Test IDL
 
-The `examples/conform.idl` file is designed to exercise all IDL features:
+The `examples/conform.pulse` file is designed to exercise all IDL features:
 
 - All built-in types (string, int, float, bool)
 - Arrays and maps

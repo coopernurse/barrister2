@@ -5,7 +5,10 @@
     <span></span>
   </button>
 
-  <a href="{{ '/' | relative_url }}" class="header__logo">{{ site.title }}</a>
+  <a href="{{ '/' | relative_url }}" class="header__logo">
+    <img class="header__logo-mark" src="{{ '/assets/images/pulserpc-logo.svg' | relative_url }}" alt="PulseRPC" />
+    <span class="header__logo-text">{{ site.title }}</span>
+  </a>
 
   <div class="header__search">
     {% include search.html %}

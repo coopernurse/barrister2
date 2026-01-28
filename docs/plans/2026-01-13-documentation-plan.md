@@ -107,10 +107,10 @@ Liquid::Template.register_tag('code_file', Jekyll::CodeFile)
 
 ## Phase 2: Example IDL (2 tasks)
 
-### 2.1 Create checkout.idl
+### 2.1 Create checkout.pulse
 
 **File to create:**
-- `examples/checkout.idl` (root level, shared reference)
+- `examples/checkout.pulse` (root level, shared reference)
 
 **IDL contents** (from design):
 - Namespace: `checkout`
@@ -120,23 +120,23 @@ Liquid::Template.register_tag('code_file', Jekyll::CodeFile)
 - Error codes: 1001-1005 documented
 
 **Expected:**
-- IDL compiles successfully with `./target/pulserpc checkout.idl`
+- IDL compiles successfully with `./target/pulserpc checkout.pulse`
 - Covers all IDL features: namespace, interface, struct, enum, optional fields, arrays, extends (if any)
 
 ---
 
-### 2.2 Validate checkout.idl with all runtimes
+### 2.2 Validate checkout.pulse with all runtimes
 
 **Task:**
-Generate code for all supported languages from checkout.idl
+Generate code for all supported languages from checkout.pulse
 
 **Commands to run:**
 ```bash
-./target/pulserpc -runtime go-client-server examples/checkout.idl
-./target/pulserpc -runtime java-client-server examples/checkout.idl
-./target/pulserpc -runtime python-client-server examples/checkout.idl
-./target/pulserpc -runtime ts-client-server examples/checkout.idl
-./target/pulserpc -runtime csharp-client-server examples/checkout.idl
+./target/pulserpc -runtime go-client-server examples/checkout.pulse
+./target/pulserpc -runtime java-client-server examples/checkout.pulse
+./target/pulserpc -runtime python-client-server examples/checkout.pulse
+./target/pulserpc -runtime ts-client-server examples/checkout.pulse
+./target/pulserpc -runtime csharp-client-server examples/checkout.pulse
 ```
 
 **Expected:**
@@ -154,7 +154,7 @@ Generate code for all supported languages from checkout.idl
 - `docs/examples/checkout-python/`
 
 **Files to create:**
-- `checkout.idl` - Copy from examples/checkout.idl
+- `checkout.pulse` - Copy from examples/checkout.pulse
 - `server.py` - Full server implementation
 - `client.py` - Full client implementation
 - `README.md` - Brief instructions
@@ -185,7 +185,7 @@ Generate code for all supported languages from checkout.idl
 - `docs/examples/checkout-go/`
 
 **Files to create:**
-- `idl/checkout.idl`
+- `idl/checkout.pulse`
 - `server/main.go`
 - `server/go.mod`
 - `client/main.go`
@@ -211,7 +211,7 @@ Generate code for all supported languages from checkout.idl
 - `docs/examples/checkout-java/`
 
 **Files to create:**
-- `checkout.idl`
+- `checkout.pulse`
 - `src/main/java/checkout/Server.java`
 - `src/main/java/checkout/Client.java`
 - `pom.xml` or `build.gradle`
@@ -230,7 +230,7 @@ Generate code for all supported languages from checkout.idl
 - `docs/examples/checkout-typescript/`
 
 **Files to create:**
-- `checkout.idl`
+- `checkout.pulse`
 - `server.ts`
 - `client.ts`
 - `package.json`
@@ -250,7 +250,7 @@ Generate code for all supported languages from checkout.idl
 - `docs/examples/checkout-csharp/`
 
 **Files to create:**
-- `checkout.idl`
+- `checkout.pulse`
 - `Server.cs`
 - `Client.cs`
 - `checkout.csproj`
@@ -295,7 +295,7 @@ Generate code for all supported languages from checkout.idl
 2. What you'll learn (IDL syntax, code gen, server impl, client usage)
 3. Time estimate (25-35 min)
 4. Links to language-specific quickstarts
-5. Brief preview of the checkout.idl
+5. Brief preview of the checkout.pulse
 
 **Expected:**
 - User understands what they'll build
@@ -314,7 +314,7 @@ Generate code for all supported languages from checkout.idl
 4. Enums
 5. Comments
 6. Imports (if supported)
-7. Complete example using checkout.idl excerpts
+7. Complete example using checkout.pulse excerpts
 
 **Expected:**
 - Clear reference for IDL syntax
@@ -364,7 +364,7 @@ Generate code for all supported languages from checkout.idl
 
 **Content structure:**
 1. Prerequisites & Setup
-2. Define the Service (show checkout.idl)
+2. Define the Service (show checkout.pulse)
 3. Generate Code
 4. Implement the Server (using `{% code_file examples/checkout-python/server.py %}`)
 5. Implement the Client (using `{% code_file examples/checkout-python/client.py %}`)

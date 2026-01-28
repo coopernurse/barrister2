@@ -1,6 +1,6 @@
 #!/bin/bash
 # HTTP API integration test suite for PulseRPC servers
-# Tests all conform.idl methods via raw JSON-RPC requests
+# Tests all conform.pulse methods via raw JSON-RPC requests
 # Can be run against any runtime implementation (Python, TypeScript, C#)
 
 set -e

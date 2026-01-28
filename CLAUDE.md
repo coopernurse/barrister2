@@ -107,7 +107,7 @@ npm run lint                  # ESLint
 1. Generate code with `-generate-test-files` flag (creates `test_server.*` and `test_client.*` - default is false)
 2. Start server in Docker container
 3. Run client tests validating all interface methods
-4. Uses [examples/conform.idl](examples/conform.idl) which exercises all IDL features
+4. Uses [examples/conform.pulse](examples/conform.pulse) which exercises all IDL features
 
 ## Adding New Language Support
 

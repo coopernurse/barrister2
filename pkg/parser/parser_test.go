@@ -31,7 +31,7 @@ func parseAndValidate(input string) (*IDL, error) {
 		}
 	}
 
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func parseAndValidate(input string) (*IDL, error) {
 // Helper to assert parse errors
 func assertParseError(t *testing.T, input string) {
 	t.Helper()
-	_, err := ParseIDL("test.idl", input)
+	_, err := ParseIDL("test.pulse", input)
 	if err == nil {
 		t.Errorf("Expected parse error for input:\n%s\nBut got nil", input)
 		return
@@ -77,7 +77,7 @@ func assertValidationError(t *testing.T, input string, expectedErrorSubstring st
 		}
 	}
 
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Errorf("Unexpected parse error for input:\n%s\nError: %v", input, err)
 		return
@@ -178,7 +178,7 @@ func TestValidMapTypes(t *testing.T) {
 	input := `struct Test {
   nameMap map[string]string
 }`
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Logf("Map parsing issue: %v", err)
 		// Maps may have parsing issues with certain value types
@@ -193,7 +193,7 @@ func TestValidMapTypes(t *testing.T) {
 	input2 := `struct Test {
   idMap map[string]int
 }`
-	idl2, err2 := ParseIDL("test.idl", input2)
+	idl2, err2 := ParseIDL("test.pulse", input2)
 	if err2 != nil {
 		t.Logf("Map[int] parsing issue: %v", err2)
 	} else {
@@ -361,7 +361,7 @@ func TestInvalidUnknownBuiltInType(t *testing.T) {
 	input := `struct Test {
   field unknown
 }`
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -509,7 +509,7 @@ func TestCycleDetectionSelfReferenceWithoutOptional(t *testing.T) {
   next Node
 }`
 	// This should fail validation due to cycle
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -542,7 +542,7 @@ struct B {
   a A
 }`
 	// This should fail validation due to indirect cycle
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -576,7 +576,7 @@ struct Child extends Base {
   value string
 }`
 	// This creates a cycle through extends
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -592,7 +592,7 @@ func TestCycleDetectionInArray(t *testing.T) {
   children []Node
 }`
 	// This should fail - array of self without optional
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -617,7 +617,7 @@ func TestCycleDetectionInMap(t *testing.T) {
   children map[string]Node
 }`
 	// This should fail - map value of self without optional
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Fatalf("Unexpected parse error: %v", err)
 	}
@@ -634,7 +634,7 @@ func TestCycleDetectionInMapWithOptional(t *testing.T) {
 }`
 	// This should pass because optional
 	// Note: May fail parsing if map[string]Node isn't supported
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Logf("Map parsing may have issues: %v", err)
 		return
@@ -714,7 +714,7 @@ struct User {
   id string
 }`
 	// This should be caught during validation or parsing
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		return // Parse error is acceptable
 	}
@@ -821,7 +821,7 @@ func TestNestedComplexTypes(t *testing.T) {
   nestedMap map[string]map[string]int
   tripleNested [][][]int
 }`
-	_, err := ParseIDL("test.idl", input)
+	_, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Logf("Nested types not supported (expected): %v", err)
 	} else {
@@ -842,7 +842,7 @@ func TestAllBuiltInTypes(t *testing.T) {
   boolArray []bool
 }`
 	// intArray []int appears to have a parsing issue
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		t.Logf("Parsing issue with some array types: %v", err)
 		// Test with minimal case
@@ -928,15 +928,15 @@ enum Status {
 struct Response {
     status Status
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
 	// Create main file that imports
-	mainContent := `import "imported.idl"
+	mainContent := `import "imported.pulse"
 
 struct MyResponse extends inc.Response {
     count int
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -983,25 +983,25 @@ enum CEnum {
     value1
     value2
 }`
-	createTestFile(t, tmpDir, "c.idl", cContent)
+	createTestFile(t, tmpDir, "c.pulse", cContent)
 
 	// File B imports C
 	bContent := `namespace b
 
-import "c.idl"
+import "c.pulse"
 
 struct BStruct {
     cEnum c.CEnum
 }`
-	createTestFile(t, tmpDir, "b.idl", bContent)
+	createTestFile(t, tmpDir, "b.pulse", bContent)
 
 	// File A imports B
-	aContent := `import "b.idl"
+	aContent := `import "b.pulse"
 
 struct AStruct {
     bStruct b.BStruct
 }`
-	aFile := createTestFile(t, tmpDir, "a.idl", aContent)
+	aFile := createTestFile(t, tmpDir, "a.pulse", aContent)
 
 	idl, err := parseIDLFromFile(t, aFile)
 	if err != nil {
@@ -1049,7 +1049,7 @@ func TestMultipleImportsDifferentNamespaces(t *testing.T) {
 struct AStruct {
     value string
 }`
-	createTestFile(t, tmpDir, "a.idl", aContent)
+	createTestFile(t, tmpDir, "a.pulse", aContent)
 
 	// File with namespace b
 	bContent := `namespace b
@@ -1057,17 +1057,17 @@ struct AStruct {
 struct BStruct {
     value int
 }`
-	createTestFile(t, tmpDir, "b.idl", bContent)
+	createTestFile(t, tmpDir, "b.pulse", bContent)
 
 	// Main file imports both
-	mainContent := `import "a.idl"
-import "b.idl"
+	mainContent := `import "a.pulse"
+import "b.pulse"
 
 struct MainStruct {
     aStruct a.AStruct
     bStruct b.BStruct
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1103,9 +1103,9 @@ func TestMixedLocalAndImported(t *testing.T) {
 struct ImportedStruct {
     value string
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
-	mainContent := `import "imported.idl"
+	mainContent := `import "imported.pulse"
 
 struct LocalStruct {
     value int
@@ -1115,7 +1115,7 @@ interface Service {
     useLocal(local LocalStruct) LocalStruct
     useImported(imp imported.ImportedStruct) imported.ImportedStruct
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1152,14 +1152,14 @@ func TestQualifiedTypeInStructExtends(t *testing.T) {
 struct BaseStruct {
     id string
 }`
-	createTestFile(t, tmpDir, "base.idl", importedContent)
+	createTestFile(t, tmpDir, "base.pulse", importedContent)
 
-	mainContent := `import "base.idl"
+	mainContent := `import "base.pulse"
 
 struct ExtendedStruct extends base.BaseStruct {
     extra string
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1195,14 +1195,14 @@ enum MathOp {
 struct Response {
     status string
 }`
-	createTestFile(t, tmpDir, "types.idl", importedContent)
+	createTestFile(t, tmpDir, "types.pulse", importedContent)
 
-	mainContent := `import "types.idl"
+	mainContent := `import "types.pulse"
 
 interface Service {
     calc(operation types.MathOp) types.Response
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1239,22 +1239,22 @@ func TestImportCycleDirect(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// File A imports B
-	aContent := `import "b.idl"
+	aContent := `import "b.pulse"
 
 struct AStruct {
     value string
 }`
-	createTestFile(t, tmpDir, "a.idl", aContent)
+	createTestFile(t, tmpDir, "a.pulse", aContent)
 
 	// File B imports A (cycle!)
-	bContent := `import "a.idl"
+	bContent := `import "a.pulse"
 
 struct BStruct {
     value int
 }`
-	createTestFile(t, tmpDir, "b.idl", bContent)
+	createTestFile(t, tmpDir, "b.pulse", bContent)
 
-	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.idl"))
+	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.pulse"))
 	if err == nil {
 		t.Error("Expected error for import cycle, got nil")
 	} else if !strings.Contains(err.Error(), "cycle") && !strings.Contains(err.Error(), "import") {
@@ -1267,30 +1267,30 @@ func TestImportCycleIndirect(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// File A imports B
-	aContent := `import "b.idl"
+	aContent := `import "b.pulse"
 
 struct AStruct {
     value string
 }`
-	createTestFile(t, tmpDir, "a.idl", aContent)
+	createTestFile(t, tmpDir, "a.pulse", aContent)
 
 	// File B imports C
-	bContent := `import "c.idl"
+	bContent := `import "c.pulse"
 
 struct BStruct {
     value int
 }`
-	createTestFile(t, tmpDir, "b.idl", bContent)
+	createTestFile(t, tmpDir, "b.pulse", bContent)
 
 	// File C imports A (indirect cycle!)
-	cContent := `import "a.idl"
+	cContent := `import "a.pulse"
 
 struct CStruct {
     value bool
 }`
-	createTestFile(t, tmpDir, "c.idl", cContent)
+	createTestFile(t, tmpDir, "c.pulse", cContent)
 
-	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.idl"))
+	_, err := parseIDLFromFile(t, filepath.Join(tmpDir, "a.pulse"))
 	if err == nil {
 		t.Error("Expected error for indirect import cycle, got nil")
 	} else if !strings.Contains(err.Error(), "cycle") && !strings.Contains(err.Error(), "import") {
@@ -1308,22 +1308,22 @@ func TestDuplicateNamespace(t *testing.T) {
 struct Struct1 {
     value string
 }`
-	createTestFile(t, tmpDir, "file1.idl", file1Content)
+	createTestFile(t, tmpDir, "file1.pulse", file1Content)
 
 	file2Content := `namespace inc
 
 struct Struct2 {
     value int
 }`
-	createTestFile(t, tmpDir, "file2.idl", file2Content)
+	createTestFile(t, tmpDir, "file2.pulse", file2Content)
 
-	mainContent := `import "file1.idl"
-import "file2.idl"
+	mainContent := `import "file1.pulse"
+import "file2.pulse"
 
 struct MainStruct {
     value bool
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	_, err := parseIDLFromFile(t, mainFile)
 	if err == nil {
@@ -1347,7 +1347,7 @@ struct Test2 {
     value int
 }`
 
-	_, err := ParseIDL("test.idl", input)
+	_, err := ParseIDL("test.pulse", input)
 	if err == nil {
 		t.Error("Expected error for multiple namespace declarations in same file, got nil")
 	} else if !strings.Contains(err.Error(), "multiple namespace declarations") {
@@ -1359,12 +1359,12 @@ struct Test2 {
 func TestMissingImportFile(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	mainContent := `import "nonexistent.idl"
+	mainContent := `import "nonexistent.pulse"
 
 struct MainStruct {
     value string
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	_, err := parseIDLFromFile(t, mainFile)
 	if err == nil {
@@ -1385,7 +1385,7 @@ func TestInvalidNamespace(t *testing.T) {
 struct Test {
     value string
 }`
-	invalidFile := createTestFile(t, tmpDir, "invalid.idl", invalidContent)
+	invalidFile := createTestFile(t, tmpDir, "invalid.pulse", invalidContent)
 
 	_, err := parseIDLFromFile(t, invalidFile)
 	// This might parse but fail validation, or fail parsing
@@ -1410,7 +1410,7 @@ struct Test {
     value nonexistent.Type
 }`
 
-	idl, err := ParseIDL("test.idl", input)
+	idl, err := ParseIDL("test.pulse", input)
 	if err != nil {
 		// Parse error is acceptable
 		return
@@ -1433,16 +1433,16 @@ func TestQualifiedNameNonExistentType(t *testing.T) {
 struct Response {
     status string
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
 	mainContent := `namespace main
 
-import "imported.idl"
+import "imported.pulse"
 
 struct Test {
     value inc.NonExistent
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1465,14 +1465,14 @@ func TestImportFileWithoutNamespace(t *testing.T) {
 	importedContent := `struct ImportedStruct {
     value string
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
-	mainContent := `import "imported.idl"
+	mainContent := `import "imported.pulse"
 
 struct MainStruct {
     imported ImportedStruct
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1501,15 +1501,15 @@ func TestImportSameFileMultipleTimes(t *testing.T) {
 struct Response {
     status string
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
-	mainContent := `import "imported.idl"
-import "imported.idl"
+	mainContent := `import "imported.pulse"
+import "imported.pulse"
 
 struct MainStruct {
     value string
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1543,15 +1543,15 @@ func TestImportPathResolution(t *testing.T) {
 struct SubStruct {
     value string
 }`
-	createTestFile(t, subDir, "sub.idl", subFileContent)
+	createTestFile(t, subDir, "sub.pulse", subFileContent)
 
 	// Main file with relative import
-	mainContent := `import "subdir/sub.idl"
+	mainContent := `import "subdir/sub.pulse"
 
 struct MainStruct {
     sub sub.SubStruct
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1581,23 +1581,23 @@ func TestTypeNameConflictsAcrossNamespaces(t *testing.T) {
 struct Response {
     value string
 }`
-	createTestFile(t, tmpDir, "a.idl", file1Content)
+	createTestFile(t, tmpDir, "a.pulse", file1Content)
 
 	file2Content := `namespace b
 
 struct Response {
     value int
 }`
-	createTestFile(t, tmpDir, "b.idl", file2Content)
+	createTestFile(t, tmpDir, "b.pulse", file2Content)
 
-	mainContent := `import "a.idl"
-import "b.idl"
+	mainContent := `import "a.pulse"
+import "b.pulse"
 
 struct MainStruct {
     aResp a.Response
     bResp b.Response
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {
@@ -1634,19 +1634,19 @@ func TestImportStatementOrdering(t *testing.T) {
 struct Response {
     status string
 }`
-	createTestFile(t, tmpDir, "imported.idl", importedContent)
+	createTestFile(t, tmpDir, "imported.pulse", importedContent)
 
 	// Import after type definition
 	mainContent := `struct LocalStruct {
     value string
 }
 
-import "imported.idl"
+import "imported.pulse"
 
 interface Service {
     method() inc.Response
 }`
-	mainFile := createTestFile(t, tmpDir, "main.idl", mainContent)
+	mainFile := createTestFile(t, tmpDir, "main.pulse", mainContent)
 
 	idl, err := parseIDLFromFile(t, mainFile)
 	if err != nil {

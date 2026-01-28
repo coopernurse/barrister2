@@ -44,14 +44,14 @@ Create comprehensive documentation for PulseRPC hosted on GitHub Pages using Jek
 ├── examples/
 │   ├── checkout-go/
 │   │   ├── idl/
-│   │   │   └── checkout.idl
+│   │   │   └── checkout.pulse
 │   │   ├── server/
 │   │   │   ├── main.go
 │   │   │   └── go.mod
 │   │   └── client/
 │   │       └── main.go
 │   ├── checkout-python/
-│   │   ├── checkout.idl
+│   │   ├── checkout.pulse
 │   │   ├── server.py
 │   │   └── client.py
 │   ├── checkout-java/
@@ -85,7 +85,7 @@ E-commerce checkout demonstrates realistic patterns while remaining accessible:
 - **Error scenarios** - Out of stock, payment failures, validation errors
 - **Service boundaries** - Clean separation between catalog, cart, and order concerns
 
-### The IDL: `checkout.idl`
+### The IDL: `checkout.pulse`
 
 ```idl
 namespace checkout
@@ -221,13 +221,13 @@ Each language quickstart (`/languages/{lang}/quickstart.md`) follows a consisten
 - Initialize project
 
 ### 2. Define the Service (2 min)
-- Present the complete `checkout.idl`
+- Present the complete `checkout.pulse`
 - Brief explanations of key concepts
 - Link to full IDL reference
 
 ### 3. Generate Code (1 min)
 ```bash
-pulserpc -package checkout -runtime python-client-server checkout.idl
+pulserpc -package checkout -runtime python-client-server checkout.pulse
 ```
 - Explain generated files (`idl.{ext}`, `server.{ext}`, `client.{ext}`, `pulserpc/`)
 

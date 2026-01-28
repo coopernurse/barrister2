@@ -41,7 +41,7 @@ Select your preferred language to continue:
 
 ## Preview: The IDL
 
-Here's a sneak peek at the `checkout.idl` file you'll work with:
+Here's a sneak peek at the `checkout.pulse` file you'll work with:
 
 ```idl
 namespace checkout

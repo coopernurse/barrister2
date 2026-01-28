@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-PulseRPC is a JSON-RPC 2.0 system with IDL-based type definitions, validation, and multi-language code generation. The codebase comprises a Go CLI that parses `.idl` files and generates client/server code for Python, TypeScript, C#, Java, and Go.
+PulseRPC is a JSON-RPC 2.0 system with IDL-based type definitions, validation, and multi-language code generation. The codebase comprises a Go CLI that parses `.pulse` files and generates client/server code for Python, TypeScript, C#, Java, and Go.
 
 **Core Architecture:**
 ```
@@ -56,7 +56,7 @@ make build-linux              # Cross-compile for Docker (AMD64)
 1. **Unit tests:** `make test` - Tests parser and generator logic
 2. **Runtime tests:** `make test-runtimes` - Tests each language's validation/RPC code in isolation
 3. **Integration tests:** `make test-generators` - End-to-end: generate code → start Docker server → run client tests
-   - Uses [examples/conform.idl](examples/conform.idl) which exercises all IDL features
+   - Uses [examples/conform.pulse](examples/conform.pulse) which exercises all IDL features
    - See [tests/integration/README.md](tests/integration/README.md)
 
 ### Running Integration Tests
@@ -101,7 +101,7 @@ make stop-test-servers
 When `-test-server` flag is set:
 - Generate `test_server.{ext}` with concrete implementations of all interface methods
 - Generate `test_client.{ext}` that calls all methods and validates responses
-- Implementations mirror [examples/conform.idl](examples/conform.idl) expectations
+- Implementations mirror [examples/conform.pulse](examples/conform.pulse) expectations
 
 ## Critical Conventions
 
